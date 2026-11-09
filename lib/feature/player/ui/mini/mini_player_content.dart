@@ -50,22 +50,40 @@ class MiniPlayerContent extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: colorScheme.onSurface,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w700,
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
+                    fontSize: 11.5,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(1),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    minHeight: 2,
+                    backgroundColor: colorScheme.primary.withValues(
+                      alpha: 0.12,
+                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colorScheme.primary,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           MiniPlayerPlaybackButton(
             progress: progress,
             isPlaying: state.isPlaying,

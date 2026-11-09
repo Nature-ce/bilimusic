@@ -3,6 +3,8 @@ import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/login_required.dart';
 import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
@@ -802,33 +804,43 @@ class _ProfileQuickActionCard extends StatelessWidget {
 
     return GestureDetector(
       onLongPressStart: onLongPressStart,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        hoverColor: Colors.transparent,
-        splashFactory: NoSplash.splashFactory,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            children: <Widget>[
-              Icon(icon, color: colorScheme.primary, size: 26),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: onTap,
+          hoverColor: Colors.transparent,
+          splashFactory: NoSplash.splashFactory,
+          child: Ink(
+            decoration: appSoftCardDecoration(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.sm + 2,
               ),
-              const SizedBox(height: 2),
-              Text(
-                '$count',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
+              child: Column(
+                children: <Widget>[
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: colorScheme.primary, size: 20),
+                  ),
+                  const SizedBox(height: AppSpacing.xs + 2),
+                  Text(title, style: AppTextStyles.listTitle(theme)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$count',
+                    style: AppTextStyles.meta(
+                      theme,
+                    ).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -846,27 +858,16 @@ class _ProfileSectionHeader extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     return Row(
       children: <Widget>[
-        Text(
-          '歌单',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
+        Text('歌单', style: AppTextStyles.sectionTitle(theme)),
         const Spacer(),
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: onAddPressed,
-            child: SizedBox(
-              width: 38,
-              height: 38,
-              child: Icon(
-                Icons.add_rounded,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+        FilledButton.tonalIcon(
+          onPressed: onAddPressed,
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('新建'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(0, 34),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            visualDensity: VisualDensity.compact,
           ),
         ),
       ],
@@ -906,14 +907,15 @@ class _PlaylistTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             child: Row(
               children: <Widget>[
                 _PlaylistCover(coverUrl: coverUrl),
-                const SizedBox(width: 14),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       Row(
                         children: <Widget>[
@@ -922,26 +924,19 @@ class _PlaylistTile extends StatelessWidget {
                               title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: colorScheme.onSurface,
-                                fontWeight: FontWeight.w800,
-                              ),
+                              style: AppTextStyles.listTitle(
+                                theme,
+                              ).copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
                           if (isRemote) ...<Widget>[
-                            const SizedBox(width: 6),
+                            const SizedBox(width: AppSpacing.xs + 2),
                             _RemoteSourceBadge(colorScheme: colorScheme),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '$count 首',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text('$count 首', style: AppTextStyles.meta(theme)),
                     ],
                   ),
                 ),
@@ -1021,10 +1016,10 @@ class _PlaylistCover extends StatelessWidget {
 
     return CommonCachedImage(
       imageUrl: coverUrl,
-      width: 64,
-      height: 64,
+      width: AppSizes.tileCover,
+      height: AppSizes.tileCover,
       fit: BoxFit.cover,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       placeholder: _PlaylistPlaceholder(primary: primary),
       errorWidget: _PlaylistPlaceholder(primary: primary),
     );
@@ -1039,8 +1034,8 @@ class _PlaylistPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 64,
-      height: 64,
+      width: AppSizes.tileCover,
+      height: AppSizes.tileCover,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: <Color>[

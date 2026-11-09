@@ -62,6 +62,18 @@ Color appDividerColor(BuildContext context) {
   return Theme.of(context).colorScheme.outlineVariant;
 }
 
+/// 列表/卡片常用浅底描边容器，统一圆角与边框强度。
+BoxDecoration appSoftCardDecoration(BuildContext context) {
+  final ColorScheme colorScheme = Theme.of(context).colorScheme;
+  return BoxDecoration(
+    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(
+      color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+    ),
+  );
+}
+
 Color appShadowColor(BuildContext context) {
   final bool isDark = Theme.of(context).brightness == Brightness.dark;
   return Colors.black.withValues(alpha: isDark ? 0.42 : 0.06);

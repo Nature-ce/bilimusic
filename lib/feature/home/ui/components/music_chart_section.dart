@@ -1,5 +1,6 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/common/util/player_util.dart';
@@ -35,17 +36,36 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            '音乐热榜',
-            style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: colorScheme.onSurface,
-              fontSize: 18,
-              letterSpacing: -1.3,
-              height: 1,
-            ),
+          Row(
+            children: <Widget>[
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '音乐热榜',
+                style: AppTextStyles.sectionTitle(theme).copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                state.chart.platform.label,
+                style: AppTextStyles.meta(theme).copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           _ChartPlatformBar(
             selected: state.platform,
             onSelected: (MusicChartPlatform platform) {
@@ -54,7 +74,7 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
                   .selectPlatform(platform);
             },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           _ChartNameBar(
             charts: state.charts,
             selected: state.chart,
@@ -64,7 +84,7 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
                   .selectChart(chart);
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
           if (state.isLoading)
             const _MusicChartLoading()
           else if (state.hasError)
@@ -140,13 +160,14 @@ class _ChartPlatformBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
       children: <Widget>[
         for (final MusicChartPlatform platform in MusicChartPlatform.values)
           _ChartChip(
             label: platform.label,
             selected: platform == selected,
+            emphasis: true,
             onTap: () => onSelected(platform),
           ),
       ],
@@ -168,7 +189,7 @@ class _ChartNameBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 28,
+      height: 30,
       child: SingleChildScrollView(
         key: ValueKey<String>(selected.platform.name),
         scrollDirection: Axis.horizontal,
@@ -176,7 +197,7 @@ class _ChartNameBar extends StatelessWidget {
           children: <Widget>[
             for (final MusicChart chart in charts)
               Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: AppSpacing.sm),
                 child: _ChartChip(
                   label: chart.name,
                   selected: chart == selected,
@@ -197,32 +218,52 @@ class _ChartChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.compact = false,
+    this.emphasis = false,
   });
 
   final String label;
   final bool selected;
   final bool compact;
+
+  /// 平台级 chip：选中时用主色实心，视觉权重高于榜单 chip。
+  final bool emphasis;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color background = selected
+        ? (emphasis
+              ? colorScheme.primary
+              : appChipBackgroundColor(context, selected: true))
+        : appChipBackgroundColor(context, selected: false);
+    final Color foreground = selected
+        ? (emphasis ? colorScheme.onPrimary : colorScheme.primary)
+        : colorScheme.onSurfaceVariant;
+
     return Material(
-      color: appChipBackgroundColor(context, selected: selected),
-      borderRadius: BorderRadius.circular(999),
+      color: background,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         child: Padding(
           padding: compact
-              ? const EdgeInsets.symmetric(horizontal: 12, vertical: 5)
-              : const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              ? const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs + 2,
+                )
+              : const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg - 2,
+                  vertical: AppSpacing.sm - 1,
+                ),
           child: Text(
             label,
             style: TextStyle(
-              fontSize: compact ? 11 : 12,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              color: appChipForegroundColor(context, selected: selected),
-              height: 1.1,
+              fontSize: compact ? 11.5 : 12.5,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              color: foreground,
+              height: 1.15,
             ),
           ),
         ),
@@ -310,78 +351,58 @@ class _MusicChartTrackTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final bool topThree = track.rank <= 3;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs + 2),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: isResolving ? null : onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: SizedBox(
-            height: 54,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xs,
+              vertical: AppSpacing.sm - 2,
+            ),
             child: Row(
               children: <Widget>[
-                SizedBox(
-                  width: 26,
-                  child: Text(
-                    '${track.rank}',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      color: topThree
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
+                _ChartRankBadge(rank: track.rank),
+                const SizedBox(width: AppSpacing.md),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                   child: CommonCachedImage(
                     imageUrl: track.coverUrl,
-                    width: 50,
-                    height: 50,
+                    width: AppSizes.listCover,
+                    height: AppSizes.listCover,
                     fit: BoxFit.cover,
                     fallbackIcon: Icons.music_note_rounded,
                     iconColor: colorScheme.onSurfaceVariant,
-                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    backgroundColor: appSkeletonColor(context),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
                         track.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                          fontSize: 14,
-                          height: 1.2,
-                        ),
+                        style: AppTextStyles.listTitle(theme),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         track.artist.isEmpty ? track.chart.name : track.artist,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 11,
-                          height: 1.2,
-                        ),
+                        style: AppTextStyles.meta(theme, fontSize: 11.5),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 if (isResolving)
                   const SizedBox(
                     width: 16,
@@ -391,16 +412,65 @@ class _MusicChartTrackTile extends StatelessWidget {
                 else
                   Text(
                     track.durationText,
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    style: AppTextStyles.meta(theme, fontSize: 11).copyWith(
                       color: colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.75,
                       ),
-                      fontSize: 11,
                     ),
                   ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChartRankBadge extends StatelessWidget {
+  const _ChartRankBadge({required this.rank});
+
+  final int rank;
+
+  static const double _size = 24;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final TextStyle baseStyle = TextStyle(
+      fontSize: 12,
+      height: 1.1,
+      fontWeight: FontWeight.w700,
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    );
+    final bool highlighted = rank <= 3;
+
+    if (!highlighted) {
+      return SizedBox(
+        width: _size,
+        child: Text(
+          '$rank',
+          textAlign: TextAlign.center,
+          style: baseStyle.copyWith(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: _size,
+      height: _size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+      ),
+      child: Text(
+        '$rank',
+        style: baseStyle.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -417,39 +487,51 @@ class _MusicChartLoading extends StatelessWidget {
     return Column(
       children: List<Widget>.generate(6, (int index) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: SizedBox(
-            height: 54,
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs + 2),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xs,
+              vertical: AppSpacing.sm - 2,
+            ),
             child: Row(
               children: <Widget>[
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 24,
+                  height: 24,
                   decoration: BoxDecoration(
                     color: placeholderColor,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.md),
+                Container(
+                  width: AppSizes.listCover,
+                  height: AppSizes.listCover,
+                  decoration: BoxDecoration(
+                    color: placeholderColor,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Container(
-                        height: 13,
+                        height: 12,
                         decoration: BoxDecoration(
                           color: placeholderColor,
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSpacing.sm),
                       Container(
                         width: 120,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: placeholderColor,
-                          borderRadius: BorderRadius.circular(999),
+                          color: placeholderColor.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                       ),
                     ],
