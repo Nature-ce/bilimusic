@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/feature/player/domain/audio_stream_info.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_display_info.dart';
@@ -11,7 +12,7 @@ MediaItem buildPlayerMediaItem(
   Duration? duration,
   PlayerDisplayInfo? display,
 }) {
-  final String pageTitle = audioStream.pageTitle?.trim() ?? '';
+  final String pageTitle = normalizeDisplayTextOrEmpty(audioStream.pageTitle);
   final String qualityLabel = audioStream.qualityLabel?.trim() ?? '';
   final List<String> descriptionParts = <String>[
     if (pageTitle.isNotEmpty) pageTitle,
@@ -40,17 +41,19 @@ MediaItem buildPlayerQueueMediaItem(
           metadata: null,
           source: PlayerDisplaySource.bilibili,
         );
-  final String album = queueSourceLabel?.trim() ?? '';
+  final String album = normalizeDisplayTextOrEmpty(queueSourceLabel);
+  final String fallbackTitle = normalizeDisplayTextOrEmpty(item.title);
+  final String fallbackArtist = normalizeDisplayTextOrEmpty(item.author);
 
   return MediaItem(
     id: item.stableId,
     album: album.isEmpty ? 'Bilibili' : album,
-    title: info.title ?? item.title,
-    artist: info.artist ?? item.author,
+    title: info.title ?? fallbackTitle,
+    artist: info.artist ?? fallbackArtist,
     artUri: info.coverUrl == null ? null : Uri.tryParse(info.coverUrl!),
     duration: duration,
-    displayTitle: info.title ?? item.title,
-    displaySubtitle: info.artist ?? item.author,
-    displayDescription: item.pageTitle?.trim() ?? '',
+    displayTitle: info.title ?? fallbackTitle,
+    displaySubtitle: info.artist ?? fallbackArtist,
+    displayDescription: normalizeDisplayTextOrEmpty(item.pageTitle),
   );
 }

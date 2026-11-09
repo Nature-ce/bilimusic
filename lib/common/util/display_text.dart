@@ -13,6 +13,11 @@ String normalizeDisplayText(String value) {
   return buffer.toString();
 }
 
+/// 空值友好的展示文本归一化：去首尾空白 + 还原装饰字符。
+String normalizeDisplayTextOrEmpty(String? value) {
+  return normalizeDisplayText(value?.trim() ?? '');
+}
+
 String _normalizeRune(int rune) {
   if (rune < 0x00A0) {
     return String.fromCharCode(rune);

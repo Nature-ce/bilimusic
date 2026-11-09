@@ -1,5 +1,6 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
@@ -543,7 +544,9 @@ class _DownloadedTrackTile extends StatelessWidget {
               iconColor: colorScheme.primary,
             ),
       title: Text(
-        track.title.isEmpty ? '未命名歌曲' : track.title,
+        normalizeDisplayTextOrEmpty(track.title).isEmpty
+            ? '未命名歌曲'
+            : normalizeDisplayTextOrEmpty(track.title),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.titleSmall?.copyWith(

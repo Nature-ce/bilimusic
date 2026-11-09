@@ -29,4 +29,11 @@ void main() {
     final String once = normalizeDisplayText(fancy);
     expect(normalizeDisplayText(once), once);
   });
+
+  test('null-safe wrapper trims and normalizes', () {
+    expect(normalizeDisplayTextOrEmpty(null), '');
+    expect(normalizeDisplayTextOrEmpty('   '), '');
+    expect(normalizeDisplayTextOrEmpty('  𝙋𝙡𝙖𝙮𝙡𝙞𝙨𝙩  '), 'Playlist');
+    expect(normalizeDisplayTextOrEmpty('晴天'), '晴天');
+  });
 }

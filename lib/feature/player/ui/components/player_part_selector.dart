@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -169,7 +170,7 @@ class _PlayerPartSelectorContentState
             itemBuilder: (BuildContext context, int index) {
               final PlayableItem part = widget.parts[index];
               final bool isSelected = part == widget.currentItem;
-              final String title = part.pageTitle?.trim() ?? '';
+              final String title = normalizeDisplayTextOrEmpty(part.pageTitle);
               final int page = part.page ?? index + 1;
               final String label = title.isEmpty ? 'P$page' : 'P$page · $title';
 

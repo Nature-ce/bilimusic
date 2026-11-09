@@ -147,8 +147,11 @@ class RecentPlaybackPage extends ConsumerWidget {
   }
 
   String _buildSubtitle(RecentPlaybackEntry item, int? progressMs) {
-    final List<String> segments = <String>[item.author];
-    final String pageTitle = item.pageTitle?.trim() ?? '';
+    final List<String> segments = <String>[
+      if (normalizeDisplayTextOrEmpty(item.author).isNotEmpty)
+        normalizeDisplayTextOrEmpty(item.author),
+    ];
+    final String pageTitle = normalizeDisplayTextOrEmpty(item.pageTitle);
 
     if (pageTitle.isNotEmpty) {
       segments.add(pageTitle);

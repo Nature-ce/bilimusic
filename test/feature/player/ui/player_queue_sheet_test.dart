@@ -43,6 +43,44 @@ class _ReorderablePlayer extends PlayerController {
   Future<void> skipToQueueIndex(int index, {bool autoplay = true}) async {}
 }
 
+class _FancyTextPlayer extends PlayerController {
+  @override
+  PlayerState build() => PlayerState(
+    currentItem: const PlayableItem(
+      aid: 1,
+      bvid: 'BVfancy',
+      title: '【𝐇𝐢-𝐑𝐞𝐬无损臻享】《Hong Kong》',
+      author: '𝙅𝙪𝙡𝙞𝙚',
+      coverUrl: '',
+      pageTitle: '𝙋𝙡𝙖𝙮𝙡𝙞𝙨𝙩 秋季歌单',
+    ),
+    queue: const <PlayableItem>[
+      PlayableItem(
+        aid: 1,
+        bvid: 'BVfancy',
+        title: '【𝐇𝐢-𝐑𝐞𝐬无损臻享】《Hong Kong》',
+        author: '𝙅𝙪𝙡𝙞𝙚',
+        coverUrl: '',
+        pageTitle: '𝙋𝙡𝙖𝙮𝙡𝙞𝙨𝙩 秋季歌单',
+      ),
+    ],
+    currentQueueIndex: 0,
+    queueSourceLabel: '测试队列',
+  );
+
+  @override
+  Future<void> reorderQueueItem(int oldIndex, int newIndex) async {}
+
+  @override
+  Future<void> removeQueueItemAt(int index) async {}
+
+  @override
+  Future<void> clearQueue() async {}
+
+  @override
+  Future<void> skipToQueueIndex(int index, {bool autoplay = true}) async {}
+}
+
 Future<void> _openQueueSheet(
   WidgetTester tester,
   ProviderContainer container,
@@ -123,5 +161,21 @@ void main() {
     await _openQueueSheet(tester, container);
 
     expect(find.byTooltip('移出队列'), findsWidgets);
+  });
+
+  testWidgets('decorative unicode in queue titles is normalized for display', (
+    WidgetTester tester,
+  ) async {
+    final ProviderContainer container = ProviderContainer(
+      overrides: [playerControllerProvider.overrideWith(_FancyTextPlayer.new)],
+    );
+    addTearDown(container.dispose);
+
+    await _openQueueSheet(tester, container);
+
+    expect(find.textContaining('Playlist 秋季歌单'), findsOneWidget);
+    expect(find.textContaining('Hi-Res无损臻享'), findsOneWidget);
+    expect(find.textContaining('𝙋𝙡𝙖𝙮𝙡𝙞𝙨𝙩'), findsNothing);
+    expect(find.textContaining('𝐇𝐢-𝐑𝐞𝐬'), findsNothing);
   });
 }

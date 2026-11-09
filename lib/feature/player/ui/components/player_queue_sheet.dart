@@ -1,5 +1,6 @@
 import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
 import 'package:bilimusic/common/components/sequence_play_icon.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -183,14 +184,17 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
             itemBuilder: (BuildContext context, int index) {
               final PlayableItem queuedItem = liveState.queue[index];
               final bool isCurrent = liveState.currentQueueIndex == index;
-              final String partTitle = queuedItem.pageTitle?.trim() ?? '';
-              final String title = partTitle.isEmpty
-                  ? queuedItem.title
-                  : partTitle;
+              final String partTitle = normalizeDisplayTextOrEmpty(
+                queuedItem.pageTitle,
+              );
+              final String itemTitle = normalizeDisplayTextOrEmpty(
+                queuedItem.title,
+              );
+              final String title = partTitle.isEmpty ? itemTitle : partTitle;
               final String subtitle =
-                  partTitle.isEmpty || partTitle == queuedItem.title.trim()
-                  ? queuedItem.author.trim()
-                  : queuedItem.title.trim();
+                  partTitle.isEmpty || partTitle == itemTitle
+                  ? normalizeDisplayTextOrEmpty(queuedItem.author)
+                  : itemTitle;
 
               return AutoScrollTag(
                 key: ValueKey<String>('queue-${queuedItem.stableId}'),

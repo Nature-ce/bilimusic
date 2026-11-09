@@ -2,6 +2,7 @@ import 'package:bilimusic/common/bm_icons.dart';
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/recent/domain/recent_playback_entry.dart';
@@ -106,7 +107,7 @@ class DesktopRecentPlaybackPage extends ConsumerWidget {
                       backgroundColor: primary.withValues(alpha: 0.14),
                     ),
                     title: Text(
-                      item.title,
+                      normalizeDisplayTextOrEmpty(item.title),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -171,8 +172,11 @@ class DesktopRecentPlaybackPage extends ConsumerWidget {
   }
 
   String _buildSubtitle(RecentPlaybackEntry item, int? progressMs) {
-    final List<String> segments = <String>[item.author];
-    final String pageTitle = item.pageTitle?.trim() ?? '';
+    final List<String> segments = <String>[
+      if (normalizeDisplayTextOrEmpty(item.author).isNotEmpty)
+        normalizeDisplayTextOrEmpty(item.author),
+    ];
+    final String pageTitle = normalizeDisplayTextOrEmpty(item.pageTitle);
 
     if (pageTitle.isNotEmpty) {
       segments.add(pageTitle);

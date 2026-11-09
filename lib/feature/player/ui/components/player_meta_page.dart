@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/util/color_util.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/display/player_cover_color_provider.dart';
@@ -51,6 +52,8 @@ class PlayerMetaSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final String title = normalizeDisplayTextOrEmpty(item?.title);
+    final String author = normalizeDisplayTextOrEmpty(item?.author);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -72,12 +75,12 @@ class PlayerMetaSheet extends StatelessWidget {
           const SizedBox(height: 16),
           PlayerMetaRow(
             label: '标题',
-            value: item?.title ?? '--',
+            value: title.isEmpty ? '--' : title,
             activeColor: activeColor,
           ),
           PlayerMetaRow(
             label: 'UP主',
-            value: item?.author ?? '--',
+            value: author.isEmpty ? '--' : author,
             activeColor: activeColor,
           ),
           PlayerMetaRow(
