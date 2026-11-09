@@ -183,6 +183,35 @@ class _FavoriteCollectionPageState
         .toList(growable: false);
   }
 
+  Future<void> _downloadSelectedItems(
+    FavoriteCollection collection,
+    List<FavoriteEntry> items,
+  ) async {
+    final List<PlayableItem> selectedItems = _selectedItems(items)
+        .map(
+          (FavoriteEntry item) => item.toPlayableItem(collection: collection),
+        )
+        .toList(growable: false);
+    if (selectedItems.isEmpty) {
+      return;
+    }
+
+    final DownloadController controller = ref.read(
+      downloadControllerProvider.notifier,
+    );
+    int queuedCount = 0;
+    for (final PlayableItem item in selectedItems) {
+      if (await controller.download(item)) {
+        queuedCount += 1;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    _setSelectionMode(false);
+    ToastUtil.show(queuedCount == 0 ? '已下载或正在下载' : '已加入下载队列 $queuedCount 首');
+  }
+
   Future<void> _addSelectedItems(
     FavoriteCollection collection,
     List<FavoriteEntry> items,
@@ -422,6 +451,7 @@ class _FavoriteCollectionPageState
         child: _FavoriteBatchActionBar(
           selectedCount: _selectedItemIds.length,
           onAdd: () => _addSelectedItems(collection, visibleItems),
+          onDownload: () => _downloadSelectedItems(collection, visibleItems),
           onDelete: () =>
               _deleteSelectedItems(collection: collection, items: visibleItems),
           onExit: () => _setSelectionMode(false),
@@ -871,12 +901,14 @@ class _FavoriteBatchActionBar extends StatelessWidget {
   const _FavoriteBatchActionBar({
     required this.selectedCount,
     required this.onAdd,
+    required this.onDownload,
     required this.onDelete,
     required this.onExit,
   });
 
   final int selectedCount;
   final VoidCallback onAdd;
+  final VoidCallback onDownload;
   final VoidCallback onDelete;
   final VoidCallback onExit;
 
@@ -898,6 +930,11 @@ class _FavoriteBatchActionBar extends StatelessWidget {
           tooltip: '添加到歌单',
           onPressed: hasSelection ? onAdd : null,
           icon: const Icon(Icons.playlist_add_rounded),
+        ),
+        IconButton(
+          tooltip: '批量下载',
+          onPressed: hasSelection ? onDownload : null,
+          icon: const Icon(Icons.download_outlined),
         ),
         IconButton(
           tooltip: '删除',

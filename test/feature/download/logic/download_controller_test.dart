@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/download/data/download_repository.dart';
+import 'package:bilimusic/feature/download/domain/download_task.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/domain/audio_stream_info.dart';
@@ -72,9 +73,93 @@ void main() {
     expect(container.read(downloadControllerProvider).tracks, isEmpty);
     expect(container.read(downloadControllerProvider).totalBytes, 0);
   });
+
+  test('failed download keeps metadata and can be retried', () async {
+    bool shouldFail = true;
+    final ProviderContainer container = await _container(
+      fetcher:
+          ({
+            required String url,
+            required Map<String, String> headers,
+            void Function(int, int)? onProgress,
+          }) async {
+            if (shouldFail) {
+              throw StateError('network down');
+            }
+            return <int>[1, 2, 3];
+          },
+    );
+    addTearDown(container.dispose);
+    final DownloadController controller = container.read(
+      downloadControllerProvider.notifier,
+    );
+
+    expect(await controller.download(_item()), isTrue);
+    await _waitFor(
+      () => container.read(downloadControllerProvider).failedTasks.isNotEmpty,
+    );
+
+    final DownloadState failedState = container.read(
+      downloadControllerProvider,
+    );
+    final DownloadTask task = failedState.failedTasks.single;
+    expect(task.title, '夜曲');
+    expect(task.author, '周杰伦');
+    expect(task.errorMessage, contains('network down'));
+    expect(failedState.activeTasks, isEmpty);
+    expect(failedState.tracks, isEmpty);
+
+    shouldFail = false;
+    expect(await controller.retry(task.contentId), isTrue);
+    await _waitFor(
+      () => container.read(downloadControllerProvider).tracks.isNotEmpty,
+    );
+
+    final DownloadState retriedState = container.read(
+      downloadControllerProvider,
+    );
+    expect(retriedState.tasks, isEmpty);
+    expect(retriedState.tracks.single.title, '夜曲');
+  });
+
+  test('dismissTask drops a failed task and its retry info', () async {
+    final ProviderContainer container = await _container(
+      fetcher:
+          ({
+            required String url,
+            required Map<String, String> headers,
+            void Function(int, int)? onProgress,
+          }) async => throw StateError('network down'),
+    );
+    addTearDown(container.dispose);
+    final DownloadController controller = container.read(
+      downloadControllerProvider.notifier,
+    );
+
+    await controller.download(_item());
+    await _waitFor(
+      () => container.read(downloadControllerProvider).failedTasks.isNotEmpty,
+    );
+    final DownloadTask task = container
+        .read(downloadControllerProvider)
+        .failedTasks
+        .single;
+
+    controller.dismissTask(task.contentId);
+
+    expect(container.read(downloadControllerProvider).tasks, isEmpty);
+    expect(await controller.retry(task.contentId), isFalse);
+  });
 }
 
-Future<ProviderContainer> _container() async {
+typedef _Fetcher =
+    Future<List<int>> Function({
+      required String url,
+      required Map<String, String> headers,
+      void Function(int, int)? onProgress,
+    });
+
+Future<ProviderContainer> _container({_Fetcher? fetcher}) async {
   final Directory directory = await Directory.systemTemp.createTemp('dl_');
   addTearDown(() async {
     if (await directory.exists()) {
@@ -85,6 +170,7 @@ Future<ProviderContainer> _container() async {
     _MemoryIndexStore(),
     readDirectory: () async => directory,
     fetcher:
+        fetcher ??
         ({
           required String url,
           required Map<String, String> headers,

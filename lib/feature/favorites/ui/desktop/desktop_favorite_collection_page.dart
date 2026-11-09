@@ -7,6 +7,7 @@ import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/logger.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
@@ -183,6 +184,35 @@ class _DesktopFavoriteCollectionPageState
     return items
         .where((FavoriteEntry item) => _selectedItemIds.contains(item.itemId))
         .toList(growable: false);
+  }
+
+  Future<void> _downloadSelectedItems(
+    FavoriteCollection collection,
+    List<FavoriteEntry> items,
+  ) async {
+    final List<PlayableItem> selectedItems = _selectedItems(items)
+        .map(
+          (FavoriteEntry item) => item.toPlayableItem(collection: collection),
+        )
+        .toList(growable: false);
+    if (selectedItems.isEmpty) {
+      return;
+    }
+
+    final DownloadController controller = ref.read(
+      downloadControllerProvider.notifier,
+    );
+    int queuedCount = 0;
+    for (final PlayableItem item in selectedItems) {
+      if (await controller.download(item)) {
+        queuedCount += 1;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    _setSelectionMode(false);
+    ToastUtil.show(queuedCount == 0 ? '已下载或正在下载' : '已加入下载队列 $queuedCount 首');
   }
 
   Future<void> _addSelectedItems(
@@ -453,6 +483,8 @@ class _DesktopFavoriteCollectionPageState
           ? _DesktopFavoriteBatchActionBar(
               selectedCount: _selectedItemIds.length,
               onAdd: () => _addSelectedItems(collection, visibleItems),
+              onDownload: () =>
+                  _downloadSelectedItems(collection, visibleItems),
               onDelete: () => _deleteSelectedItems(
                 collection: collection,
                 items: visibleItems,
@@ -814,12 +846,14 @@ class _DesktopFavoriteBatchActionBar extends StatelessWidget {
   const _DesktopFavoriteBatchActionBar({
     required this.selectedCount,
     required this.onAdd,
+    required this.onDownload,
     required this.onDelete,
     required this.onExit,
   });
 
   final int selectedCount;
   final VoidCallback onAdd;
+  final VoidCallback onDownload;
   final VoidCallback onDelete;
   final VoidCallback onExit;
 
@@ -841,6 +875,12 @@ class _DesktopFavoriteBatchActionBar extends StatelessWidget {
           onPressed: hasSelection ? onAdd : null,
           icon: const Icon(Icons.playlist_add_rounded, size: 18),
           label: const Text('添加'),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: hasSelection ? onDownload : null,
+          icon: const Icon(Icons.download_outlined, size: 18),
+          label: const Text('下载'),
         ),
         const SizedBox(width: 8),
         OutlinedButton.icon(

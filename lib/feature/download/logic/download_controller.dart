@@ -43,6 +43,14 @@ class DownloadState {
   bool get hasActiveTasks =>
       tasks.values.any((DownloadTask task) => task.isActive);
 
+  List<DownloadTask> get activeTasks => tasks.values
+      .where((DownloadTask task) => task.isActive)
+      .toList(growable: false);
+
+  List<DownloadTask> get failedTasks => tasks.values
+      .where((DownloadTask task) => task.isFailed)
+      .toList(growable: false);
+
   DownloadState copyWith({
     List<DownloadedTrack>? tracks,
     Map<String, DownloadTask>? tasks,
@@ -60,6 +68,7 @@ class DownloadState {
 class DownloadController extends _$DownloadController {
   final AppLogger _logger = AppLogger('DownloadController');
   Future<void> _queue = Future<void>.value();
+  final Map<String, PlayableItem> _items = <String, PlayableItem>{};
 
   DownloadRepository get _repository => ref.read(downloadRepositoryProvider);
 
@@ -92,11 +101,35 @@ class DownloadController extends _$DownloadController {
       return false;
     }
 
+    _items[contentId] = item;
     _setTask(
-      DownloadTask(contentId: contentId, status: DownloadTaskStatus.queued),
+      DownloadTask(
+        contentId: contentId,
+        status: DownloadTaskStatus.queued,
+        title: item.title,
+        author: item.author,
+        coverUrl: item.coverUrl,
+      ),
     );
     _queue = _queue.then((_) => _runDownload(item));
     return true;
+  }
+
+  /// 重新下载失败的任务；没有可重试的信息时返回 false。
+  Future<bool> retry(String contentId) async {
+    final PlayableItem? item = _items[contentId];
+    final DownloadTask? task = state.taskFor(contentId);
+    if (item == null || task == null || !task.isFailed) {
+      return false;
+    }
+    _removeTask(contentId);
+    return download(item);
+  }
+
+  /// 关闭一条失败任务，不再保留重试信息。
+  void dismissTask(String contentId) {
+    _removeTask(contentId);
+    _items.remove(contentId);
   }
 
   Future<void> removeTrack(DownloadedTrack track) async {
@@ -108,6 +141,7 @@ class DownloadController extends _$DownloadController {
     final List<DownloadedTrack> tracks = state.tracks
         .where((DownloadedTrack item) => item.contentId != track.contentId)
         .toList(growable: false);
+    _items.remove(track.contentId);
     state = state.copyWith(tracks: tracks, totalBytes: _totalBytesOf(tracks));
   }
 
@@ -117,6 +151,7 @@ class DownloadController extends _$DownloadController {
     } on Object catch (error) {
       _logger.w('clear downloads failed: $error');
     }
+    _items.clear();
     state = const DownloadState();
   }
 
@@ -124,11 +159,18 @@ class DownloadController extends _$DownloadController {
     final String contentId = item.contentId;
     if (state.contains(contentId)) {
       _removeTask(contentId);
+      _items.remove(contentId);
       return;
     }
 
     _setTask(
-      DownloadTask(contentId: contentId, status: DownloadTaskStatus.running),
+      DownloadTask(
+        contentId: contentId,
+        status: DownloadTaskStatus.running,
+        title: item.title,
+        author: item.author,
+        coverUrl: item.coverUrl,
+      ),
     );
     try {
       final BiliSession? session = ref.read(biliSessionControllerProvider);
@@ -163,6 +205,7 @@ class DownloadController extends _$DownloadController {
         totalBytes: _totalBytesOf(tracks),
         tasks: Map<String, DownloadTask>.of(state.tasks)..remove(contentId),
       );
+      _items.remove(contentId);
       _logger.d('download completed: ${item.title}');
     } on Object catch (error) {
       _logger.w('download failed: $error');
@@ -174,6 +217,9 @@ class DownloadController extends _$DownloadController {
           ..[contentId] = DownloadTask(
             contentId: contentId,
             status: DownloadTaskStatus.failed,
+            title: item.title,
+            author: item.author,
+            coverUrl: item.coverUrl,
             errorMessage: error.toString(),
           ),
       );
