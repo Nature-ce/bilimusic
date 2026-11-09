@@ -1,3 +1,4 @@
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
 import 'package:flutter/material.dart';
@@ -30,8 +31,8 @@ class HomeBackToTopButton extends ConsumerWidget {
         }
         controller.animateTo(
           0,
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.resolve(context, AppMotion.slow),
+          curve: AppMotion.standard,
         );
       },
       child: const Icon(Icons.arrow_upward_rounded),

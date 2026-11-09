@@ -719,7 +719,7 @@ class _PlayerLyricSelectionProgress extends StatelessWidget {
                     _formatDuration(details.line.seekPosition),
                     style: TextStyle(
                       color: labelColor,
-                      fontSize: 11,
+                      fontSize: 12,
                       height: 1,
                       fontWeight: FontWeight.w600,
                     ),

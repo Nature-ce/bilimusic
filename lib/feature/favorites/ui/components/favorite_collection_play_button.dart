@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/sequence_play_icon.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:flutter/material.dart';
 
 /// 歌单的播放方式：顺序（播完即止）、随机、循环。
@@ -15,7 +16,7 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
   final ValueChanged<FavoriteCollectionPlayMode> onModeSelected;
   final bool enabled;
 
-  static const double _size = 36;
+  static const double _size = AppSizes.minIconTapTarget;
 
   Future<void> _showModeMenu(BuildContext context) async {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;

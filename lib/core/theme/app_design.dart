@@ -26,6 +26,24 @@ abstract final class AppSizes {
   static const double tileCover = 56;
   static const double listRowHeight = 62;
   static const double miniPlayerHeight = 64;
+  static const double minTapTarget = 48;
+  static const double minIconTapTarget = 44;
+}
+
+/// 动效 token：短交互、常规过渡、滚动/入场三段，统一曲线并尊重系统「减弱动效」。
+abstract final class AppMotion {
+  static const Duration fast = Duration(milliseconds: 150);
+  static const Duration base = Duration(milliseconds: 220);
+  static const Duration slow = Duration(milliseconds: 320);
+
+  static const Curve standard = Curves.easeOutCubic;
+  static const Curve emphasized = Curves.easeOutQuart;
+
+  static Duration resolve(BuildContext context, Duration duration) {
+    return MediaQuery.maybeDisableAnimationsOf(context) ?? false
+        ? Duration.zero
+        : duration;
+  }
 }
 
 /// 字阶：页面标题 / 分区标题 / 列表主文案 / 辅助信息，统一从 ColorScheme 取色。
@@ -76,6 +94,6 @@ abstract final class AppTextStyles {
   static TextStyle listTitle(ThemeData theme) =>
       listTitleFrom(theme.colorScheme);
 
-  static TextStyle meta(ThemeData theme, {double fontSize = 11}) =>
+  static TextStyle meta(ThemeData theme, {double fontSize = 12}) =>
       metaFrom(theme.colorScheme, fontSize: fontSize);
 }

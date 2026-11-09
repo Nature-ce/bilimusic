@@ -389,7 +389,7 @@ class _MusicChartTrackTile extends StatelessWidget {
                         track.artist.isEmpty ? track.chart.name : track.artist,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.meta(theme, fontSize: 11.5),
+                        style: AppTextStyles.meta(theme, fontSize: 12),
                       ),
                     ],
                   ),
@@ -404,7 +404,7 @@ class _MusicChartTrackTile extends StatelessWidget {
                 else
                   Text(
                     track.durationText,
-                    style: AppTextStyles.meta(theme, fontSize: 11).copyWith(
+                    style: AppTextStyles.meta(theme, fontSize: 12).copyWith(
                       color: colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.75,
                       ),

@@ -856,7 +856,7 @@ class _ProfileStatItem extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xs + 2),
-                Text(label, style: AppTextStyles.meta(theme, fontSize: 11.5)),
+                Text(label, style: AppTextStyles.meta(theme, fontSize: 12)),
               ],
             ),
           ),

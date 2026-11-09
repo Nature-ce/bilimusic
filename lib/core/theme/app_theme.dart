@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/util/platform_util.dart';
+import 'package:bilimusic/core/theme/app_contrast.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/components/no_transition_builder.dart';
 import 'package:bilimusic/core/theme/desktop_chinese_font.dart';
@@ -21,10 +22,29 @@ final class AppTheme {
   static ThemeData _buildTheme(String variantId, Brightness brightness) {
     final ThemeDefinition definition = themeDefinitionOf(variantId);
     final bool isDark = brightness == Brightness.dark;
-    final ColorScheme colorScheme = ColorScheme.fromSeed(
+    final Color surfaceColor = isDark
+        ? definition.darkSurfaceColor
+        : definition.lightSurfaceColor;
+    ColorScheme colorScheme = ColorScheme.fromSeed(
       seedColor: definition.seedColor,
       brightness: brightness,
-    ).copyWith(primary: definition.primaryColor);
+    );
+    final Color? brandPrimary = definition.primaryColor;
+    if (brandPrimary != null) {
+      colorScheme = colorScheme.copyWith(primary: brandPrimary);
+    }
+    final Color readablePrimary = AppContrast.ensureRatio(
+      colorScheme.primary,
+      surfaceColor,
+    );
+    final Color readableOnPrimary =
+        AppContrast.ratio(colorScheme.onPrimary, readablePrimary) >= 4.5
+        ? colorScheme.onPrimary
+        : AppContrast.readableForeground(readablePrimary);
+    colorScheme = colorScheme.copyWith(
+      primary: readablePrimary,
+      onPrimary: readableOnPrimary,
+    );
 
     const StadiumBorder pillBorder = StadiumBorder();
     final RoundedRectangleBorder cardBorder = RoundedRectangleBorder(

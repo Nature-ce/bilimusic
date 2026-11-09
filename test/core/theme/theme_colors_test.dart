@@ -1,3 +1,4 @@
+import 'package:bilimusic/core/theme/app_contrast.dart';
 import 'package:bilimusic/core/theme/app_theme.dart';
 import 'package:bilimusic/core/theme/theme_catalog.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
@@ -86,7 +87,7 @@ void main() {
     );
   });
 
-  testWidgets('theme variants expose their own primary color', (
+  testWidgets('theme variants expose a readable primary color', (
     WidgetTester tester,
   ) async {
     final ThemeDefinition definition = themeDefinitionOf(defaultThemeVariantId);
@@ -94,12 +95,17 @@ void main() {
       tester,
       theme: AppTheme.lightTheme(defaultThemeVariantId),
     );
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     expect(definition.primaryColor, isNotNull);
-    expect(Theme.of(context).colorScheme.primary, definition.primaryColor);
+    expect(colorScheme.primary, isNot(definition.primaryColor));
+    expect(
+      AppContrast.ratio(colorScheme.primary, Colors.white),
+      greaterThanOrEqualTo(4.5),
+    );
     expect(
       appChipForegroundColor(context, selected: true),
-      definition.primaryColor,
+      colorScheme.primary,
     );
   });
 }

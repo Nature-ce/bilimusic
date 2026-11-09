@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/util/color_util.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
 import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dart';
@@ -141,9 +142,7 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
     required Widget Function() child,
   }) {
     return AnimatedSwitcher(
-      duration: MediaQuery.disableAnimationsOf(context)
-          ? Duration.zero
-          : const Duration(milliseconds: 220),
+      duration: AppMotion.resolve(context, AppMotion.base),
       switchInCurve: _animationCurve,
       switchOutCurve: _animationCurve,
       transitionBuilder: (Widget child, Animation<double> animation) {

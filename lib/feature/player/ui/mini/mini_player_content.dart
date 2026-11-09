@@ -62,7 +62,7 @@ class MiniPlayerContent extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 11.5,
+                    fontSize: 12,
                     height: 1.2,
                   ),
                 ),
