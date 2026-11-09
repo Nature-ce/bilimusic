@@ -364,6 +364,21 @@ class _FavoriteCollectionPageState
               CollectionKindTag(kind: collection.kind),
             ],
           ),
+          actions: <Widget>[
+            if (queueItems.isNotEmpty)
+              ListeningContinueButton(
+                items: queueItems,
+                onPlay: (List<PlayableItem> items, int startIndex) =>
+                    PlayerUtil.playQueueAndOpenPlayer(
+                      context,
+                      ref,
+                      items: items,
+                      startIndex: startIndex,
+                      sourceLabel: collection.name,
+                    ),
+              ),
+            const SizedBox(width: 4),
+          ],
           bottom: showLikedTabs
               ? const TabBar(
                   tabs: <Widget>[
@@ -481,53 +496,39 @@ class _FavoriteCollectionPageState
             ],
           ),
           if (queueItems.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             Row(
               children: <Widget>[
-                FilledButton.tonalIcon(
-                  onPressed: queueItems.isEmpty
-                      ? null
-                      : () =>
-                            _playAllItems(context, ref, collection, queueItems),
-                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                  label: const Text('播放全部'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 34),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(fontSize: 13),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                TextButton.icon(
-                  onPressed: queueItems.isEmpty
-                      ? null
-                      : () => _shuffleAllItems(
-                          context,
-                          ref,
-                          collection,
-                          queueItems,
-                        ),
-                  icon: const Icon(Icons.shuffle_rounded, size: 18),
-                  label: const Text('随机'),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 34),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(fontSize: 13),
-                  ),
-                ),
-                const Spacer(),
-                ListeningContinueButton(
-                  items: queueItems,
-                  onPlay: (List<PlayableItem> items, int startIndex) =>
-                      PlayerUtil.playQueueAndOpenPlayer(
-                        context,
-                        ref,
-                        items: items,
-                        startIndex: startIndex,
-                        sourceLabel: collection.name,
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () =>
+                        _playAllItems(context, ref, collection, queueItems),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                    label: const Text('播放全部'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                      textStyle: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: () =>
+                        _shuffleAllItems(context, ref, collection, queueItems),
+                    icon: const Icon(Icons.shuffle_rounded, size: 18),
+                    label: const Text('随机播放'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                      textStyle: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

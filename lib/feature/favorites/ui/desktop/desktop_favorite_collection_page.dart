@@ -541,20 +541,21 @@ class _DesktopFavoriteCollectionPageState
                   const SizedBox(height: 6),
                   Row(
                     children: <Widget>[
-                      FilledButton.tonalIcon(
+                      FilledButton.icon(
                         onPressed: () =>
                             _playAllItems(context, ref, collection, queueItems),
-                        icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                        icon: const Icon(Icons.play_arrow_rounded, size: 20),
                         label: const Text('播放全部'),
                         style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 34),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          visualDensity: VisualDensity.compact,
-                          textStyle: const TextStyle(fontSize: 13),
+                          minimumSize: const Size(150, 38),
+                          textStyle: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      TextButton.icon(
+                      const SizedBox(width: 10),
+                      FilledButton.tonalIcon(
                         onPressed: () => _shuffleAllItems(
                           context,
                           ref,
@@ -562,12 +563,13 @@ class _DesktopFavoriteCollectionPageState
                           queueItems,
                         ),
                         icon: const Icon(Icons.shuffle_rounded, size: 18),
-                        label: const Text('随机'),
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(0, 34),
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          visualDensity: VisualDensity.compact,
-                          textStyle: const TextStyle(fontSize: 13),
+                        label: const Text('随机播放'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(130, 38),
+                          textStyle: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       const Spacer(),
