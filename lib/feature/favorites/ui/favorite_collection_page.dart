@@ -16,11 +16,11 @@ import 'package:bilimusic/feature/favorites/logic/remote_collection_sync_control
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/favorites/ui/components/collection_kind_tag.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_items_list.dart';
+import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_actions.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_search_field.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorites_metadata_toolbar_buttons.dart';
 import 'package:bilimusic/feature/favorites/ui/components/remote_collection_sync_status_bar.dart';
-import 'package:bilimusic/feature/listening/ui/listening_continue_button.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
@@ -364,21 +364,7 @@ class _FavoriteCollectionPageState
               CollectionKindTag(kind: collection.kind),
             ],
           ),
-          actions: <Widget>[
-            if (queueItems.isNotEmpty)
-              ListeningContinueButton(
-                items: queueItems,
-                onPlay: (List<PlayableItem> items, int startIndex) =>
-                    PlayerUtil.playQueueAndOpenPlayer(
-                      context,
-                      ref,
-                      items: items,
-                      startIndex: startIndex,
-                      sourceLabel: collection.name,
-                    ),
-              ),
-            const SizedBox(width: 4),
-          ],
+
           bottom: showLikedTabs
               ? const TabBar(
                   tabs: <Widget>[
@@ -477,60 +463,27 @@ class _FavoriteCollectionPageState
     final bool isSpoken = collection.isSpoken;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-      child: Column(
+      child: Row(
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: FavoriteCollectionSearchField(
-                  controller: _searchController,
-                  query: _searchQuery,
-                  onChanged: _updateSearchQuery,
-                  onClear: _clearSearchQuery,
-                ),
-              ),
-              if (!isSpoken) ...<Widget>[
-                const SizedBox(width: 6),
-                MetadataBackfillButton(items: queueItems),
-              ],
-            ],
+          Expanded(
+            child: FavoriteCollectionSearchField(
+              controller: _searchController,
+              query: _searchQuery,
+              onChanged: _updateSearchQuery,
+              onClear: _clearSearchQuery,
+            ),
           ),
+          if (!isSpoken) ...<Widget>[
+            const SizedBox(width: 6),
+            MetadataBackfillButton(items: queueItems),
+          ],
           if (queueItems.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 10),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () =>
-                        _playAllItems(context, ref, collection, queueItems),
-                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                    label: const Text('播放全部'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 40),
-                      textStyle: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: () =>
-                        _shuffleAllItems(context, ref, collection, queueItems),
-                    icon: const Icon(Icons.shuffle_rounded, size: 18),
-                    label: const Text('随机播放'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 40),
-                      textStyle: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(width: 4),
+            FavoriteCollectionPlayActions(
+              onPlayAll: () =>
+                  _playAllItems(context, ref, collection, queueItems),
+              onShuffle: () =>
+                  _shuffleAllItems(context, ref, collection, queueItems),
             ),
           ],
         ],

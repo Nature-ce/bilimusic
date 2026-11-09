@@ -16,12 +16,12 @@ import 'package:bilimusic/feature/favorites/domain/remote_collection_sync_state.
 import 'package:bilimusic/feature/favorites/logic/remote_collection_sync_controller.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/favorites/ui/components/collection_kind_tag.dart';
+import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_actions.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_search_field.dart';
 import 'package:bilimusic/feature/favorites/ui/components/desktop/desktop_favorite_collection_items_list.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorites_metadata_toolbar_buttons.dart';
 import 'package:bilimusic/feature/favorites/ui/components/remote_collection_sync_status_bar.dart';
-import 'package:bilimusic/feature/listening/ui/listening_continue_button.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
@@ -491,100 +491,53 @@ class _DesktopFavoriteCollectionPageState
               ),
               onExit: () => _setSelectionMode(false),
             )
-          : Column(
+          : Row(
               children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: FavoriteCollectionSearchField(
-                        controller: _searchController,
-                        query: _searchQuery,
-                        onChanged: _updateSearchQuery,
-                        onClear: _clearSearchQuery,
-                      ),
-                    ),
-                    if (!isSpoken) ...<Widget>[
-                      const SizedBox(width: 8),
-                      MetadataBackfillButton(items: queueItems),
-                    ],
-                    if (collection.isRemote) ...<Widget>[
-                      const SizedBox(width: 8),
-                      Tooltip(
-                        message: '同步网络歌单',
-                        child: IconButton(
-                          onPressed: _syncState.isSyncing ? null : _forceSync,
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 32,
-                            height: 32,
-                          ),
-                          icon: _syncState.isSyncing
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : HugeIcon(
-                                  icon: HugeIcons.strokeRoundedRefresh03,
-                                  size: 22,
-                                  strokeWidth: 1.8,
-                                ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Expanded(
+                  child: FavoriteCollectionSearchField(
+                    controller: _searchController,
+                    query: _searchQuery,
+                    onChanged: _updateSearchQuery,
+                    onClear: _clearSearchQuery,
+                  ),
                 ),
-                if (queueItems.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: <Widget>[
-                      FilledButton.icon(
-                        onPressed: () =>
-                            _playAllItems(context, ref, collection, queueItems),
-                        icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                        label: const Text('播放全部'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(150, 38),
-                          textStyle: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                if (!isSpoken) ...<Widget>[
+                  const SizedBox(width: 8),
+                  MetadataBackfillButton(items: queueItems),
+                ],
+                if (collection.isRemote) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: '同步网络歌单',
+                    child: IconButton(
+                      onPressed: _syncState.isSyncing ? null : _forceSync,
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 32,
+                        height: 32,
                       ),
-                      const SizedBox(width: 10),
-                      FilledButton.tonalIcon(
-                        onPressed: () => _shuffleAllItems(
-                          context,
-                          ref,
-                          collection,
-                          queueItems,
-                        ),
-                        icon: const Icon(Icons.shuffle_rounded, size: 18),
-                        label: const Text('随机播放'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(130, 38),
-                          textStyle: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      ListeningContinueButton(
-                        items: queueItems,
-                        onPlay: (List<PlayableItem> items, int startIndex) =>
-                            PlayerUtil.playQueueAndOpenPlayer(
-                              context,
-                              ref,
-                              items: items,
-                              startIndex: startIndex,
-                              sourceLabel: collection.name,
+                      icon: _syncState.isSyncing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : HugeIcon(
+                              icon: HugeIcons.strokeRoundedRefresh03,
+                              size: 22,
+                              strokeWidth: 1.8,
                             ),
-                      ),
-                    ],
+                    ),
+                  ),
+                ],
+                if (queueItems.isNotEmpty) ...<Widget>[
+                  const SizedBox(width: 8),
+                  FavoriteCollectionPlayActions(
+                    onPlayAll: () =>
+                        _playAllItems(context, ref, collection, queueItems),
+                    onShuffle: () =>
+                        _shuffleAllItems(context, ref, collection, queueItems),
                   ),
                 ],
               ],
