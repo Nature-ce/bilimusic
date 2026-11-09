@@ -139,7 +139,8 @@ class VideoCard extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        if (data.tag case final String tag) ...<Widget>[
+                        if (data.tag case final String tag
+                            when tag.trim().isNotEmpty) ...<Widget>[
                           const SizedBox(width: 8),
                           VideoCardTag(label: tag),
                         ],
@@ -482,6 +483,10 @@ class VideoCardTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String labelText = label.trim();
+    if (labelText.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
 
@@ -492,7 +497,7 @@ class VideoCardTag extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        label,
+        labelText,
         style: theme.textTheme.labelSmall?.copyWith(
           fontSize: 8,
           color: colorScheme.primary,

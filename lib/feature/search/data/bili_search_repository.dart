@@ -184,7 +184,7 @@ class BiliSearchRepository {
       danmakuCountText: formatCompactCount(danmakuCount),
       publishTimeText:
           formatYyyyMmDdFromUnixSeconds(publishTimestamp) ?? '时间未知',
-      tagText: json['typename'] as String? ?? '视频',
+      tagText: _nonEmptyText(json['typename']) ?? '视频',
       description: _cleanDescription(json['description'] as String?),
     );
   }
@@ -275,6 +275,11 @@ class BiliSearchRepository {
         .replaceAll(RegExp(r'<em\s+class="keyword">', caseSensitive: false), '')
         .replaceAll('</em>', '')
         .trim();
+  }
+
+  String? _nonEmptyText(Object? value) {
+    final String text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
   }
 
   String? _cleanDescription(String? value) {
