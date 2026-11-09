@@ -874,18 +874,25 @@ class _ProfileSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
     return Row(
       children: <Widget>[
         Text('歌单', style: AppTextStyles.sectionTitle(theme)),
         const Spacer(),
-        FilledButton.tonalIcon(
+        FilledButton.icon(
           onPressed: onAddPressed,
           icon: const Icon(Icons.add_rounded, size: 18),
           label: const Text('新建'),
           style: FilledButton.styleFrom(
+            backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
+            foregroundColor: colorScheme.primary,
             minimumSize: const Size(0, 34),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             visualDensity: VisualDensity.compact,
+            textStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
