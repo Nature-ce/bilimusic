@@ -1,3 +1,4 @@
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:flutter/material.dart';
 
 Color neutralColorForBrightness(
@@ -70,15 +71,28 @@ Color appDividerColor(BuildContext context) {
   return Theme.of(context).colorScheme.outlineVariant;
 }
 
-/// 列表/卡片常用浅底描边容器，统一圆角与边框强度。
-BoxDecoration appSoftCardDecoration(BuildContext context) {
-  final ColorScheme colorScheme = Theme.of(context).colorScheme;
+/// 浮起的卡片容器：白底（暗色主题用 surface）+ 细描边 + 柔和投影。
+BoxDecoration appElevatedCardDecoration(
+  BuildContext context, {
+  double radius = AppRadius.card,
+}) {
+  final ThemeData theme = Theme.of(context);
+  final ColorScheme colorScheme = theme.colorScheme;
+  final bool isDark = theme.brightness == Brightness.dark;
   return BoxDecoration(
-    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-    borderRadius: BorderRadius.circular(18),
+    color: appCardSurfaceColor(context),
+    borderRadius: BorderRadius.circular(radius),
     border: Border.all(
-      color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+      color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.5 : 0.45),
+      width: 0.8,
     ),
+    boxShadow: <BoxShadow>[
+      BoxShadow(
+        color: appShadowColor(context),
+        blurRadius: isDark ? 20 : 18,
+        offset: const Offset(0, 6),
+      ),
+    ],
   );
 }
 

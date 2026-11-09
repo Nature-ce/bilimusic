@@ -752,7 +752,7 @@ class _ProfileQuickActions extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
-        decoration: appSoftCardDecoration(context),
+        decoration: appElevatedCardDecoration(context),
         clipBehavior: Clip.antiAlias,
         child: Row(
           children: <Widget>[
@@ -799,8 +799,8 @@ class _ProfileStatDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 0.5,
-      height: 26,
-      color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+      height: 28,
+      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
     );
   }
 }
@@ -839,7 +839,17 @@ class _ProfileStatItem extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Icon(icon, size: 15, color: colorScheme.primary),
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Icon(icon, size: 15, color: colorScheme.primary),
+                      ),
+                    ),
                     const SizedBox(width: AppSpacing.xs + 2),
                     Text(
                       '$count',

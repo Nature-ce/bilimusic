@@ -1,4 +1,5 @@
 import 'package:bilimusic/core/theme/app_contrast.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/app_theme.dart';
 import 'package:bilimusic/core/theme/theme_catalog.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
@@ -86,6 +87,22 @@ void main() {
       darkScheme.onSurfaceVariant,
     );
   });
+
+  testWidgets(
+    'elevated card decoration is a white surface with a soft shadow',
+    (WidgetTester tester) async {
+      final BuildContext context = await _pumpTheme(
+        tester,
+        theme: AppTheme.lightTheme(defaultThemeVariantId),
+      );
+      final BoxDecoration decoration = appElevatedCardDecoration(context);
+
+      expect(decoration.color, Colors.white);
+      expect(decoration.boxShadow, isNotEmpty);
+      expect(decoration.borderRadius, BorderRadius.circular(AppRadius.card));
+      expect(decoration.border, isNotNull);
+    },
+  );
 
   testWidgets('theme variants expose a readable primary color', (
     WidgetTester tester,
