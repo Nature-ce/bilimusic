@@ -6,6 +6,7 @@ import 'package:bilimusic/common/logger.dart';
 import 'package:bilimusic/common/util/json_util.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/feature/updater/domain/update_release.dart';
+import 'package:bilimusic/feature/updater/domain/update_source.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,11 +22,6 @@ class UpdateDownloadException implements Exception {
 
 class UpdateRepository {
   UpdateRepository({Dio? dio}) : _dio = dio ?? _createDio();
-
-  static const String releaseApiUrl =
-      'https://api.github.com/repos/AprDeci/bili-music/releases/latest';
-  static const String releaseListUrl =
-      'https://github.com/AprDeci/bili-music/releases';
 
   /// 直接拼在 GitHub 资产地址前面的镜像前缀，官方直链会作为最后兜底。
   static const List<String> mirrorPrefixes = <String>[
@@ -51,9 +47,30 @@ class UpdateRepository {
     );
   }
 
-  Future<UpdateRelease> fetchLatestRelease() async {
+  Future<UpdateRelease> fetchLatestRelease({
+    UpdateSource source = UpdateSource.fork,
+  }) async {
+    Object? lastError;
+    StackTrace? lastStackTrace;
+    for (final UpdateSource candidate in source.lookupOrder) {
+      try {
+        return await _fetchRelease(candidate);
+      } on Object catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+        _logger.w('fetch release failed: ${candidate.repo} -> $error');
+      }
+    }
+
+    Error.throwWithStackTrace(
+      lastError ?? const FormatException('无法获取更新信息'),
+      lastStackTrace ?? StackTrace.current,
+    );
+  }
+
+  Future<UpdateRelease> _fetchRelease(UpdateSource source) async {
     final Response<dynamic> response = await _dio.get<dynamic>(
-      releaseApiUrl,
+      source.releaseApiUrl,
       options: Options(
         headers: <String, dynamic>{
           'Accept': 'application/vnd.github+json',
@@ -72,7 +89,7 @@ class UpdateRepository {
       tagName: tagName,
       title: (json['name'] as String? ?? '').trim(),
       body: (json['body'] as String? ?? '').trim(),
-      htmlUrl: htmlUrl.isEmpty ? releaseListUrl : htmlUrl,
+      htmlUrl: htmlUrl.isEmpty ? source.releaseListUrl : htmlUrl,
       assets: asListOfMaps(
         json['assets'],
       ).map(_parseAsset).nonNulls.toList(growable: false),

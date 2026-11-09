@@ -28,6 +28,7 @@ class HiveKeys {
   static const String metingDefaultServer = 'meting.default_server';
   static const String metingSourceRules = 'meting.source_rules';
   static const String updateDismissedTag = 'app.update.dismissed_tag';
+  static const String updateSource = 'app.update.source';
   static const String appearanceUseGlassBar = 'app.appearance.use_glass_bar';
   static const String desktopHotkeys = 'desktop.hotkeys';
   static const String desktopLyricsEnabled = 'desktop.lyrics.enabled';

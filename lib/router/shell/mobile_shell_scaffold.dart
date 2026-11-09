@@ -3,12 +3,14 @@ import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/mini/mini_player_bar.dart';
 import 'package:bilimusic/feature/player/ui/mini/mini_player_glass_bar.dart';
+import 'package:bilimusic/feature/player/ui/player_gestures.dart';
 import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/updater/logic/update_checker.dart';
 import 'package:bilimusic/router/util/mobile_branch_navigator_keys.dart';
 import 'package:bilimusic/router/util/mobile_chrome_config.dart';
 import 'package:bilimusic/router/util/player_navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -37,6 +39,8 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
 
   static const double _bottomBarCornerRadius = 40;
   static const double _bottomBarHeight = 52;
+
+  Offset? _miniPlayerDragOrigin;
 
   @override
   void initState() {
@@ -78,17 +82,19 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
                 if (showMiniPlayer)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: useGlassBar
-                        ? MiniPlayerGlassBar(
-                            state: playerState,
-                            onTap: _openMiniPlayer,
-                            onTogglePlayback: _togglePlayback,
-                          )
-                        : MiniPlayerBar(
-                            state: playerState,
-                            onTap: _openMiniPlayer,
-                            onTogglePlayback: _togglePlayback,
-                          ),
+                    child: _buildMiniPlayerGestures(
+                      useGlassBar
+                          ? MiniPlayerGlassBar(
+                              state: playerState,
+                              onTap: _openMiniPlayer,
+                              onTogglePlayback: _togglePlayback,
+                            )
+                          : MiniPlayerBar(
+                              state: playerState,
+                              onTap: _openMiniPlayer,
+                              onTogglePlayback: _togglePlayback,
+                            ),
+                    ),
                   ),
                 _animateChrome(
                   visible: showTabs,
@@ -237,6 +243,40 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
+    );
+  }
+
+  Widget _buildMiniPlayerGestures(Widget child) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (PointerDownEvent event) {
+        _miniPlayerDragOrigin = event.position;
+      },
+      onPointerCancel: (PointerCancelEvent event) {
+        _miniPlayerDragOrigin = null;
+      },
+      onPointerUp: (PointerUpEvent event) {
+        final Offset? origin = _miniPlayerDragOrigin;
+        _miniPlayerDragOrigin = null;
+        if (origin == null) {
+          return;
+        }
+        final Offset delta = event.position - origin;
+        switch (PlayerGestureMath.miniPlayerSwipe(delta)) {
+          case MiniPlayerSwipeAction.openPlayer:
+            HapticFeedback.selectionClick();
+            _openMiniPlayer();
+          case MiniPlayerSwipeAction.nextTrack:
+            HapticFeedback.selectionClick();
+            ref.read(playerControllerProvider.notifier).skipToNext();
+          case MiniPlayerSwipeAction.previousTrack:
+            HapticFeedback.selectionClick();
+            ref.read(playerControllerProvider.notifier).skipToPrevious();
+          case MiniPlayerSwipeAction.none:
+            break;
+        }
+      },
+      child: child,
     );
   }
 

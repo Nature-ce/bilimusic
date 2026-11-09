@@ -14,6 +14,7 @@ import 'package:bilimusic/feature/player/logic/display/player_cover_color_provid
 import 'package:bilimusic/feature/player/ui/components/player_dynamic_backdrop.dart';
 import 'package:bilimusic/feature/player/ui/components/player_landscape_page.dart';
 import 'package:bilimusic/feature/player/ui/lyrics/player_lyric_page.dart';
+import 'package:bilimusic/feature/player/ui/player_gestures.dart';
 import 'package:bilimusic/feature/player/ui/components/player_main_page.dart';
 import 'package:bilimusic/feature/player/ui/components/player_chapter_selector.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
@@ -39,6 +40,7 @@ class PlayerPage extends ConsumerStatefulWidget {
 class _PlayerPageState extends ConsumerState<PlayerPage> {
   late final PageController _pageController;
   int _currentPage = 1;
+  Offset? _topBarDragOrigin;
 
   @override
   void initState() {
@@ -143,12 +145,33 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
 
                 child: Column(
                   children: <Widget>[
-                    PlayerTopBar(
-                      currentPage: _currentPage,
-                      onBack: () => Navigator.of(context).maybePop(),
-                      onOpenMenu: item == null
-                          ? null
-                          : () => _showPlayerMenu(item),
+                    Listener(
+                      behavior: HitTestBehavior.translucent,
+                      onPointerDown: (PointerDownEvent event) {
+                        _topBarDragOrigin = event.position;
+                      },
+                      onPointerCancel: (PointerCancelEvent event) {
+                        _topBarDragOrigin = null;
+                      },
+                      onPointerUp: (PointerUpEvent event) {
+                        final Offset? origin = _topBarDragOrigin;
+                        _topBarDragOrigin = null;
+                        if (origin == null) {
+                          return;
+                        }
+                        if (PlayerGestureMath.pageShouldDismiss(
+                          event.position - origin,
+                        )) {
+                          Navigator.of(context).maybePop();
+                        }
+                      },
+                      child: PlayerTopBar(
+                        currentPage: _currentPage,
+                        onBack: () => Navigator.of(context).maybePop(),
+                        onOpenMenu: item == null
+                            ? null
+                            : () => _showPlayerMenu(item),
+                      ),
                     ),
                     const SizedBox(height: 18),
                     Expanded(

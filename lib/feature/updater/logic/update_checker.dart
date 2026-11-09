@@ -4,7 +4,9 @@ import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/feature/updater/data/update_dismissed_store.dart';
 import 'package:bilimusic/feature/updater/data/update_repository.dart';
 import 'package:bilimusic/feature/updater/domain/update_release.dart';
+import 'package:bilimusic/feature/updater/domain/update_source.dart';
 import 'package:bilimusic/feature/updater/domain/update_version.dart';
+import 'package:bilimusic/feature/updater/logic/update_source_logic.dart';
 import 'package:bilimusic/feature/updater/logic/updater_controller.dart';
 import 'package:bilimusic/feature/updater/ui/update_dialog.dart';
 import 'package:flutter/material.dart';
@@ -78,9 +80,12 @@ class UpdateChecker {
         return;
       }
 
+      final UpdateSource updateSource = container.read(
+        updateSourceLogicProvider,
+      );
       final UpdateRelease release = await container
           .read(updateRepositoryProvider)
-          .fetchLatestRelease();
+          .fetchLatestRelease(source: updateSource);
       final UpdateVersion? latestVersion = UpdateVersion.tryParse(
         release.tagName,
       );

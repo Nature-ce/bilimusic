@@ -20,6 +20,7 @@ import 'package:bilimusic/feature/favorites/ui/components/desktop/desktop_favori
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorites_metadata_toolbar_buttons.dart';
 import 'package:bilimusic/feature/favorites/ui/components/remote_collection_sync_status_bar.dart';
+import 'package:bilimusic/feature/listening/ui/listening_continue_button.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
@@ -458,48 +459,132 @@ class _DesktopFavoriteCollectionPageState
               ),
               onExit: () => _setSelectionMode(false),
             )
-          : Row(
+          : Column(
               children: <Widget>[
-                Expanded(
-                  child: FavoriteCollectionSearchField(
-                    controller: _searchController,
-                    query: _searchQuery,
-                    onChanged: _updateSearchQuery,
-                    onClear: _clearSearchQuery,
-                  ),
-                ),
-                if (!isSpoken) ...<Widget>[
-                  const SizedBox(width: 8),
-                  MetadataBackfillButton(items: queueItems),
-                ],
-                if (collection.isRemote) ...<Widget>[
-                  const SizedBox(width: 8),
-                  Tooltip(
-                    message: '同步网络歌单',
-                    child: IconButton(
-                      onPressed: _syncState.isSyncing ? null : _forceSync,
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints.tightFor(
-                        width: 32,
-                        height: 32,
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: FavoriteCollectionSearchField(
+                        controller: _searchController,
+                        query: _searchQuery,
+                        onChanged: _updateSearchQuery,
+                        onClear: _clearSearchQuery,
                       ),
-                      icon: _syncState.isSyncing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : HugeIcon(
-                              icon: HugeIcons.strokeRoundedRefresh03,
-                              size: 22,
-                              strokeWidth: 1.8,
-                            ),
                     ),
+                    if (!isSpoken) ...<Widget>[
+                      const SizedBox(width: 8),
+                      MetadataBackfillButton(items: queueItems),
+                    ],
+                    if (collection.isRemote) ...<Widget>[
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: '同步网络歌单',
+                        child: IconButton(
+                          onPressed: _syncState.isSyncing ? null : _forceSync,
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          icon: _syncState.isSyncing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : HugeIcon(
+                                  icon: HugeIcons.strokeRoundedRefresh03,
+                                  size: 22,
+                                  strokeWidth: 1.8,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (queueItems.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: <Widget>[
+                      FilledButton.tonalIcon(
+                        onPressed: () =>
+                            _playAllItems(context, ref, collection, queueItems),
+                        icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                        label: const Text('播放全部'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          visualDensity: VisualDensity.compact,
+                          textStyle: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      TextButton.icon(
+                        onPressed: () => _shuffleAllItems(
+                          context,
+                          ref,
+                          collection,
+                          queueItems,
+                        ),
+                        icon: const Icon(Icons.shuffle_rounded, size: 18),
+                        label: const Text('随机'),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          visualDensity: VisualDensity.compact,
+                          textStyle: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      const Spacer(),
+                      ListeningContinueButton(
+                        items: queueItems,
+                        onPlay: (List<PlayableItem> items, int startIndex) =>
+                            PlayerUtil.playQueueAndOpenPlayer(
+                              context,
+                              ref,
+                              items: items,
+                              startIndex: startIndex,
+                              sourceLabel: collection.name,
+                            ),
+                      ),
+                    ],
                   ),
                 ],
               ],
             ),
+    );
+  }
+
+  Future<void> _playAllItems(
+    BuildContext context,
+    WidgetRef ref,
+    FavoriteCollection collection,
+    List<PlayableItem> queueItems,
+  ) {
+    return PlayerUtil.playQueueAndOpenPlayer(
+      context,
+      ref,
+      items: queueItems,
+      sourceLabel: collection.name,
+    );
+  }
+
+  Future<void> _shuffleAllItems(
+    BuildContext context,
+    WidgetRef ref,
+    FavoriteCollection collection,
+    List<PlayableItem> queueItems,
+  ) {
+    final List<PlayableItem> shuffled = List<PlayableItem>.of(queueItems)
+      ..shuffle();
+    return PlayerUtil.playQueueAndOpenPlayer(
+      context,
+      ref,
+      items: shuffled,
+      sourceLabel: '${collection.name} · 随机',
     );
   }
 

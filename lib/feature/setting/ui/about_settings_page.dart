@@ -1,16 +1,24 @@
+import 'package:bilimusic/feature/updater/domain/update_source.dart';
 import 'package:bilimusic/feature/updater/logic/update_checker.dart';
+import 'package:bilimusic/feature/updater/logic/update_source_logic.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class AboutSettingsPage extends StatelessWidget {
+class AboutSettingsPage extends ConsumerWidget {
   const AboutSettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
-    final String issueUrl = 'https://github.com/AprDeci/bili-music/issues/new';
-    final String sourceCodeUrl = 'https://github.com/AprDeci/bili-music';
+    final UpdateSource updateSource = ref.watch(updateSourceLogicProvider);
+    final UpdateSource feedbackSource = updateSource == UpdateSource.upstream
+        ? UpdateSource.upstream
+        : UpdateSource.fork;
+    final UpdateSource otherSource = updateSource == UpdateSource.upstream
+        ? UpdateSource.fork
+        : UpdateSource.upstream;
 
     return Scaffold(
       appBar: AppBar(title: const Text('关于')),
@@ -45,18 +53,41 @@ class AboutSettingsPage extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.system_update_alt_outlined),
               title: const Text('检查更新'),
-              subtitle: Text('查看是否有新版本', style: theme.textTheme.bodySmall),
+              subtitle: Text(
+                '查看是否有新版本 · 当前来源：${updateSource.label}',
+                style: theme.textTheme.bodySmall,
+              ),
               trailing: const Icon(Icons.arrow_forward_outlined),
               onTap: () => UpdateChecker.checkAndPrompt(context, manual: true),
+            ),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.cloud_outlined),
+              title: const Text('跟随上游仓库更新'),
+              subtitle: Text(
+                updateSource.description,
+                style: theme.textTheme.bodySmall,
+              ),
+              value: updateSource == UpdateSource.upstream,
+              onChanged: (bool value) {
+                ref
+                    .read(updateSourceLogicProvider.notifier)
+                    .setSource(
+                      value ? UpdateSource.upstream : UpdateSource.fork,
+                    );
+              },
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.feedback_outlined),
               title: const Text('问题反馈'),
-              subtitle: Text('联系或提交问题反馈', style: theme.textTheme.bodySmall),
+              subtitle: Text(
+                '${feedbackSource.label} · 联系或提交问题反馈',
+                style: theme.textTheme.bodySmall,
+              ),
               trailing: const Icon(Icons.arrow_forward_outlined),
               onTap: () {
-                launchUrl(Uri.parse(issueUrl));
+                launchUrl(Uri.parse(feedbackSource.issuesUrl));
               },
             ),
             ListTile(
@@ -66,7 +97,20 @@ class AboutSettingsPage extends StatelessWidget {
               subtitle: Text('查看源代码仓库', style: theme.textTheme.bodySmall),
               trailing: const Icon(Icons.arrow_forward_outlined),
               onTap: () {
-                launchUrl(Uri.parse(sourceCodeUrl));
+                launchUrl(Uri.parse(feedbackSource.repositoryUrl));
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.alt_route_rounded),
+              title: Text(otherSource.label),
+              subtitle: Text(
+                otherSource.description,
+                style: theme.textTheme.bodySmall,
+              ),
+              trailing: const Icon(Icons.arrow_forward_outlined),
+              onTap: () {
+                launchUrl(Uri.parse(otherSource.repositoryUrl));
               },
             ),
           ],

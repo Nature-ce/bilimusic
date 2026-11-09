@@ -163,10 +163,16 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
+          child: ReorderableListView.builder(
+            scrollController: _scrollController,
             padding: const EdgeInsets.only(bottom: 24),
             itemCount: liveState.queue.length,
+            onReorderItem: (int oldIndex, int newIndex) async {
+              if (newIndex == oldIndex) {
+                return;
+              }
+              await liveController.reorderQueueItem(oldIndex, newIndex);
+            },
             itemBuilder: (BuildContext context, int index) {
               final PlayableItem queuedItem = liveState.queue[index];
               final bool isCurrent = liveState.currentQueueIndex == index;

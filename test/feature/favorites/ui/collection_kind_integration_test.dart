@@ -14,6 +14,8 @@ import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_se
 import 'package:bilimusic/feature/favorites/ui/components/favorites_metadata_toolbar_buttons.dart';
 import 'package:bilimusic/feature/favorites/ui/desktop/desktop_favorite_collection_page.dart';
 import 'package:bilimusic/feature/favorites/ui/favorite_collection_page.dart';
+import 'package:bilimusic/feature/listening/domain/listening_state.dart';
+import 'package:bilimusic/feature/listening/logic/listening_progress_controller.dart';
 import 'package:bilimusic/feature/listening/ui/listening_continue_button.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata_backfill_state.dart';
 import 'package:bilimusic/feature/metadata/logic/metadata_backfill_controller.dart';
@@ -96,6 +98,7 @@ void main() {
                   const <FavoritedSeason>[],
                 ),
                 statisticsTrackerProvider.overrideWithValue(_Statistics()),
+                listeningProgressControllerProvider.overrideWith(_Listening.new),
                 playerControllerProvider.overrideWith(_Player.new),
               ],
             );
@@ -112,7 +115,10 @@ void main() {
             );
             await tester.pumpAndSettle();
             expect(find.byType(FavoriteCollectionKindSelector), findsNothing);
-            expect(find.byType(ListeningContinueButton), findsNothing);
+            expect(
+              find.byType(ListeningContinueButton),
+              empty ? findsNothing : findsOneWidget,
+            );
             expect(find.byType(CollectionKindTag), findsOneWidget);
             expect(
               tester
@@ -165,7 +171,10 @@ void main() {
               CollectionKind.music,
             );
             expect(find.byType(FavoriteCollectionKindSelector), findsNothing);
-            expect(find.byType(ListeningContinueButton), findsNothing);
+            expect(
+              find.byType(ListeningContinueButton),
+              empty ? findsNothing : findsOneWidget,
+            );
             expect(find.byType(CollectionKindTag), findsOneWidget);
             expect(
               tester
@@ -201,6 +210,11 @@ void main() {
       }
     }
   }
+}
+
+class _Listening extends ListeningProgressController {
+  @override
+  ListeningState build() => const ListeningState();
 }
 
 class _Favorites extends FavoritesController {
