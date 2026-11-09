@@ -78,7 +78,7 @@ class DesktopRecentPlaybackPage extends ConsumerWidget {
                 final int? progressMs = progress[item.stableId];
                 final bool isEvenRow = index.isEven;
                 return Material(
-                  color: isEvenRow ? Colors.transparent : null,
+                  color: Colors.transparent,
                   child: ListTile(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),

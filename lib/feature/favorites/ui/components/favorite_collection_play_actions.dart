@@ -17,10 +17,11 @@ class FavoriteCollectionPlayActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        IconButton.filledTonal(
+        IconButton(
           onPressed: enabled ? onPlayAll : null,
           tooltip: '播放全部',
           iconSize: 18,
@@ -30,7 +31,7 @@ class FavoriteCollectionPlayActions extends StatelessWidget {
             height: _size,
           ),
           style: IconButton.styleFrom(
-            shape: const CircleBorder(),
+            foregroundColor: colorScheme.primary,
             minimumSize: const Size(_size, _size),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),

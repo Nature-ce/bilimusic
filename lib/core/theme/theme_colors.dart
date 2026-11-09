@@ -40,6 +40,14 @@ Color appSkeletonColor(BuildContext context) {
   return Theme.of(context).colorScheme.surfaceContainerHighest;
 }
 
+/// 卡片/悬浮控件的底色：亮色主题下用纯白（避免 seed 带来的冷调），暗色主题用 surface。
+Color appCardSurfaceColor(BuildContext context) {
+  final ThemeData theme = Theme.of(context);
+  return theme.brightness == Brightness.dark
+      ? theme.colorScheme.surface
+      : Colors.white;
+}
+
 Color appSurfaceContainerColor(BuildContext context, {double alpha = 1}) {
   return Theme.of(
     context,

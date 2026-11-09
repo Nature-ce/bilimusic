@@ -55,14 +55,6 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
                   letterSpacing: -0.5,
                 ),
               ),
-              const Spacer(),
-              Text(
-                state.chart.platform.label,
-                style: AppTextStyles.meta(theme).copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.primary,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
