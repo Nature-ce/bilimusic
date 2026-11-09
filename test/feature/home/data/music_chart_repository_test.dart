@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:bilimusic/feature/home/data/music_chart_repository.dart';
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
+import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:bilimusic/feature/meting/domain/meting_server.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -223,6 +224,100 @@ void main() {
       () => MusicChartRepository.parseKugouRank(<String, dynamic>{
         'status': 0,
       }, _kugouChart(1)),
+      throwsA(isA<MusicChartException>()),
+    );
+  });
+
+  test(
+    'parses the bilibili recommend payload into direct-play tracks',
+    () async {
+      final List<int> requestedCounts = <int>[];
+      final MusicChart chart = MusicChartCatalog.chartsFor(
+        MusicChartPlatform.bilibili,
+      ).first;
+      final MusicChartRepository repository = MusicChartRepository(
+        biliRecommendRequest: (int count) async {
+          requestedCounts.add(count);
+          return <String, dynamic>{
+            'code': 0,
+            'data': <String, dynamic>{
+              'item': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 117556492898443,
+                  'bvid': 'BV19gxX6iEE9',
+                  'cid': 43314186691,
+                  'title': '晴天',
+                  'pic': 'http://i2.hdslb.com/bfs/archive/a.jpg',
+                  'duration': 60,
+                  'owner': <String, dynamic>{'mid': 244495262, 'name': '周杰伦'},
+                },
+                <String, dynamic>{
+                  'id': 1,
+                  'bvid': '',
+                  'cid': 2,
+                  'title': '没有 bvid 的条目',
+                },
+              ],
+            },
+          };
+        },
+      );
+
+      final List<MusicChartTrack> tracks = await repository.fetchTracks(chart);
+
+      expect(requestedCounts.single, MusicChartRepository.maxTrackCount);
+      expect(tracks, hasLength(1));
+      final MusicChartTrack track = tracks.single;
+      expect(track.title, '晴天');
+      expect(track.artist, '周杰伦');
+      expect(track.coverUrl, 'https://i2.hdslb.com/bfs/archive/a.jpg');
+      expect(track.durationSeconds, 60);
+      expect(track.directItem, isNotNull);
+      expect(track.directItem!.bvid, 'BV19gxX6iEE9');
+      expect(track.directItem!.cid, 43314186691);
+      expect(track.directItem!.title, '晴天');
+      expect(track.directItem!.author, '周杰伦');
+    },
+  );
+
+  test('parses the bilibili music ranking payload', () async {
+    final MusicChart chart = MusicChartCatalog.chartsFor(
+      MusicChartPlatform.bilibili,
+    )[1];
+    final MusicChartRepository repository = MusicChartRepository(
+      biliRankingRequest: (int count) async => <String, dynamic>{
+        'code': 0,
+        'data': <String, dynamic>{
+          'list': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'aid': 114256984934434,
+              'bvid': 'BV17VZpY1ENA',
+              'cid': 29167322421,
+              'title': '音乐区第一',
+              'pic': 'https://i1.hdslb.com/bfs/archive/b.jpg',
+              'duration': 15,
+              'owner': <String, dynamic>{'mid': 1, 'name': 'UP主'},
+            },
+          ],
+        },
+      },
+    );
+
+    final List<MusicChartTrack> tracks = await repository.fetchTracks(chart);
+
+    expect(tracks.single.title, '音乐区第一');
+    expect(tracks.single.durationSeconds, 15);
+    expect(tracks.single.directItem?.bvid, 'BV17VZpY1ENA');
+    expect(tracks.single.directItem?.aid, 114256984934434);
+  });
+
+  test('throws when the bilibili source is not configured', () async {
+    final MusicChartRepository repository = MusicChartRepository();
+
+    await expectLater(
+      repository.fetchTracks(
+        MusicChartCatalog.chartsFor(MusicChartPlatform.bilibili).first,
+      ),
       throwsA(isA<MusicChartException>()),
     );
   });

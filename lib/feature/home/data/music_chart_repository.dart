@@ -6,6 +6,7 @@ import 'package:bilimusic/feature/home/domain/music_chart.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:bilimusic/feature/meting/domain/meting_server.dart';
+import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:dio/dio.dart';
 import 'package:meting_dart/meting_dart.dart';
 
@@ -15,6 +16,8 @@ typedef MusicChartCoverRequest =
     Future<String> Function(MetingServer server, String pictureId);
 typedef MusicChartToplistRequest = Future<Object?> Function(String topId);
 typedef MusicChartRankSongRequest = Future<Object?> Function(String rankId);
+typedef MusicChartBiliRecommendRequest = Future<Object?> Function(int count);
+typedef MusicChartBiliRankingRequest = Future<Object?> Function(int count);
 
 class MusicChartException implements Exception {
   const MusicChartException(this.message);
@@ -32,11 +35,15 @@ class MusicChartRepository {
     MusicChartCoverRequest? coverRequest,
     MusicChartToplistRequest? toplistRequest,
     MusicChartRankSongRequest? rankSongRequest,
+    MusicChartBiliRecommendRequest? biliRecommendRequest,
+    MusicChartBiliRankingRequest? biliRankingRequest,
   }) : _dio = dio ?? Dio() {
     _playlistRequest = playlistRequest ?? _defaultPlaylistRequest;
     _coverRequest = coverRequest ?? _defaultCoverRequest;
     _toplistRequest = toplistRequest ?? _defaultToplistRequest;
     _rankSongRequest = rankSongRequest ?? _defaultRankSongRequest;
+    _biliRecommendRequest = biliRecommendRequest;
+    _biliRankingRequest = biliRankingRequest;
   }
 
   static const int maxTrackCount = 30;
@@ -51,6 +58,8 @@ class MusicChartRepository {
   late final MusicChartCoverRequest _coverRequest;
   late final MusicChartToplistRequest _toplistRequest;
   late final MusicChartRankSongRequest _rankSongRequest;
+  late final MusicChartBiliRecommendRequest? _biliRecommendRequest;
+  late final MusicChartBiliRankingRequest? _biliRankingRequest;
   final Map<String, _CachedChart> _cache = <String, _CachedChart>{};
 
   Future<List<MusicChartTrack>> fetchTracks(MusicChart chart) async {
@@ -63,16 +72,18 @@ class MusicChartRepository {
       MusicChartPlatform.netease => await _fetchMetingPlaylist(chart),
       MusicChartPlatform.tencent => await _fetchTencentToplist(chart),
       MusicChartPlatform.kugou => await _fetchKugouRank(chart),
+      MusicChartPlatform.bilibili => await _fetchBilibili(chart),
     };
     _cache[chart.key] = _CachedChart(tracks: tracks, fetchedAt: DateTime.now());
     return tracks;
   }
 
   Future<List<MusicChartTrack>> _fetchMetingPlaylist(MusicChart chart) async {
-    final Object? response = await _playlistRequest(
-      chart.platform.server,
-      chart.chartId,
-    );
+    final MetingServer? server = chart.platform.server;
+    if (server == null) {
+      throw const MusicChartException('该榜单不支持 meting 数据源');
+    }
+    final Object? response = await _playlistRequest(server, chart.chartId);
     final List<dynamic> rawItems = _decodeList(response);
     final List<MusicChartTrack> tracks = <MusicChartTrack>[];
     for (final dynamic rawItem in rawItems) {
@@ -89,7 +100,7 @@ class MusicChartRepository {
       String coverUrl = '';
       if (pictureId.isNotEmpty) {
         try {
-          coverUrl = await _coverRequest(chart.platform.server, pictureId);
+          coverUrl = await _coverRequest(server, pictureId);
         } on Object {
           coverUrl = '';
         }
@@ -206,6 +217,121 @@ class MusicChartRepository {
       );
     }
     return _finalizeTracks(tracks);
+  }
+
+  static const String bilibiliRecommendChartId = 'recommend';
+
+  Future<List<MusicChartTrack>> _fetchBilibili(MusicChart chart) async {
+    final bool isRecommend = chart.chartId == bilibiliRecommendChartId;
+    final Object? payload;
+    if (isRecommend) {
+      final MusicChartBiliRecommendRequest? request = _biliRecommendRequest;
+      if (request == null) {
+        throw const MusicChartException('B站推荐暂不可用');
+      }
+      payload = await request(maxTrackCount);
+    } else {
+      final MusicChartBiliRankingRequest? request = _biliRankingRequest;
+      if (request == null) {
+        throw const MusicChartException('B站音乐区榜单暂不可用');
+      }
+      payload = await request(maxTrackCount);
+    }
+    return isRecommend
+        ? parseBilibiliRecommend(payload, chart)
+        : parseBilibiliRanking(payload, chart);
+  }
+
+  static List<MusicChartTrack> parseBilibiliRecommend(
+    Object? payload,
+    MusicChart chart,
+  ) {
+    return _parseBilibiliTracks(payload, chart, dataKey: 'item');
+  }
+
+  static List<MusicChartTrack> parseBilibiliRanking(
+    Object? payload,
+    MusicChart chart,
+  ) {
+    return _parseBilibiliTracks(payload, chart, dataKey: 'list');
+  }
+
+  static List<MusicChartTrack> _parseBilibiliTracks(
+    Object? payload,
+    MusicChart chart, {
+    required String dataKey,
+  }) {
+    final Object? decoded = payload is String ? _tryDecode(payload) : payload;
+    final Map<String, dynamic>? root = _asMap(decoded);
+    if (root == null) {
+      throw const MusicChartException('B站榜单数据异常');
+    }
+    final Object? code = root['code'];
+    if (code is num && code.toInt() != 0) {
+      throw const MusicChartException('B站榜单加载失败');
+    }
+    final Map<String, dynamic>? data = _asMap(root['data']);
+    final List<MusicChartTrack> tracks = <MusicChartTrack>[];
+    for (final Map<String, dynamic> json in _asListOfMaps(data?[dataKey])) {
+      final MusicChartTrack? track = _bilibiliTrack(json, chart);
+      if (track != null) {
+        tracks.add(track);
+      }
+    }
+    return _finalizeTracks(tracks);
+  }
+
+  static MusicChartTrack? _bilibiliTrack(
+    Map<String, dynamic> json,
+    MusicChart chart,
+  ) {
+    final String bvid = _readString(json['bvid']);
+    final int aid = _readInt(json['id'] ?? json['aid']);
+    final int cid = _readInt(json['cid']);
+    final String title = normalizeDisplayText(_readString(json['title']));
+    if (bvid.isEmpty || cid <= 0 || title.isEmpty) {
+      return null;
+    }
+
+    final Map<String, dynamic>? owner = _asMap(json['owner']);
+    final String author = normalizeDisplayText(_readString(owner?['name']));
+    final int ownerMid = _readInt(owner?['mid']);
+    final String coverUrl = _httpsImageUrl(_readString(json['pic']));
+    final int durationSeconds = _readDurationSeconds(json['duration']);
+
+    return MusicChartTrack(
+      chart: chart,
+      rank: 0,
+      title: title,
+      artist: author,
+      coverUrl: coverUrl,
+      durationSeconds: durationSeconds,
+      directItem: PlayableItem(
+        aid: aid > 0 ? aid : 0,
+        bvid: bvid,
+        cid: cid,
+        page: 1,
+        title: title,
+        author: author,
+        coverUrl: coverUrl,
+        ownerMid: ownerMid > 0 ? ownerMid : null,
+      ),
+    );
+  }
+
+  static int _readInt(Object? value) {
+    if (value is num) {
+      return value.toInt();
+    }
+    return int.tryParse(_readString(value)) ?? 0;
+  }
+
+  static String _httpsImageUrl(String url) {
+    final String trimmed = url.trim();
+    if (trimmed.startsWith('http://')) {
+      return 'https://${trimmed.substring('http://'.length)}';
+    }
+    return trimmed;
   }
 
   static String _readTencentSingers(Object? value) {

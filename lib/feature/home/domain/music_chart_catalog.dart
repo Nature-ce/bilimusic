@@ -351,6 +351,19 @@ abstract final class MusicChartCatalog {
     ),
   ];
 
+  static const List<MusicChart> bilibiliCharts = <MusicChart>[
+    MusicChart(
+      platform: MusicChartPlatform.bilibili,
+      chartId: 'recommend',
+      name: '推荐',
+    ),
+    MusicChart(
+      platform: MusicChartPlatform.bilibili,
+      chartId: 'music-hot',
+      name: '音乐区热门',
+    ),
+  ];
+
   static const MusicChart defaultChart = _neteaseHot;
 
   static List<MusicChart> chartsFor(MusicChartPlatform platform) {
@@ -358,6 +371,7 @@ abstract final class MusicChartCatalog {
       MusicChartPlatform.netease => neteaseCharts,
       MusicChartPlatform.tencent => tencentCharts,
       MusicChartPlatform.kugou => kugouCharts,
+      MusicChartPlatform.bilibili => bilibiliCharts,
     };
   }
 

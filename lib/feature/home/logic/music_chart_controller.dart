@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bilimusic/feature/home/data/bili_music_chart_source.dart';
 import 'package:bilimusic/feature/home/data/music_chart_repository.dart';
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
@@ -12,7 +13,13 @@ part 'music_chart_controller.g.dart';
 
 @riverpod
 MusicChartRepository musicChartRepository(Ref ref) {
-  return MusicChartRepository();
+  final BiliMusicChartSource biliSource = ref.read(
+    biliMusicChartSourceProvider,
+  );
+  return MusicChartRepository(
+    biliRecommendRequest: biliSource.fetchRecommend,
+    biliRankingRequest: biliSource.fetchMusicRanking,
+  );
 }
 
 @Riverpod(keepAlive: true)

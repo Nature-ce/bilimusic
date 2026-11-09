@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MusicChartTrack {
 
- MusicChart get chart; int get rank; String get title; String get artist; String get coverUrl; int get durationSeconds;
+ MusicChart get chart; int get rank; String get title; String get artist; String get coverUrl; int get durationSeconds; PlayableItem? get directItem;
 /// Create a copy of MusicChartTrack
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MusicChartTrackCopyWith<MusicChartTrack> get copyWith => _$MusicChartTrackCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MusicChartTrack&&(identical(other.chart, chart) || other.chart == chart)&&(identical(other.rank, rank) || other.rank == rank)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MusicChartTrack&&(identical(other.chart, chart) || other.chart == chart)&&(identical(other.rank, rank) || other.rank == rank)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.directItem, directItem) || other.directItem == directItem));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,chart,rank,title,artist,coverUrl,durationSeconds);
+int get hashCode => Object.hash(runtimeType,chart,rank,title,artist,coverUrl,durationSeconds,directItem);
 
 @override
 String toString() {
-  return 'MusicChartTrack(chart: $chart, rank: $rank, title: $title, artist: $artist, coverUrl: $coverUrl, durationSeconds: $durationSeconds)';
+  return 'MusicChartTrack(chart: $chart, rank: $rank, title: $title, artist: $artist, coverUrl: $coverUrl, durationSeconds: $durationSeconds, directItem: $directItem)';
 }
 
 
@@ -45,11 +45,11 @@ abstract mixin class $MusicChartTrackCopyWith<$Res>  {
   factory $MusicChartTrackCopyWith(MusicChartTrack value, $Res Function(MusicChartTrack) _then) = _$MusicChartTrackCopyWithImpl;
 @useResult
 $Res call({
- MusicChart chart, int rank, String title, String artist, String coverUrl, int durationSeconds
+ MusicChart chart, int rank, String title, String artist, String coverUrl, int durationSeconds, PlayableItem? directItem
 });
 
 
-$MusicChartCopyWith<$Res> get chart;
+$MusicChartCopyWith<$Res> get chart;$PlayableItemCopyWith<$Res>? get directItem;
 
 }
 /// @nodoc
@@ -62,7 +62,7 @@ class _$MusicChartTrackCopyWithImpl<$Res>
 
 /// Create a copy of MusicChartTrack
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? chart = null,Object? rank = null,Object? title = null,Object? artist = null,Object? coverUrl = null,Object? durationSeconds = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? chart = null,Object? rank = null,Object? title = null,Object? artist = null,Object? coverUrl = null,Object? durationSeconds = null,Object? directItem = freezed,}) {
   return _then(_self.copyWith(
 chart: null == chart ? _self.chart : chart // ignore: cast_nullable_to_non_nullable
 as MusicChart,rank: null == rank ? _self.rank : rank // ignore: cast_nullable_to_non_nullable
@@ -70,7 +70,8 @@ as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_no
 as String,artist: null == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
 as String,coverUrl: null == coverUrl ? _self.coverUrl : coverUrl // ignore: cast_nullable_to_non_nullable
 as String,durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
-as int,
+as int,directItem: freezed == directItem ? _self.directItem : directItem // ignore: cast_nullable_to_non_nullable
+as PlayableItem?,
   ));
 }
 /// Create a copy of MusicChartTrack
@@ -81,6 +82,18 @@ $MusicChartCopyWith<$Res> get chart {
   
   return $MusicChartCopyWith<$Res>(_self.chart, (value) {
     return _then(_self.copyWith(chart: value));
+  });
+}/// Create a copy of MusicChartTrack
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PlayableItemCopyWith<$Res>? get directItem {
+    if (_self.directItem == null) {
+    return null;
+  }
+
+  return $PlayableItemCopyWith<$Res>(_self.directItem!, (value) {
+    return _then(_self.copyWith(directItem: value));
   });
 }
 }
@@ -164,10 +177,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MusicChart chart,  int rank,  String title,  String artist,  String coverUrl,  int durationSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MusicChart chart,  int rank,  String title,  String artist,  String coverUrl,  int durationSeconds,  PlayableItem? directItem)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MusicChartTrack() when $default != null:
-return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_that.durationSeconds);case _:
+return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_that.durationSeconds,_that.directItem);case _:
   return orElse();
 
 }
@@ -185,10 +198,10 @@ return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MusicChart chart,  int rank,  String title,  String artist,  String coverUrl,  int durationSeconds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MusicChart chart,  int rank,  String title,  String artist,  String coverUrl,  int durationSeconds,  PlayableItem? directItem)  $default,) {final _that = this;
 switch (_that) {
 case _MusicChartTrack():
-return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_that.durationSeconds);case _:
+return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_that.durationSeconds,_that.directItem);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +218,10 @@ return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MusicChart chart,  int rank,  String title,  String artist,  String coverUrl,  int durationSeconds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MusicChart chart,  int rank,  String title,  String artist,  String coverUrl,  int durationSeconds,  PlayableItem? directItem)?  $default,) {final _that = this;
 switch (_that) {
 case _MusicChartTrack() when $default != null:
-return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_that.durationSeconds);case _:
+return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_that.durationSeconds,_that.directItem);case _:
   return null;
 
 }
@@ -220,7 +233,7 @@ return $default(_that.chart,_that.rank,_that.title,_that.artist,_that.coverUrl,_
 
 
 class _MusicChartTrack extends MusicChartTrack {
-  const _MusicChartTrack({required this.chart, required this.rank, required this.title, required this.artist, required this.coverUrl, this.durationSeconds = 0}): super._();
+  const _MusicChartTrack({required this.chart, required this.rank, required this.title, required this.artist, required this.coverUrl, this.durationSeconds = 0, this.directItem}): super._();
   
 
 @override final  MusicChart chart;
@@ -229,6 +242,7 @@ class _MusicChartTrack extends MusicChartTrack {
 @override final  String artist;
 @override final  String coverUrl;
 @override@JsonKey() final  int durationSeconds;
+@override final  PlayableItem? directItem;
 
 /// Create a copy of MusicChartTrack
 /// with the given fields replaced by the non-null parameter values.
@@ -240,16 +254,16 @@ _$MusicChartTrackCopyWith<_MusicChartTrack> get copyWith => __$MusicChartTrackCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MusicChartTrack&&(identical(other.chart, chart) || other.chart == chart)&&(identical(other.rank, rank) || other.rank == rank)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MusicChartTrack&&(identical(other.chart, chart) || other.chart == chart)&&(identical(other.rank, rank) || other.rank == rank)&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.directItem, directItem) || other.directItem == directItem));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,chart,rank,title,artist,coverUrl,durationSeconds);
+int get hashCode => Object.hash(runtimeType,chart,rank,title,artist,coverUrl,durationSeconds,directItem);
 
 @override
 String toString() {
-  return 'MusicChartTrack(chart: $chart, rank: $rank, title: $title, artist: $artist, coverUrl: $coverUrl, durationSeconds: $durationSeconds)';
+  return 'MusicChartTrack(chart: $chart, rank: $rank, title: $title, artist: $artist, coverUrl: $coverUrl, durationSeconds: $durationSeconds, directItem: $directItem)';
 }
 
 
@@ -260,11 +274,11 @@ abstract mixin class _$MusicChartTrackCopyWith<$Res> implements $MusicChartTrack
   factory _$MusicChartTrackCopyWith(_MusicChartTrack value, $Res Function(_MusicChartTrack) _then) = __$MusicChartTrackCopyWithImpl;
 @override @useResult
 $Res call({
- MusicChart chart, int rank, String title, String artist, String coverUrl, int durationSeconds
+ MusicChart chart, int rank, String title, String artist, String coverUrl, int durationSeconds, PlayableItem? directItem
 });
 
 
-@override $MusicChartCopyWith<$Res> get chart;
+@override $MusicChartCopyWith<$Res> get chart;@override $PlayableItemCopyWith<$Res>? get directItem;
 
 }
 /// @nodoc
@@ -277,7 +291,7 @@ class __$MusicChartTrackCopyWithImpl<$Res>
 
 /// Create a copy of MusicChartTrack
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? chart = null,Object? rank = null,Object? title = null,Object? artist = null,Object? coverUrl = null,Object? durationSeconds = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? chart = null,Object? rank = null,Object? title = null,Object? artist = null,Object? coverUrl = null,Object? durationSeconds = null,Object? directItem = freezed,}) {
   return _then(_MusicChartTrack(
 chart: null == chart ? _self.chart : chart // ignore: cast_nullable_to_non_nullable
 as MusicChart,rank: null == rank ? _self.rank : rank // ignore: cast_nullable_to_non_nullable
@@ -285,7 +299,8 @@ as int,title: null == title ? _self.title : title // ignore: cast_nullable_to_no
 as String,artist: null == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
 as String,coverUrl: null == coverUrl ? _self.coverUrl : coverUrl // ignore: cast_nullable_to_non_nullable
 as String,durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
-as int,
+as int,directItem: freezed == directItem ? _self.directItem : directItem // ignore: cast_nullable_to_non_nullable
+as PlayableItem?,
   ));
 }
 
@@ -297,6 +312,18 @@ $MusicChartCopyWith<$Res> get chart {
   
   return $MusicChartCopyWith<$Res>(_self.chart, (value) {
     return _then(_self.copyWith(chart: value));
+  });
+}/// Create a copy of MusicChartTrack
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PlayableItemCopyWith<$Res>? get directItem {
+    if (_self.directItem == null) {
+    return null;
+  }
+
+  return $PlayableItemCopyWith<$Res>(_self.directItem!, (value) {
+    return _then(_self.copyWith(directItem: value));
   });
 }
 }

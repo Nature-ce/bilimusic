@@ -28,6 +28,10 @@ class MusicChartResolver {
   final BiliPlayerRepository playerRepository;
 
   Future<PlayableItem?> resolve(MusicChartTrack track) async {
+    final PlayableItem? directItem = track.directItem;
+    if (directItem != null) {
+      return directItem;
+    }
     final SearchResultItem? match =
         await _searchBest(track.searchKeyword, track) ??
         await _searchBest(track.title, track);

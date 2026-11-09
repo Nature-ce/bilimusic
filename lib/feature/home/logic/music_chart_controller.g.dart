@@ -55,7 +55,7 @@ final class MusicChartRepositoryProvider
 }
 
 String _$musicChartRepositoryHash() =>
-    r'1bda9568e33bc036117c8fa1ecf1ef6c24f1d328';
+    r'eb302d6972fb99edd06295828fde0847827ad0ec';
 
 @ProviderFor(MusicChartController)
 final musicChartControllerProvider = MusicChartControllerProvider._();

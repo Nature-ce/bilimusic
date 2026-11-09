@@ -1,4 +1,5 @@
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
+import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'music_chart_track.freezed.dart';
@@ -12,6 +13,7 @@ abstract class MusicChartTrack with _$MusicChartTrack {
     required String artist,
     required String coverUrl,
     @Default(0) int durationSeconds,
+    PlayableItem? directItem,
   }) = _MusicChartTrack;
 
   const MusicChartTrack._();

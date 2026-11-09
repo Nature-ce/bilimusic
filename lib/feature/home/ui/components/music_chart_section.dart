@@ -87,6 +87,16 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
   }
 
   Future<void> _playTrack(MusicChartTrack track) async {
+    final PlayableItem? directItem = track.directItem;
+    if (directItem != null) {
+      await PlayerUtil.playItemAndOpenPlayer(
+        context,
+        ref,
+        item: directItem,
+        sourceLabel: track.chart.displayTitle,
+      );
+      return;
+    }
     if (_resolvingTrackKey != null) {
       return;
     }
