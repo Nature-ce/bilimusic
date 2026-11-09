@@ -83,7 +83,9 @@ void main() {
     WidgetTester tester,
   ) async {
     final ProviderContainer container = ProviderContainer(
-      overrides: [playerControllerProvider.overrideWith(_ReorderablePlayer.new)],
+      overrides: [
+        playerControllerProvider.overrideWith(_ReorderablePlayer.new),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -112,7 +114,9 @@ void main() {
 
   testWidgets('the queue sheet removes an item', (WidgetTester tester) async {
     final ProviderContainer container = ProviderContainer(
-      overrides: [playerControllerProvider.overrideWith(_ReorderablePlayer.new)],
+      overrides: [
+        playerControllerProvider.overrideWith(_ReorderablePlayer.new),
+      ],
     );
     addTearDown(container.dispose);
 

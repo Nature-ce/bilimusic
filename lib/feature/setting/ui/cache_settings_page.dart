@@ -1,5 +1,6 @@
 import 'package:bilimusic/common/util/color_util.dart';
 import 'package:bilimusic/common/util/format_util.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/cache/cache_util.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -169,6 +170,22 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final Color imageSectionColor = ColorUtil.getAnalogous(
+      colorScheme.primary,
+    )[4];
+    final Color audioSectionColor = ColorUtil.getShade(
+      colorScheme.primary,
+      400,
+    );
+    final Color lyricsSectionColor = ColorUtil.getShade(
+      colorScheme.primary,
+      500,
+    );
+    final Color metadataSectionColor = ColorUtil.getShade(
+      colorScheme.primary,
+      700,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('缓存管理')),
@@ -204,11 +221,9 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
                                                 .toDouble()
                                           : 0,
                                       titleStyle: TextStyle(
-                                        color: Colors.white,
+                                        color: onColorFor(imageSectionColor),
                                       ),
-                                      color: ColorUtil.getAnalogous(
-                                        theme.colorScheme.primary,
-                                      )[4],
+                                      color: imageSectionColor,
                                       radius: 45,
                                     ),
                                     PieChartSectionData(
@@ -221,12 +236,9 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
                                                     100)
                                                 .toDouble()
                                           : 0,
-                                      color: ColorUtil.getShade(
-                                        theme.colorScheme.primary,
-                                        400,
-                                      ),
+                                      color: audioSectionColor,
                                       titleStyle: TextStyle(
-                                        color: Colors.white,
+                                        color: onColorFor(audioSectionColor),
                                       ),
                                       radius: 45,
                                     ),
@@ -240,12 +252,9 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
                                                     100)
                                                 .toDouble()
                                           : 0,
-                                      color: ColorUtil.getShade(
-                                        theme.colorScheme.primary,
-                                        500,
-                                      ),
-                                      titleStyle: const TextStyle(
-                                        color: Colors.white,
+                                      color: lyricsSectionColor,
+                                      titleStyle: TextStyle(
+                                        color: onColorFor(lyricsSectionColor),
                                       ),
                                       radius: 45,
                                     ),
@@ -259,12 +268,9 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
                                                     100)
                                                 .toDouble()
                                           : 0,
-                                      color: ColorUtil.getShade(
-                                        theme.colorScheme.primary,
-                                        700,
-                                      ),
-                                      titleStyle: const TextStyle(
-                                        color: Colors.white,
+                                      color: metadataSectionColor,
+                                      titleStyle: TextStyle(
+                                        color: onColorFor(metadataSectionColor),
                                       ),
                                       radius: 45,
                                     ),
@@ -299,7 +305,7 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
                                       style: TextStyle(
                                         color:
                                             theme.textTheme.bodyMedium?.color ??
-                                            Colors.grey,
+                                            colorScheme.onSurface,
                                         fontSize: 24,
                                         fontWeight: FontWeight.w500,
                                       ),

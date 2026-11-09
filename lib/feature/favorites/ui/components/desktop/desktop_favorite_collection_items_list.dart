@@ -2,6 +2,7 @@ import 'package:bilimusic/common/bm_icons.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/selectable_auto_scroll_list_view.dart';
 import 'package:bilimusic/common/components/tag.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
@@ -166,8 +167,8 @@ class DesktopFavoriteCollectionItemsList extends ConsumerWidget {
           const SizedBox(width: 6),
           Tag(
             text: '$playCount',
-            color: Colors.grey.withValues(alpha: 0.2),
-            textColor: const Color.fromARGB(255, 134, 134, 134),
+            color: appSurfaceContainerColor(context, alpha: 0.65),
+            textColor: theme.colorScheme.onSurfaceVariant,
             size: TagSize.small,
             icon: const HugeIcon(
               icon: HugeIcons.strokeRoundedHeadphones,

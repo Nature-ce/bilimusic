@@ -1,5 +1,6 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
@@ -138,8 +139,6 @@ class _ChartPlatformBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -148,7 +147,6 @@ class _ChartPlatformBar extends StatelessWidget {
           _ChartChip(
             label: platform.label,
             selected: platform == selected,
-            colorScheme: colorScheme,
             onTap: () => onSelected(platform),
           ),
       ],
@@ -169,8 +167,6 @@ class _ChartNameBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
     return SizedBox(
       height: 28,
       child: SingleChildScrollView(
@@ -184,7 +180,6 @@ class _ChartNameBar extends StatelessWidget {
                 child: _ChartChip(
                   label: chart.name,
                   selected: chart == selected,
-                  colorScheme: colorScheme,
                   compact: true,
                   onTap: () => onSelected(chart),
                 ),
@@ -200,23 +195,19 @@ class _ChartChip extends StatelessWidget {
   const _ChartChip({
     required this.label,
     required this.selected,
-    required this.colorScheme,
     required this.onTap,
     this.compact = false,
   });
 
   final String label;
   final bool selected;
-  final ColorScheme colorScheme;
   final bool compact;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? colorScheme.primary.withValues(alpha: 0.12)
-          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: appChipBackgroundColor(context, selected: selected),
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         onTap: onTap,
@@ -230,9 +221,7 @@ class _ChartChip extends StatelessWidget {
             style: TextStyle(
               fontSize: compact ? 11 : 12,
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              color: selected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant,
+              color: appChipForegroundColor(context, selected: selected),
               height: 1.1,
             ),
           ),
@@ -421,10 +410,10 @@ class _MusicChartTrackTile extends StatelessWidget {
 class _MusicChartLoading extends StatelessWidget {
   const _MusicChartLoading();
 
-  static const Color _placeholderColor = Color(0xFFDDE6F2);
-
   @override
   Widget build(BuildContext context) {
+    final Color placeholderColor = appSkeletonColor(context);
+
     return Column(
       children: List<Widget>.generate(6, (int index) {
         return Padding(
@@ -437,7 +426,7 @@ class _MusicChartLoading extends StatelessWidget {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: _placeholderColor,
+                    color: placeholderColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -450,7 +439,7 @@ class _MusicChartLoading extends StatelessWidget {
                       Container(
                         height: 13,
                         decoration: BoxDecoration(
-                          color: _placeholderColor,
+                          color: placeholderColor,
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
@@ -459,7 +448,7 @@ class _MusicChartLoading extends StatelessWidget {
                         width: 120,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: _placeholderColor,
+                          color: placeholderColor,
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),

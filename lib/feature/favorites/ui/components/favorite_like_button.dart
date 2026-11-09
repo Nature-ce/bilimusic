@@ -1,7 +1,6 @@
 import 'package:bilimusic/common/components/bar_icon_button.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:flutter/material.dart';
-
-const Color favoriteLikeColor = Color(0xFFF33939);
 
 class FavoriteLikeIconButton extends StatelessWidget {
   const FavoriteLikeIconButton({
@@ -29,7 +28,7 @@ class FavoriteLikeIconButton extends StatelessWidget {
         isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
       ),
       color: isLiked
-          ? favoriteLikeColor
+          ? appFavoriteColor
           : colorScheme.onSurface.withValues(alpha: 0.55),
       disabledColor: colorScheme.onSurface.withValues(alpha: 0.28),
       iconSize: iconSize,
@@ -60,7 +59,7 @@ class FavoriteLikeBarButton extends StatelessWidget {
       icon: isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
       tooltip: tooltip,
       isActive: isLiked,
-      activeColor: favoriteLikeColor,
+      activeColor: appFavoriteColor,
       onPressed: onPressed,
     );
   }

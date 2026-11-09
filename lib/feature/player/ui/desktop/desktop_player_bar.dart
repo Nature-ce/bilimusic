@@ -6,6 +6,7 @@ import 'package:bilimusic/common/components/desktop/pingpong_marquee_plus.dart';
 import 'package:bilimusic/common/components/desktop/volumn_attach.dart';
 import 'package:bilimusic/common/util/color_util.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/comment/domain/comment_target.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/domain/audio_stream_info.dart';
@@ -217,7 +218,7 @@ class _TrackSection extends StatelessWidget {
                     icon: isFavorite
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
-                    activeColor: const Color(0xFFFF5C73),
+                    activeColor: appFavoriteColor,
                     isActive: isFavorite,
                   ),
                   const SizedBox(width: 10),
@@ -383,7 +384,9 @@ class _PlaybackSection extends StatelessWidget {
                 Theme.of(context).colorScheme.primary,
                 400,
               ),
-              foregroundColor: Colors.black,
+              foregroundColor: onColorFor(
+                ColorUtil.getShade(Theme.of(context).colorScheme.primary, 400),
+              ),
             ),
             const SizedBox(width: 8),
             BarIconButton(

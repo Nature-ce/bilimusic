@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
@@ -351,7 +352,7 @@ class _VideoCardActions extends StatelessWidget {
                 ? Icons.favorite_rounded
                 : Icons.favorite_border_rounded,
             isActive: isFavorite,
-            activeColor: Theme.of(context).colorScheme.secondary,
+            activeColor: appFavoriteColor,
             tooltip: isFavorite ? '取消收藏' : '收藏',
             onTap: () => unawaited(_toggleFavorite(context)),
           ),

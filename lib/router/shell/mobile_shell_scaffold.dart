@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/util/color_util.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
 import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
@@ -187,7 +188,7 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
       verticalPadding: 0,
       barHeight: _bottomBarHeight,
       horizontalPadding: 0,
-      unselectedIconColor: theme.textTheme.bodyMedium?.color ?? Colors.black,
+      unselectedIconColor: colorScheme.onSurfaceVariant,
       selectedIconColor: colorScheme.primary,
       indicatorColor: ColorUtil.getLight(
         colorScheme.primary,
@@ -215,11 +216,11 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(_bottomBarCornerRadius),
         border: Border.all(color: colorScheme.primary.withValues(alpha: 0.08)),
-        boxShadow: const <BoxShadow>[
+        boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Color(0x14000000),
+            color: appShadowColor(context),
             blurRadius: 30,
-            offset: Offset(0, 16),
+            offset: const Offset(0, 16),
           ),
         ],
       ),
@@ -318,8 +319,6 @@ class _BottomNavItem extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color _unselectedColor = Color(0xFF7B8698);
-
   final IconData icon;
   final IconData selectedIcon;
   final bool selected;
@@ -329,6 +328,9 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color unselectedColor = Theme.of(
+      context,
+    ).colorScheme.onSurfaceVariant;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -345,7 +347,7 @@ class _BottomNavItem extends StatelessWidget {
             ),
             child: Icon(
               selected ? selectedIcon : icon,
-              color: selected ? selectedColor : _unselectedColor,
+              color: selected ? selectedColor : unselectedColor,
             ),
           ),
         ),

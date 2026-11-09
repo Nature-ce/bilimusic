@@ -132,7 +132,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
               Icons.favorite_rounded,
               size: 22,
               color: isLikedSelected
-                  ? Colors.black
+                  ? colorScheme.onSurface
                   : colorScheme.onSurfaceVariant,
             ),
             title: '我喜欢',
@@ -155,7 +155,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
               Icons.history_rounded,
               size: 22,
               color: isRecentSelected
-                  ? Colors.black
+                  ? colorScheme.onSurface
                   : colorScheme.onSurfaceVariant,
             ),
             title: '历史记录',
@@ -169,7 +169,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
               Icons.library_music_rounded,
               size: 22,
               color: isDownloadsSelected
-                  ? Colors.black
+                  ? colorScheme.onSurface
                   : colorScheme.onSurfaceVariant,
             ),
             title: '本地',

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bilimusic/common/components/bar_icon_button.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/search/domain/search_state.dart';
 import 'package:bilimusic/feature/search/logic/search_controller.dart';
 import 'package:bilimusic/feature/search/ui/components/highlight_text.dart';
@@ -296,7 +297,7 @@ class _DesktopSearchField extends StatelessWidget {
         placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
           color: colorScheme.onSurfaceVariant,
         ),
-        backgroundColor: Colors.grey.withValues(alpha: 0.2),
+        backgroundColor: appSurfaceContainerColor(context, alpha: 0.7),
         itemColor: colorScheme.onSurface,
         borderRadius: BorderRadius.circular(12),
         padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 10, 8),

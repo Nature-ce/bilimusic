@@ -98,7 +98,9 @@ void main() {
                   const <FavoritedSeason>[],
                 ),
                 statisticsTrackerProvider.overrideWithValue(_Statistics()),
-                listeningProgressControllerProvider.overrideWith(_Listening.new),
+                listeningProgressControllerProvider.overrideWith(
+                  _Listening.new,
+                ),
                 playerControllerProvider.overrideWith(_Player.new),
               ],
             );

@@ -11,6 +11,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+Color _maskColor(WidgetTester tester) {
+  final BuildContext context = tester.element(find.byType(ColorFiltered).first);
+  return Theme.of(context).colorScheme.onSurface;
+}
+
 void main() {
   testWidgets('added collection is masked and tapping only shows a toast', (
     WidgetTester tester,
@@ -113,7 +118,10 @@ void main() {
     expect(mask, findsOneWidget);
     expect(
       tester.widget<ColorFiltered>(mask).colorFilter,
-      ColorFilter.mode(Colors.grey.withValues(alpha: 0.5), BlendMode.srcATop),
+      ColorFilter.mode(
+        _maskColor(tester).withValues(alpha: 0.38),
+        BlendMode.srcATop,
+      ),
     );
     expect(
       find.descendant(of: mask, matching: find.byType(CommonCachedImage)),
@@ -250,7 +258,10 @@ void main() {
               find.descendant(of: tile, matching: find.byType(ColorFiltered)),
             )
             .colorFilter,
-        ColorFilter.mode(Colors.grey.withValues(alpha: 0), BlendMode.srcATop),
+        ColorFilter.mode(
+          _maskColor(tester).withValues(alpha: 0),
+          BlendMode.srcATop,
+        ),
       );
       final Finder material = find
           .ancestor(of: tile, matching: find.byType(Material))

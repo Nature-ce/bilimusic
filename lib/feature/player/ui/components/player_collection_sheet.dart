@@ -223,7 +223,7 @@ class _CollectionTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
           child: ColorFiltered(
             colorFilter: ColorFilter.mode(
-              Colors.grey.withValues(alpha: allAdded ? 0.5 : 0),
+              colorScheme.onSurface.withValues(alpha: allAdded ? 0.38 : 0),
               BlendMode.srcATop,
             ),
             child: Row(

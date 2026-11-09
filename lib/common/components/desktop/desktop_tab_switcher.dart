@@ -37,14 +37,14 @@ class DesktopTabSwitcher extends StatelessWidget {
             height: 36,
             child: TextButton(
               onPressed: () => onChanged(labelIndex),
-              style: TextButton.styleFrom(
-                    foregroundColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
-                ),
+              style:
+                  TextButton.styleFrom(
+                    foregroundColor: color,
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero,
+                    ),
                   ).copyWith(
-                    foregroundColor: WidgetStateProperty.all(Colors.blue),
                     overlayColor: WidgetStateProperty.all(Colors.transparent),
                   ),
               child: MouseRegion(

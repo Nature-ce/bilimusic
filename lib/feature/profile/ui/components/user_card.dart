@@ -43,7 +43,7 @@ class UserCard extends ConsumerWidget {
               CommonCachedAvatar(
                 imageUrl: isLoggedIn ? face : null,
                 radius: 24,
-                backgroundColor: const Color(0xFFF2F6FA),
+                backgroundColor: colorScheme.surfaceContainerHighest,
                 fallbackIcon: Icons.person,
                 iconColor: themeColor,
                 iconSize: 24,

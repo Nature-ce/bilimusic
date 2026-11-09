@@ -3,28 +3,30 @@ import 'package:flutter/material.dart';
 class HighlightText extends StatelessWidget {
   final String text;
   final String highlight;
-  final TextStyle normalStyle;
-  final TextStyle highlightStyle;
+  final TextStyle? normalStyle;
+  final TextStyle? highlightStyle;
   final bool caseSensitive;
 
   const HighlightText({
     super.key,
     required this.text,
     required this.highlight,
-    this.normalStyle = const TextStyle(color: Colors.black),
-    this.highlightStyle = const TextStyle(
-      color: Colors.green,
-      fontWeight: FontWeight.bold,
-    ),
+    this.normalStyle,
+    this.highlightStyle,
     this.caseSensitive = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context);
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final TextStyle resolvedNormalStyle =
+        normalStyle ?? TextStyle(color: colorScheme.onSurface);
+    final TextStyle resolvedHighlightStyle =
+        highlightStyle ??
+        TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold);
 
     if (highlight.isEmpty) {
-      return Text(text, style: normalStyle);
+      return Text(text, style: resolvedNormalStyle);
     }
 
     final sourceText = caseSensitive ? text : text.toLowerCase();
@@ -38,7 +40,10 @@ class HighlightText extends StatelessWidget {
       // 添加高亮前的文本
       if (index > start) {
         matches.add(
-          TextSpan(text: text.substring(start, index), style: normalStyle),
+          TextSpan(
+            text: text.substring(start, index),
+            style: resolvedNormalStyle,
+          ),
         );
       }
 
@@ -46,7 +51,7 @@ class HighlightText extends StatelessWidget {
       matches.add(
         TextSpan(
           text: text.substring(index, index + highlight.length),
-          style: highlightStyle,
+          style: resolvedHighlightStyle,
         ),
       );
 
@@ -56,11 +61,13 @@ class HighlightText extends StatelessWidget {
 
     // 添加剩余文本
     if (start < text.length) {
-      matches.add(TextSpan(text: text.substring(start), style: normalStyle));
+      matches.add(
+        TextSpan(text: text.substring(start), style: resolvedNormalStyle),
+      );
     }
 
     return matches.isEmpty
-        ? Text(text, style: normalStyle)
+        ? Text(text, style: resolvedNormalStyle)
         : Text.rich(TextSpan(children: matches));
   }
 }
