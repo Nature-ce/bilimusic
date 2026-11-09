@@ -1027,7 +1027,8 @@ void main() {
     for (final (String, PlayerQueueMode) mode in [
       ('列表循环', PlayerQueueMode.singleRepeat),
       ('单曲循环', PlayerQueueMode.shuffle),
-      ('随机播放', PlayerQueueMode.sequence),
+      ('随机播放', PlayerQueueMode.sequenceOnce),
+      ('顺序播放', PlayerQueueMode.sequence),
     ]) {
       final Finder modeButton = find.byTooltip(mode.$1);
       final Finder buttons = find.descendant(

@@ -109,6 +109,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
       PlayerQueueMode.sequence => '列表循环',
       PlayerQueueMode.singleRepeat => '单曲循环',
       PlayerQueueMode.shuffle => '随机播放',
+      PlayerQueueMode.sequenceOnce => '顺序播放',
     };
     _focusInitialItem(liveState.currentQueueIndex);
 
@@ -157,6 +158,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                   PlayerQueueMode.sequence => Icons.repeat_rounded,
                   PlayerQueueMode.singleRepeat => Icons.repeat_one_rounded,
                   PlayerQueueMode.shuffle => Icons.shuffle_rounded,
+                  PlayerQueueMode.sequenceOnce => Icons.playlist_play_rounded,
                 }),
               ),
             ],

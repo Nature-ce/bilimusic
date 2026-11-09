@@ -75,7 +75,7 @@ types:
         index: 3
   PlayerQueueMode:
     typeId: 4
-    nextIndex: 3
+    nextIndex: 4
     fields:
       sequence:
         index: 0
@@ -83,6 +83,8 @@ types:
         index: 1
       shuffle:
         index: 2
+      sequenceOnce:
+        index: 3
   PersistedPlayableItem:
     typeId: 5
     nextIndex: 22

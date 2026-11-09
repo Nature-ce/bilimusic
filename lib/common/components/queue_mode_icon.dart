@@ -15,5 +15,9 @@ HugeIcon queueModeIcon(PlayerQueueMode mode) {
       icon: HugeIcons.strokeRoundedShuffle,
       size: 22,
     ),
+    PlayerQueueMode.sequenceOnce => HugeIcon(
+      icon: HugeIcons.strokeRoundedPlayList,
+      size: 22,
+    ),
   };
 }

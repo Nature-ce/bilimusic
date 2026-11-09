@@ -77,6 +77,7 @@ class PlayerLandscapeControls extends StatelessWidget {
               PlayerQueueMode.sequence => '列表循环',
               PlayerQueueMode.singleRepeat => '单曲循环',
               PlayerQueueMode.shuffle => '随机播放',
+              PlayerQueueMode.sequenceOnce => '顺序播放',
             },
             onPressed: state.hasQueue ? onToggleQueueMode : null,
             icon: queueModeIcon(state.queueMode),

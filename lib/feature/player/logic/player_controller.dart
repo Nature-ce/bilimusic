@@ -793,6 +793,7 @@ class PlayerController extends Notifier<PlayerState>
       PlayerQueueMode.sequence => PlayerQueueMode.singleRepeat,
       PlayerQueueMode.singleRepeat => PlayerQueueMode.shuffle,
       PlayerQueueMode.shuffle => PlayerQueueMode.sequence,
+      PlayerQueueMode.sequenceOnce => PlayerQueueMode.sequence,
     };
     setQueueMode(nextMode);
   }

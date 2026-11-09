@@ -16,12 +16,13 @@ import 'package:bilimusic/feature/favorites/logic/remote_collection_sync_control
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/favorites/ui/components/collection_kind_tag.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_items_list.dart';
-import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_actions.dart';
+import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_button.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_search_field.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorites_metadata_toolbar_buttons.dart';
 import 'package:bilimusic/feature/favorites/ui/components/remote_collection_sync_status_bar.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
+import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
 import 'package:bilimusic/feature/up/ui/components/favorite_up_list.dart';
@@ -479,11 +480,10 @@ class _FavoriteCollectionPageState
           ],
           if (queueItems.isNotEmpty) ...<Widget>[
             const SizedBox(width: 4),
-            FavoriteCollectionPlayActions(
-              onPlayAll: () =>
-                  _playAllItems(context, ref, collection, queueItems),
-              onShuffle: () =>
-                  _shuffleAllItems(context, ref, collection, queueItems),
+            FavoriteCollectionPlayButton(
+              enabled: queueItems.isNotEmpty,
+              onModeSelected: (FavoriteCollectionPlayMode mode) =>
+                  _playCollection(context, ref, collection, queueItems, mode),
             ),
           ],
         ],
@@ -491,34 +491,28 @@ class _FavoriteCollectionPageState
     );
   }
 
-  Future<void> _playAllItems(
+  Future<void> _playCollection(
     BuildContext context,
     WidgetRef ref,
     FavoriteCollection collection,
     List<PlayableItem> queueItems,
-  ) {
-    return PlayerUtil.playQueueAndOpenPlayer(
+    FavoriteCollectionPlayMode mode,
+  ) async {
+    final bool shuffle = mode == FavoriteCollectionPlayMode.shuffle;
+    final List<PlayableItem> items = shuffle
+        ? (List<PlayableItem>.of(queueItems)..shuffle())
+        : queueItems;
+    await PlayerUtil.playQueueAndOpenPlayer(
       context,
       ref,
-      items: queueItems,
-      sourceLabel: collection.name,
+      items: items,
+      sourceLabel: shuffle ? '${collection.name} · 随机' : collection.name,
     );
-  }
-
-  Future<void> _shuffleAllItems(
-    BuildContext context,
-    WidgetRef ref,
-    FavoriteCollection collection,
-    List<PlayableItem> queueItems,
-  ) {
-    final List<PlayableItem> shuffled = List<PlayableItem>.of(queueItems)
-      ..shuffle();
-    return PlayerUtil.playQueueAndOpenPlayer(
-      context,
-      ref,
-      items: shuffled,
-      sourceLabel: '${collection.name} · 随机',
-    );
+    ref.read(playerControllerProvider.notifier).setQueueMode(switch (mode) {
+      FavoriteCollectionPlayMode.sequence => PlayerQueueMode.sequenceOnce,
+      FavoriteCollectionPlayMode.shuffle => PlayerQueueMode.shuffle,
+      FavoriteCollectionPlayMode.loop => PlayerQueueMode.sequence,
+    });
   }
 
   Widget _buildItemsList(

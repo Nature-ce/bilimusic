@@ -5,7 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'player_state.freezed.dart';
 
-enum PlayerQueueMode { sequence, singleRepeat, shuffle }
+enum PlayerQueueMode { sequence, singleRepeat, shuffle, sequenceOnce }
 
 enum PlayerStatusHint {
   resolvingAudio,
