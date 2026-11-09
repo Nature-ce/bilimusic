@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:flutter/material.dart';
 
 /// 歌单的播放方式：顺序（播完即止）、随机、循环。
@@ -41,8 +42,8 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
                     ),
                   ),
                   ListTile(
-                    leading: Icon(
-                      Icons.keyboard_double_arrow_right_rounded,
+                    leading: SequencePlayIcon(
+                      size: 24,
                       color: colorScheme.primary,
                     ),
                     title: const Text('顺序播放'),
@@ -101,7 +102,7 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
           minimumSize: const Size(_size, _size),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        icon: const Icon(Icons.keyboard_double_arrow_right_rounded),
+        icon: const Icon(Icons.playlist_play_rounded),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
+import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -154,13 +155,16 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                 onPressed: liveState.hasQueue
                     ? liveController.toggleQueueMode
                     : null,
-                icon: Icon(switch (liveState.queueMode) {
-                  PlayerQueueMode.sequence => Icons.repeat_rounded,
-                  PlayerQueueMode.singleRepeat => Icons.repeat_one_rounded,
-                  PlayerQueueMode.shuffle => Icons.shuffle_rounded,
-                  PlayerQueueMode.sequenceOnce =>
-                    Icons.keyboard_double_arrow_right_rounded,
-                }),
+                icon: switch (liveState.queueMode) {
+                  PlayerQueueMode.sequence => const Icon(Icons.repeat_rounded),
+                  PlayerQueueMode.singleRepeat => const Icon(
+                    Icons.repeat_one_rounded,
+                  ),
+                  PlayerQueueMode.shuffle => const Icon(Icons.shuffle_rounded),
+                  PlayerQueueMode.sequenceOnce => const SequencePlayIcon(
+                    size: 24,
+                  ),
+                },
               ),
             ],
           ),

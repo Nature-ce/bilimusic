@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,10 +22,7 @@ void main() {
       ),
     );
 
-    expect(
-      find.byIcon(Icons.keyboard_double_arrow_right_rounded),
-      findsOneWidget,
-    );
+    expect(find.byIcon(Icons.playlist_play_rounded), findsOneWidget);
 
     await tester.tap(find.byTooltip('播放'));
     await tester.pumpAndSettle();
@@ -33,9 +31,16 @@ void main() {
     expect(
       find.descendant(
         of: find.widgetWithText(ListTile, '顺序播放'),
-        matching: find.byIcon(Icons.keyboard_double_arrow_right_rounded),
+        matching: find.byType(SequencePlayIcon),
       ),
       findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.widgetWithText(ListTile, '顺序播放'),
+        matching: find.byIcon(Icons.playlist_play_rounded),
+      ),
+      findsNothing,
     );
     expect(find.text('随机播放'), findsOneWidget);
     expect(find.text('循环播放'), findsOneWidget);

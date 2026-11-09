@@ -3,6 +3,7 @@ import 'package:bilimusic/common/components/common_attach_button.dart';
 import 'package:bilimusic/common/components/common_attach_menu.dart';
 import 'package:bilimusic/common/components/common_attach_panel.dart';
 import 'package:bilimusic/common/components/queue_mode_icon.dart';
+import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -34,10 +35,7 @@ class DesktopQueueModeAttach extends StatelessWidget {
           CommonAttachMenuItem<PlayerQueueMode>(
             value: PlayerQueueMode.sequenceOnce,
             label: '顺序播放',
-            icon: HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowRightDouble,
-              size: 19,
-            ),
+            icon: const SequencePlayIcon(size: 19),
             selected: mode == PlayerQueueMode.sequenceOnce,
           ),
           CommonAttachMenuItem<PlayerQueueMode>(
