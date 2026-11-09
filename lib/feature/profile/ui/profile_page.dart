@@ -91,7 +91,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           children: <Widget>[
             UserCard(onSettingsPressed: () => context.push('/settings')),
-            const SizedBox(height: 18),
+            const SizedBox(height: AppSpacing.lg),
             _ProfileQuickActions(
               likedCount: likedCount,
               recentCount: recentCount,
@@ -748,51 +748,74 @@ class _ProfileQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: _ProfileQuickActionCard(
-            icon: Icons.favorite_rounded,
-            title: '我喜欢',
-            count: likedCount,
-            onTap: onLikedTap,
-            onLongPressStart: onLikedLongPressStart,
-          ),
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Container(
+        decoration: appSoftCardDecoration(context),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: _ProfileStatItem(
+                icon: Icons.favorite_rounded,
+                label: '我喜欢',
+                count: likedCount,
+                onTap: onLikedTap,
+                onLongPressStart: onLikedLongPressStart,
+              ),
+            ),
+            _ProfileStatDivider(colorScheme: colorScheme),
+            Expanded(
+              child: _ProfileStatItem(
+                icon: Icons.history_rounded,
+                label: '历史记录',
+                count: recentCount,
+                onTap: onRecentTap,
+              ),
+            ),
+            _ProfileStatDivider(colorScheme: colorScheme),
+            Expanded(
+              child: _ProfileStatItem(
+                icon: Icons.library_music_rounded,
+                label: '本地',
+                count: downloadCount,
+                onTap: onDownloadTap,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ProfileQuickActionCard(
-            icon: Icons.history_rounded,
-            title: '历史记录',
-            count: recentCount,
-            onTap: onRecentTap,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ProfileQuickActionCard(
-            icon: Icons.library_music_rounded,
-            title: '本地',
-            count: downloadCount,
-            onTap: onDownloadTap,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _ProfileQuickActionCard extends StatelessWidget {
-  const _ProfileQuickActionCard({
+class _ProfileStatDivider extends StatelessWidget {
+  const _ProfileStatDivider({required this.colorScheme});
+
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 0.5,
+      height: 26,
+      color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+    );
+  }
+}
+
+class _ProfileStatItem extends StatelessWidget {
+  const _ProfileStatItem({
     required this.icon,
-    required this.title,
+    required this.label,
     required this.count,
     this.onTap,
     this.onLongPressStart,
   });
 
   final IconData icon;
-  final String title;
+  final String label;
   final int count;
   final VoidCallback? onTap;
   final GestureLongPressStartCallback? onLongPressStart;
@@ -807,39 +830,34 @@ class _ProfileQuickActionCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
           onTap: onTap,
-          hoverColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-          child: Ink(
-            decoration: appSoftCardDecoration(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.sm + 2,
-              ),
-              child: Column(
-                children: <Widget>[
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md - 2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(icon, size: 15, color: colorScheme.primary),
+                    const SizedBox(width: AppSpacing.xs + 2),
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        fontSize: 17,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.onSurface,
+                        fontFeatures: const <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
+                      ),
                     ),
-                    child: Icon(icon, color: colorScheme.primary, size: 20),
-                  ),
-                  const SizedBox(height: AppSpacing.xs + 2),
-                  Text(title, style: AppTextStyles.listTitle(theme)),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$count',
-                    style: AppTextStyles.meta(
-                      theme,
-                    ).copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs + 2),
+                Text(label, style: AppTextStyles.meta(theme, fontSize: 11.5)),
+              ],
             ),
           ),
         ),
