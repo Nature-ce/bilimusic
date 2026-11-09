@@ -42,7 +42,7 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
                   ),
                   ListTile(
                     leading: Icon(
-                      Icons.playlist_play_rounded,
+                      Icons.keyboard_double_arrow_right_rounded,
                       color: colorScheme.primary,
                     ),
                     title: const Text('顺序播放'),
@@ -101,7 +101,7 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
           minimumSize: const Size(_size, _size),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        icon: const Icon(Icons.play_arrow_rounded),
+        icon: const Icon(Icons.keyboard_double_arrow_right_rounded),
       ),
     );
   }

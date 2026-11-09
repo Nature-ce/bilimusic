@@ -34,7 +34,10 @@ class DesktopQueueModeAttach extends StatelessWidget {
           CommonAttachMenuItem<PlayerQueueMode>(
             value: PlayerQueueMode.sequenceOnce,
             label: '顺序播放',
-            icon: HugeIcon(icon: HugeIcons.strokeRoundedPlayList, size: 19),
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowRightDouble,
+              size: 19,
+            ),
             selected: mode == PlayerQueueMode.sequenceOnce,
           ),
           CommonAttachMenuItem<PlayerQueueMode>(

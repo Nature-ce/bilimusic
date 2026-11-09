@@ -21,10 +21,22 @@ void main() {
       ),
     );
 
+    expect(
+      find.byIcon(Icons.keyboard_double_arrow_right_rounded),
+      findsOneWidget,
+    );
+
     await tester.tap(find.byTooltip('播放'));
     await tester.pumpAndSettle();
 
     expect(find.text('顺序播放'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.widgetWithText(ListTile, '顺序播放'),
+        matching: find.byIcon(Icons.keyboard_double_arrow_right_rounded),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('随机播放'), findsOneWidget);
     expect(find.text('循环播放'), findsOneWidget);
 
