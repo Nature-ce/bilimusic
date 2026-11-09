@@ -1,6 +1,8 @@
 import 'package:bilimusic/common/components/desktop/desktop_top_bar.dart';
 import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
+import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
+import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dart';
 import 'package:bilimusic/feature/profile/ui/desktop_profile_sidebar.dart';
 import 'package:bilimusic/feature/player/ui/desktop/desktop_player_bar.dart';
 import 'package:bilimusic/feature/updater/logic/update_checker.dart';
@@ -33,9 +35,20 @@ class _DesktopShellScaffoldState extends ConsumerState<DesktopShellScaffold> {
     UpdateChecker.scheduleStartupCheck(context);
   }
 
+  Widget? _buildHomeBackToTop() {
+    if (widget.currentLocation != '/home') {
+      return null;
+    }
+    if (!ref.watch(homeBackToTopVisibilityProvider)) {
+      return null;
+    }
+    return const HomeBackToTopButton();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: _buildHomeBackToTop(),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),

@@ -1,4 +1,6 @@
 import 'package:bilimusic/common/util/color_util.dart';
+import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
+import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/mini/mini_player_bar.dart';
@@ -71,6 +73,7 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
       child: Scaffold(
         extendBody: true,
         body: widget.navigationShell,
+        floatingActionButton: _buildHomeBackToTop(isPlayerPageVisible),
         bottomNavigationBar: _animateChrome(
           visible: showTabs || showMiniPlayer,
           child: () => SafeArea(
@@ -120,6 +123,16 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
         ),
       ),
     );
+  }
+
+  Widget? _buildHomeBackToTop(bool isPlayerPageVisible) {
+    if (isPlayerPageVisible || widget.currentLocation != '/home') {
+      return null;
+    }
+    if (!ref.watch(homeBackToTopVisibilityProvider)) {
+      return null;
+    }
+    return const HomeBackToTopButton();
   }
 
   Widget _animateChrome({
