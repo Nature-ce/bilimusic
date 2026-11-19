@@ -115,7 +115,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
               const SizedBox(width: 8),
               Expanded(
                 child: _SidebarShortcutButton(
-                  icon: Icons.radar_outlined,
+                  icon: Icons.play_circle_outline,
                   isSelected: widget.currentLocation == '/radar',
                   onTap: () => context.go('/radar'),
                 ),

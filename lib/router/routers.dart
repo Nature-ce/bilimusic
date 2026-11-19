@@ -13,7 +13,7 @@ import 'package:bilimusic/feature/home/ui/hot_playlist_page.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/ui/desktop/desktop_player_page.dart';
 import 'package:bilimusic/feature/profile/ui/profile_page.dart';
-import 'package:bilimusic/feature/radar/ui/music_radar_page.dart';
+import 'package:bilimusic/feature/radar/ui/shuffle_page.dart';
 import 'package:bilimusic/feature/recent/ui/desktop/desktop_recent_playback_page.dart';
 import 'package:bilimusic/feature/recent/ui/recent_playback_page.dart';
 import 'package:bilimusic/feature/search/ui/search_page.dart';
@@ -102,9 +102,9 @@ final List<Map<String, dynamic>> mobileTabs = [
   },
   {
     'path': '/radar',
-    'builder': (context, state) => const MusicRadarPage(),
-    'icon': HugeIcon(icon: HugeIcons.strokeRoundedRadar01),
-    'label': '雷达',
+    'builder': (context, state) => const ShufflePage(),
+    'icon': HugeIcon(icon: HugeIcons.strokeRoundedShuffleSquare),
+    'label': '刷歌',
   },
   {
     'path': '/profile',

@@ -50,15 +50,15 @@ final class MusicRadarRandomProvider
 
 String _$musicRadarRandomHash() => r'7ef00326402536208036f8f47518c4c06f5d035c';
 
-/// 音乐雷达：扫描各平台热榜歌单，随机抽取曲目组成「漫游发现流」。
+/// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
 
 @ProviderFor(MusicRadarController)
 final musicRadarControllerProvider = MusicRadarControllerProvider._();
 
-/// 音乐雷达：扫描各平台热榜歌单，随机抽取曲目组成「漫游发现流」。
+/// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
 final class MusicRadarControllerProvider
     extends $NotifierProvider<MusicRadarController, MusicRadarState> {
-  /// 音乐雷达：扫描各平台热榜歌单，随机抽取曲目组成「漫游发现流」。
+  /// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
   MusicRadarControllerProvider._()
     : super(
         from: null,
@@ -87,9 +87,9 @@ final class MusicRadarControllerProvider
 }
 
 String _$musicRadarControllerHash() =>
-    r'ed6aa6139042b9cb19cc93d3a361692bb5273f4f';
+    r'42f92e53c2484f8b40d487aa477b892e2589759e';
 
-/// 音乐雷达：扫描各平台热榜歌单，随机抽取曲目组成「漫游发现流」。
+/// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
 
 abstract class _$MusicRadarController extends $Notifier<MusicRadarState> {
   MusicRadarState build();

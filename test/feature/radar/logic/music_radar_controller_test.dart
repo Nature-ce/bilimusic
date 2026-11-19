@@ -157,7 +157,7 @@ ProviderContainer _container(HotPlaylistRepository repository) {
 Future<MusicRadarState> _settle(ProviderContainer container) async {
   for (int attempt = 0; attempt < 400; attempt += 1) {
     final MusicRadarState state = container.read(musicRadarControllerProvider);
-    if (!state.isScanning) {
+    if (!state.isScanning && !state.isLoadingMore) {
       return state;
     }
     await Future<void>.delayed(const Duration(milliseconds: 1));
@@ -235,5 +235,61 @@ void main() {
 
     expect(state.tracks, hasLength(24));
     expect(state.scanCount, 2);
+  });
+
+  test('extending the feed appends deduped tracks', () async {
+    final ProviderContainer container = _container(_repository());
+
+    container.read(musicRadarControllerProvider.notifier);
+    final MusicRadarState first = await _settle(container);
+    expect(first.tracks, hasLength(24));
+
+    await container.read(musicRadarControllerProvider.notifier).extendFeed();
+    final MusicRadarState extended = await _settle(container);
+
+    expect(extended.scanCount, first.scanCount);
+    expect(extended.tracks.length, greaterThan(first.tracks.length));
+    expect(extended.isLoadingMore, isFalse);
+    final Set<String> keys = extended.tracks
+        .map((track) => '${track.title}|${track.artist}')
+        .toSet();
+    expect(keys.length, extended.tracks.length);
+  });
+
+  test('scan resets the dedupe window for a fresh feed', () async {
+    final ProviderContainer container = _container(_repository());
+
+    container.read(musicRadarControllerProvider.notifier);
+    final MusicRadarState first = await _settle(container);
+    await container.read(musicRadarControllerProvider.notifier).extendFeed();
+    final MusicRadarState extended = await _settle(container);
+    expect(extended.tracks.length, greaterThan(first.tracks.length));
+
+    await container.read(musicRadarControllerProvider.notifier).scan();
+    final MusicRadarState rescanned = await _settle(container);
+
+    expect(rescanned.tracks, hasLength(24));
+    expect(rescanned.scanCount, 2);
+  });
+
+  test('ensureFeedAt only tops up near the end of the feed', () async {
+    final ProviderContainer container = _container(_repository());
+
+    container.read(musicRadarControllerProvider.notifier);
+    final MusicRadarState first = await _settle(container);
+    final MusicRadarController controller = container.read(
+      musicRadarControllerProvider.notifier,
+    );
+
+    controller.ensureFeedAt(0);
+    await _settle(container);
+    expect(
+      container.read(musicRadarControllerProvider).tracks,
+      hasLength(first.tracks.length),
+    );
+
+    controller.ensureFeedAt(first.tracks.length - 1);
+    final MusicRadarState toppedUp = await _settle(container);
+    expect(toppedUp.tracks.length, greaterThan(first.tracks.length));
   });
 }

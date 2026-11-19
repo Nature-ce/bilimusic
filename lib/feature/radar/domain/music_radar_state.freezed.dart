@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MusicRadarState {
 
- List<HotPlaylistTrack> get tracks; bool get isScanning; int get scanCount; String? get errorMessage;
+ List<HotPlaylistTrack> get tracks; bool get isScanning; bool get isLoadingMore; int get scanCount; String? get errorMessage;
 /// Create a copy of MusicRadarState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MusicRadarStateCopyWith<MusicRadarState> get copyWith => _$MusicRadarStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MusicRadarState&&const DeepCollectionEquality().equals(other.tracks, tracks)&&(identical(other.isScanning, isScanning) || other.isScanning == isScanning)&&(identical(other.scanCount, scanCount) || other.scanCount == scanCount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MusicRadarState&&const DeepCollectionEquality().equals(other.tracks, tracks)&&(identical(other.isScanning, isScanning) || other.isScanning == isScanning)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&(identical(other.scanCount, scanCount) || other.scanCount == scanCount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(tracks),isScanning,scanCount,errorMessage);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(tracks),isScanning,isLoadingMore,scanCount,errorMessage);
 
 @override
 String toString() {
-  return 'MusicRadarState(tracks: $tracks, isScanning: $isScanning, scanCount: $scanCount, errorMessage: $errorMessage)';
+  return 'MusicRadarState(tracks: $tracks, isScanning: $isScanning, isLoadingMore: $isLoadingMore, scanCount: $scanCount, errorMessage: $errorMessage)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MusicRadarStateCopyWith<$Res>  {
   factory $MusicRadarStateCopyWith(MusicRadarState value, $Res Function(MusicRadarState) _then) = _$MusicRadarStateCopyWithImpl;
 @useResult
 $Res call({
- List<HotPlaylistTrack> tracks, bool isScanning, int scanCount, String? errorMessage
+ List<HotPlaylistTrack> tracks, bool isScanning, bool isLoadingMore, int scanCount, String? errorMessage
 });
 
 
@@ -62,10 +62,11 @@ class _$MusicRadarStateCopyWithImpl<$Res>
 
 /// Create a copy of MusicRadarState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? tracks = null,Object? isScanning = null,Object? scanCount = null,Object? errorMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? tracks = null,Object? isScanning = null,Object? isLoadingMore = null,Object? scanCount = null,Object? errorMessage = freezed,}) {
   return _then(_self.copyWith(
 tracks: null == tracks ? _self.tracks : tracks // ignore: cast_nullable_to_non_nullable
 as List<HotPlaylistTrack>,isScanning: null == isScanning ? _self.isScanning : isScanning // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
 as bool,scanCount: null == scanCount ? _self.scanCount : scanCount // ignore: cast_nullable_to_non_nullable
 as int,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -153,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<HotPlaylistTrack> tracks,  bool isScanning,  int scanCount,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<HotPlaylistTrack> tracks,  bool isScanning,  bool isLoadingMore,  int scanCount,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MusicRadarState() when $default != null:
-return $default(_that.tracks,_that.isScanning,_that.scanCount,_that.errorMessage);case _:
+return $default(_that.tracks,_that.isScanning,_that.isLoadingMore,_that.scanCount,_that.errorMessage);case _:
   return orElse();
 
 }
@@ -174,10 +175,10 @@ return $default(_that.tracks,_that.isScanning,_that.scanCount,_that.errorMessage
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<HotPlaylistTrack> tracks,  bool isScanning,  int scanCount,  String? errorMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<HotPlaylistTrack> tracks,  bool isScanning,  bool isLoadingMore,  int scanCount,  String? errorMessage)  $default,) {final _that = this;
 switch (_that) {
 case _MusicRadarState():
-return $default(_that.tracks,_that.isScanning,_that.scanCount,_that.errorMessage);case _:
+return $default(_that.tracks,_that.isScanning,_that.isLoadingMore,_that.scanCount,_that.errorMessage);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +195,10 @@ return $default(_that.tracks,_that.isScanning,_that.scanCount,_that.errorMessage
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<HotPlaylistTrack> tracks,  bool isScanning,  int scanCount,  String? errorMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<HotPlaylistTrack> tracks,  bool isScanning,  bool isLoadingMore,  int scanCount,  String? errorMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _MusicRadarState() when $default != null:
-return $default(_that.tracks,_that.isScanning,_that.scanCount,_that.errorMessage);case _:
+return $default(_that.tracks,_that.isScanning,_that.isLoadingMore,_that.scanCount,_that.errorMessage);case _:
   return null;
 
 }
@@ -209,7 +210,7 @@ return $default(_that.tracks,_that.isScanning,_that.scanCount,_that.errorMessage
 
 
 class _MusicRadarState extends MusicRadarState {
-  const _MusicRadarState({final  List<HotPlaylistTrack> tracks = const <HotPlaylistTrack>[], this.isScanning = false, this.scanCount = 0, this.errorMessage}): _tracks = tracks,super._();
+  const _MusicRadarState({final  List<HotPlaylistTrack> tracks = const <HotPlaylistTrack>[], this.isScanning = false, this.isLoadingMore = false, this.scanCount = 0, this.errorMessage}): _tracks = tracks,super._();
   
 
  final  List<HotPlaylistTrack> _tracks;
@@ -220,6 +221,7 @@ class _MusicRadarState extends MusicRadarState {
 }
 
 @override@JsonKey() final  bool isScanning;
+@override@JsonKey() final  bool isLoadingMore;
 @override@JsonKey() final  int scanCount;
 @override final  String? errorMessage;
 
@@ -233,16 +235,16 @@ _$MusicRadarStateCopyWith<_MusicRadarState> get copyWith => __$MusicRadarStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MusicRadarState&&const DeepCollectionEquality().equals(other._tracks, _tracks)&&(identical(other.isScanning, isScanning) || other.isScanning == isScanning)&&(identical(other.scanCount, scanCount) || other.scanCount == scanCount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MusicRadarState&&const DeepCollectionEquality().equals(other._tracks, _tracks)&&(identical(other.isScanning, isScanning) || other.isScanning == isScanning)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&(identical(other.scanCount, scanCount) || other.scanCount == scanCount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_tracks),isScanning,scanCount,errorMessage);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_tracks),isScanning,isLoadingMore,scanCount,errorMessage);
 
 @override
 String toString() {
-  return 'MusicRadarState(tracks: $tracks, isScanning: $isScanning, scanCount: $scanCount, errorMessage: $errorMessage)';
+  return 'MusicRadarState(tracks: $tracks, isScanning: $isScanning, isLoadingMore: $isLoadingMore, scanCount: $scanCount, errorMessage: $errorMessage)';
 }
 
 
@@ -253,7 +255,7 @@ abstract mixin class _$MusicRadarStateCopyWith<$Res> implements $MusicRadarState
   factory _$MusicRadarStateCopyWith(_MusicRadarState value, $Res Function(_MusicRadarState) _then) = __$MusicRadarStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<HotPlaylistTrack> tracks, bool isScanning, int scanCount, String? errorMessage
+ List<HotPlaylistTrack> tracks, bool isScanning, bool isLoadingMore, int scanCount, String? errorMessage
 });
 
 
@@ -270,10 +272,11 @@ class __$MusicRadarStateCopyWithImpl<$Res>
 
 /// Create a copy of MusicRadarState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? tracks = null,Object? isScanning = null,Object? scanCount = null,Object? errorMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? tracks = null,Object? isScanning = null,Object? isLoadingMore = null,Object? scanCount = null,Object? errorMessage = freezed,}) {
   return _then(_MusicRadarState(
 tracks: null == tracks ? _self._tracks : tracks // ignore: cast_nullable_to_non_nullable
 as List<HotPlaylistTrack>,isScanning: null == isScanning ? _self.isScanning : isScanning // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
 as bool,scanCount: null == scanCount ? _self.scanCount : scanCount // ignore: cast_nullable_to_non_nullable
 as int,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,

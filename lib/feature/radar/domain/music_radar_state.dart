@@ -3,12 +3,13 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'music_radar_state.freezed.dart';
 
-/// 音乐雷达：一轮扫描得到的跨平台发现流。
+/// 刷歌流：跨平台热门歌单采样出来的可持续下滑队列。
 @freezed
 abstract class MusicRadarState with _$MusicRadarState {
   const factory MusicRadarState({
     @Default(<HotPlaylistTrack>[]) List<HotPlaylistTrack> tracks,
     @Default(false) bool isScanning,
+    @Default(false) bool isLoadingMore,
     @Default(0) int scanCount,
     String? errorMessage,
   }) = _MusicRadarState;
@@ -20,4 +21,7 @@ abstract class MusicRadarState with _$MusicRadarState {
   bool get isEmpty => !isScanning && !hasError && tracks.isEmpty;
 
   bool get hasResult => tracks.isNotEmpty;
+
+  /// 是否还有未加载的曲目（刷歌流可持续下滑，恒为 true）。
+  bool get isLoadingMoreError => errorMessage != null && tracks.isNotEmpty;
 }
