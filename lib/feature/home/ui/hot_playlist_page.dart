@@ -4,7 +4,6 @@ import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
-import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_detail_state.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
@@ -157,11 +156,11 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
                 ),
               _HotPlaylistFooter(
                 state: state,
-                onLoadMore: () => ref
+                onRetry: () => ref
                     .read(
                       hotPlaylistDetailControllerProvider(playlist).notifier,
                     )
-                    .loadMore(),
+                    .retryLoadRemaining(),
               ),
             ],
           ],
@@ -172,10 +171,10 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
 }
 
 class _HotPlaylistFooter extends StatelessWidget {
-  const _HotPlaylistFooter({required this.state, required this.onLoadMore});
+  const _HotPlaylistFooter({required this.state, required this.onRetry});
 
   final HotPlaylistDetailState state;
-  final VoidCallback onLoadMore;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -183,49 +182,31 @@ class _HotPlaylistFooter extends StatelessWidget {
     if (state.isLoading || state.hasError || state.isEmpty) {
       return const SizedBox.shrink();
     }
-    if (state.isLoadingMore) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      );
-    }
     if (state.hasMoreError) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Center(
-          child: TextButton(
-            onPressed: onLoadMore,
-            child: const Text('加载失败，点击重试'),
-          ),
+          child: TextButton(onPressed: onRetry, child: const Text('加载中断，点击重试')),
         ),
       );
     }
-    if (state.hasMore) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        child: Center(
-          child: TextButton.icon(
-            onPressed: onLoadMore,
-            icon: const Icon(Icons.expand_more_rounded, size: 20),
-            label: Text('加载更多（${state.progressText}）'),
-          ),
-        ),
-      );
-    }
-    if (state.tracks.length >= HotPlaylistRepository.defaultTrackPageSize) {
+    if (state.isLoadingMore) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-        child: Center(
-          child: Text(
-            '已加载全部 ${state.tracks.length} 首',
-            style: AppTextStyles.meta(theme, fontSize: 12),
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              '正在加载全部（${state.progressText}）',
+              style: AppTextStyles.meta(theme, fontSize: 12),
+            ),
+          ],
         ),
       );
     }

@@ -11,10 +11,10 @@ part 'hot_playlist_detail_controller.g.dart';
 
 @riverpod
 class HotPlaylistDetailController extends _$HotPlaylistDetailController {
+  static const int _pageSize = HotPlaylistRepository.defaultTrackPageSize;
+
   int _requestId = 0;
   int _offset = 0;
-
-  static const int _pageSize = HotPlaylistRepository.defaultTrackPageSize;
 
   @override
   HotPlaylistDetailState build(HotPlaylist playlist) {
@@ -51,12 +51,15 @@ class HotPlaylistDetailController extends _$HotPlaylistDetailController {
       state = state.copyWith(
         tracks: page.tracks,
         isLoading: false,
-        isLoadingMore: false,
+        isLoadingMore: page.hasMore,
         hasMore: page.hasMore,
         totalCount: page.totalCount,
         errorMessage: null,
         moreErrorMessage: null,
       );
+      if (page.hasMore) {
+        unawaited(_loadRemaining(requestId));
+      }
     } on Object catch (error) {
       if (!ref.mounted || requestId != _requestId) {
         return;
@@ -71,38 +74,49 @@ class HotPlaylistDetailController extends _$HotPlaylistDetailController {
     }
   }
 
-  /// 追加下一页；失败时保留已加载内容，只在底部提示可重试。
-  Future<void> loadMore() async {
+  /// 自动加载中断后的手动重试（底部会提示）。
+  Future<void> retryLoadRemaining() async {
     if (state.isLoading || state.isLoadingMore || !state.hasMore) {
       return;
     }
-    final int requestId = _requestId;
-    final int offset = _offset;
     state = state.copyWith(isLoadingMore: true, moreErrorMessage: null);
-    try {
-      final HotPlaylistTrackPage page = await ref
-          .read(hotPlaylistRepositoryProvider)
-          .fetchTrackPage(state.playlist, offset: offset, limit: _pageSize);
-      if (!ref.mounted || requestId != _requestId) {
+    await _loadRemaining(_requestId);
+  }
+
+  /// 首屏到达后继续按页拉取，直到整张歌单加载完。
+  Future<void> _loadRemaining(int requestId) async {
+    while (ref.mounted && requestId == _requestId && state.hasMore) {
+      final int offset = _offset;
+      try {
+        final HotPlaylistTrackPage page = await ref
+            .read(hotPlaylistRepositoryProvider)
+            .fetchTrackPage(state.playlist, offset: offset, limit: _pageSize);
+        if (!ref.mounted || requestId != _requestId) {
+          return;
+        }
+        final List<HotPlaylistTrack> merged = _merge(state.tracks, page.tracks);
+        _offset = offset + _pageSize;
+        final bool hasMore = page.hasMore && page.tracks.isNotEmpty;
+        state = state.copyWith(
+          tracks: merged,
+          isLoadingMore: hasMore,
+          hasMore: hasMore,
+          totalCount: page.totalCount > 0 ? page.totalCount : state.totalCount,
+          moreErrorMessage: null,
+        );
+        if (!hasMore) {
+          return;
+        }
+      } on Object catch (error) {
+        if (!ref.mounted || requestId != _requestId) {
+          return;
+        }
+        state = state.copyWith(
+          isLoadingMore: false,
+          moreErrorMessage: error.toString(),
+        );
         return;
       }
-      final List<HotPlaylistTrack> merged = _merge(state.tracks, page.tracks);
-      final bool grew = merged.length > state.tracks.length;
-      _offset = offset + _pageSize;
-      state = state.copyWith(
-        tracks: merged,
-        isLoadingMore: false,
-        hasMore: page.hasMore && (grew || page.tracks.isNotEmpty),
-        totalCount: page.totalCount > 0 ? page.totalCount : state.totalCount,
-      );
-    } on Object catch (error) {
-      if (!ref.mounted || requestId != _requestId) {
-        return;
-      }
-      state = state.copyWith(
-        isLoadingMore: false,
-        moreErrorMessage: error.toString(),
-      );
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
+import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
 import 'package:bilimusic/feature/home/ui/hot_playlist_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,9 +37,9 @@ HotPlaylistRepository _repository({int total = 2}) {
       final List<String> parts = ids.split(',');
       return <String, dynamic>{
         'songs': <Map<String, dynamic>>[
-          for (int index = 0; index < parts.length; index += 1)
+          for (final String id in parts)
             <String, dynamic>{
-              'name': index == 0 && total <= 2 ? '晴天' : '歌曲 ${parts[index]}',
+              'name': id == '1' ? '晴天' : '歌曲 $id',
               'duration': 269000,
               'artists': <Map<String, dynamic>>[
                 <String, dynamic>{'name': '周杰伦'},
@@ -91,7 +92,6 @@ void main() {
     expect(find.text('04:29'), findsWidgets);
     expect(find.text('周杰伦'), findsWidgets);
     expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
-    expect(find.textContaining('加载更多'), findsNothing);
   });
 
   testWidgets('uses a placeholder title when opened without metadata', (
@@ -103,28 +103,19 @@ void main() {
     expect(find.text('晴天'), findsOneWidget);
   });
 
-  testWidgets('loads more tracks until the playlist is complete', (
+  testWidgets('loads every page automatically without a load-more button', (
     WidgetTester tester,
   ) async {
-    await _pumpPage(tester, total: 35);
+    await _pumpPage(tester, total: 120);
 
-    await tester.scrollUntilVisible(
-      find.text('加载更多（30 / 35）'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('加载更多（30 / 35）'), findsOneWidget);
+    expect(find.textContaining('加载更多'), findsNothing);
     expect(find.textContaining('已加载全部'), findsNothing);
-
-    await tester.tap(find.text('加载更多（30 / 35）'));
-    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('已加载全部 35 首'),
-      300,
+      find.text('歌曲 120'),
+      500,
       scrollable: find.byType(Scrollable).first,
     );
-
-    expect(find.text('加载更多（30 / 35）'), findsNothing);
-    expect(find.text('已加载全部 35 首'), findsOneWidget);
+    expect(find.text('歌曲 120'), findsOneWidget);
+    expect(find.byType(TrackRowTile), findsWidgets);
   });
 }

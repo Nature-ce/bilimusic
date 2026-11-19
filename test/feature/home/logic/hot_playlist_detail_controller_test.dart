@@ -64,7 +64,7 @@ HotPlaylistRepository _repository({
 }
 
 Future<HotPlaylistDetailState> _settle(ProviderContainer container) async {
-  for (int attempt = 0; attempt < 200; attempt += 1) {
+  for (int attempt = 0; attempt < 500; attempt += 1) {
     final HotPlaylistDetailState state = container.read(
       hotPlaylistDetailControllerProvider(_playlist),
     );
@@ -97,19 +97,31 @@ HotPlaylistDetailController _controller(ProviderContainer container) {
 }
 
 void main() {
-  test('loads the first page and marks the end', () async {
-    final ProviderContainer container = _container(_repository());
+  test('loads the whole playlist automatically without user taps', () async {
+    final ProviderContainer container = _container(_repository(total: 250));
 
     _controller(container);
     final HotPlaylistDetailState state = await _settle(container);
 
-    expect(state.playlist, _playlist);
-    expect(state.tracks.single.title, '歌曲 1');
-    expect(state.tracks.single.rank, 1);
-    expect(state.totalCount, 1);
+    expect(state.tracks, hasLength(250));
+    expect(state.tracks.first.rank, 1);
+    expect(state.tracks.last.rank, 250);
+    expect(state.totalCount, 250);
     expect(state.hasMore, isFalse);
+    expect(state.isLoadingMore, isFalse);
     expect(state.hasError, isFalse);
-    expect(state.progressText, '1 / 1');
+    expect(state.progressText, '250 / 250');
+  });
+
+  test('single page playlists settle immediately', () async {
+    final ProviderContainer container = _container(_repository(total: 5));
+
+    _controller(container);
+    final HotPlaylistDetailState state = await _settle(container);
+
+    expect(state.tracks, hasLength(5));
+    expect(state.hasMore, isFalse);
+    expect(state.totalCount, 5);
   });
 
   test('keeps the playlist on failure', () async {
@@ -122,74 +134,53 @@ void main() {
     expect(state.tracks, isEmpty);
     expect(state.hasError, isTrue);
     expect(state.errorMessage, contains('歌单曲目加载失败'));
-    expect(state.isEmpty, isFalse);
   });
 
   test(
-    'loadMore appends the next page until the playlist is complete',
+    'auto loading stops and keeps loaded tracks when a page fails',
     () async {
-      final ProviderContainer container = _container(_repository(total: 35));
+      final ProviderContainer container = _container(
+        _repository(total: 250, failAfterFirstPage: true),
+      );
 
       _controller(container);
-      final HotPlaylistDetailState first = await _settle(container);
-      expect(first.tracks, hasLength(30));
-      expect(first.hasMore, isTrue);
-      expect(first.totalCount, 35);
-      expect(first.progressText, '30 / 35');
+      final HotPlaylistDetailState state = await _settle(container);
 
-      await _controller(container).loadMore();
-      final HotPlaylistDetailState second = await _settle(container);
-
-      expect(second.tracks, hasLength(35));
-      expect(second.tracks.first.rank, 1);
-      expect(second.tracks.last.rank, 35);
-      expect(second.hasMore, isFalse);
-      expect(second.isLoadingMore, isFalse);
-      expect(second.progressText, '35 / 35');
+      expect(state.tracks, hasLength(100));
+      expect(state.hasMore, isTrue);
+      expect(state.isLoadingMore, isFalse);
+      expect(state.hasMoreError, isTrue);
+      expect(state.moreErrorMessage, contains('下一页加载失败'));
     },
   );
 
-  test('loadMore keeps loaded tracks when the next page fails', () async {
-    final ProviderContainer container = _container(
-      _repository(total: 35, failAfterFirstPage: true),
-    );
-
-    _controller(container);
-    await _settle(container);
-    await _controller(container).loadMore();
-    final HotPlaylistDetailState state = await _settle(container);
-
-    expect(state.tracks, hasLength(30));
-    expect(state.hasMore, isTrue);
-    expect(state.hasMoreError, isTrue);
-    expect(state.moreErrorMessage, contains('下一页加载失败'));
-  });
-
-  test('loadMore is a no-op once everything is loaded', () async {
+  test('retry is a no-op once everything is loaded', () async {
     final ProviderContainer container = _container(_repository(total: 5));
 
     _controller(container);
     await _settle(container);
-    await _controller(container).loadMore();
+    await _controller(container).retryLoadRemaining();
     final HotPlaylistDetailState state = await _settle(container);
 
     expect(state.tracks, hasLength(5));
-    expect(state.hasMore, isFalse);
+    expect(state.hasMoreError, isFalse);
   });
 
-  test('refresh reloads from the first page', () async {
-    final ProviderContainer container = _container(_repository(total: 35));
+  test(
+    'refresh restarts from the first page and re-loads everything',
+    () async {
+      final ProviderContainer container = _container(_repository(total: 250));
 
-    _controller(container);
-    await _settle(container);
-    await _controller(container).loadMore();
-    await _settle(container);
+      _controller(container);
+      await _settle(container);
 
-    await _controller(container).refresh();
-    final HotPlaylistDetailState state = await _settle(container);
+      await _controller(container).refresh();
+      final HotPlaylistDetailState state = await _settle(container);
 
-    expect(state.tracks, hasLength(30));
-    expect(state.hasMore, isTrue);
-    expect(state.totalCount, 35);
-  });
+      expect(state.tracks, hasLength(250));
+      expect(state.tracks.last.rank, 250);
+      expect(state.totalCount, 250);
+      expect(state.hasMore, isFalse);
+    },
+  );
 }

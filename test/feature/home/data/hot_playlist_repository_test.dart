@@ -291,7 +291,7 @@ void main() {
             return <String, dynamic>{
               'playlist': <String, dynamic>{
                 'trackIds': <Map<String, dynamic>>[
-                  for (int index = 0; index < 35; index += 1)
+                  for (int index = 0; index < 130; index += 1)
                     <String, dynamic>{'id': 100 + index},
                 ],
               },
@@ -326,17 +326,17 @@ void main() {
       );
       final HotPlaylistTrackPage second = await repository.fetchTrackPage(
         playlist,
-        offset: 30,
+        offset: 100,
       );
 
-      expect(first.tracks, hasLength(30));
+      expect(first.tracks, hasLength(100));
       expect(first.tracks.first.rank, 1);
-      expect(first.tracks.last.rank, 30);
-      expect(first.totalCount, 35);
+      expect(first.tracks.last.rank, 100);
+      expect(first.totalCount, 130);
       expect(first.hasMore, isTrue);
-      expect(second.tracks, hasLength(5));
-      expect(second.tracks.first.rank, 31);
-      expect(second.totalCount, 35);
+      expect(second.tracks, hasLength(30));
+      expect(second.tracks.first.rank, 101);
+      expect(second.totalCount, 130);
       expect(second.hasMore, isFalse);
       expect(requestedIds, hasLength(2));
     });
@@ -371,6 +371,7 @@ void main() {
       final HotPlaylistTrackPage page = await repository.fetchTrackPage(
         _playlist(MusicChartPlatform.tencent, '7707261125'),
         offset: 30,
+        limit: 30,
       );
 
       expect(queries.single['song_begin'], '30');
@@ -404,10 +405,12 @@ void main() {
       final HotPlaylistTrackPage second = await repository.fetchTrackPage(
         _playlist(MusicChartPlatform.kugou, '8268942'),
         offset: 30,
+        limit: 30,
       );
       final HotPlaylistTrackPage third = await repository.fetchTrackPage(
         _playlist(MusicChartPlatform.kugou, '8268942'),
         offset: 60,
+        limit: 30,
       );
 
       expect(queries.first['page'], '2');

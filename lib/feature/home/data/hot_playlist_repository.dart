@@ -38,7 +38,7 @@ class HotPlaylistRepository {
   }
 
   static const int maxPlaylistCount = 12;
-  static const int defaultTrackPageSize = 30;
+  static const int defaultTrackPageSize = 100;
   static const Duration cacheTtl = Duration(minutes: 10);
 
   static const String _neteaseListUrl =
