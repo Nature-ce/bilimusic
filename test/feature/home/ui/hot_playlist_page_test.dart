@@ -17,35 +17,33 @@ const HotPlaylist _playlist = HotPlaylist(
   creator: 'UP主',
 );
 
-HotPlaylistRepository _repository() {
+HotPlaylistRepository _repository({int total = 2}) {
   return HotPlaylistRepository(
     httpGet: (String url, Map<String, dynamic> query, _) async {
       if (url.contains('/api/v6/playlist/detail')) {
         return <String, dynamic>{
           'playlist': <String, dynamic>{
             'trackIds': <Map<String, dynamic>>[
-              <String, dynamic>{'id': 11},
-              <String, dynamic>{'id': 12},
+              for (int index = 0; index < total; index += 1)
+                <String, dynamic>{'id': index + 1},
             ],
           },
         };
       }
+      final String ids = (query['ids'] as String)
+          .replaceAll('[', '')
+          .replaceAll(']', '');
+      final List<String> parts = ids.split(',');
       return <String, dynamic>{
         'songs': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'name': '晴天',
-            'dt': 269000,
-            'artists': <Map<String, dynamic>>[
-              <String, dynamic>{'name': '周杰伦'},
-            ],
-          },
-          <String, dynamic>{
-            'name': '七里香',
-            'dt': 299000,
-            'artists': <Map<String, dynamic>>[
-              <String, dynamic>{'name': '周杰伦'},
-            ],
-          },
+          for (int index = 0; index < parts.length; index += 1)
+            <String, dynamic>{
+              'name': index == 0 && total <= 2 ? '晴天' : '歌曲 ${parts[index]}',
+              'duration': 269000,
+              'artists': <Map<String, dynamic>>[
+                <String, dynamic>{'name': '周杰伦'},
+              ],
+            },
         ],
       };
     },
@@ -55,6 +53,7 @@ HotPlaylistRepository _repository() {
 Future<void> _pumpPage(
   WidgetTester tester, {
   HotPlaylist? initialPlaylist = _playlist,
+  int total = 2,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -64,7 +63,9 @@ Future<void> _pumpPage(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        hotPlaylistRepositoryProvider.overrideWithValue(_repository()),
+        hotPlaylistRepositoryProvider.overrideWithValue(
+          _repository(total: total),
+        ),
       ],
       child: MaterialApp(
         home: HotPlaylistPage(
@@ -87,10 +88,10 @@ void main() {
     expect(find.text('测试歌单'), findsWidgets);
     expect(find.textContaining('1.0万次播放'), findsOneWidget);
     expect(find.text('晴天'), findsOneWidget);
-    expect(find.text('七里香'), findsOneWidget);
-    expect(find.text('04:29'), findsOneWidget);
+    expect(find.text('04:29'), findsWidgets);
     expect(find.text('周杰伦'), findsWidgets);
     expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
+    expect(find.textContaining('加载更多'), findsNothing);
   });
 
   testWidgets('uses a placeholder title when opened without metadata', (
@@ -100,5 +101,30 @@ void main() {
 
     expect(find.text('热门歌单'), findsWidgets);
     expect(find.text('晴天'), findsOneWidget);
+  });
+
+  testWidgets('loads more tracks until the playlist is complete', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, total: 35);
+
+    await tester.scrollUntilVisible(
+      find.text('加载更多（30 / 35）'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('加载更多（30 / 35）'), findsOneWidget);
+    expect(find.textContaining('已加载全部'), findsNothing);
+
+    await tester.tap(find.text('加载更多（30 / 35）'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('已加载全部 35 首'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.text('加载更多（30 / 35）'), findsNothing);
+    expect(find.text('已加载全部 35 首'), findsOneWidget);
   });
 }

@@ -14,28 +14,45 @@ const HotPlaylist _playlist = HotPlaylist(
   coverUrl: '',
 );
 
-HotPlaylistRepository _repository({bool fail = false, int trackCount = 1}) {
+List<Map<String, dynamic>> _ids(int total) {
+  return <Map<String, dynamic>>[
+    for (int index = 0; index < total; index += 1)
+      <String, dynamic>{'id': index + 1},
+  ];
+}
+
+HotPlaylistRepository _repository({
+  int total = 1,
+  bool fail = false,
+  bool failAfterFirstPage = false,
+}) {
+  int songRequests = 0;
   return HotPlaylistRepository(
     httpGet: (String url, Map<String, dynamic> query, _) async {
+      if (url.contains('/api/v6/playlist/detail')) {
+        if (fail) {
+          throw const HotPlaylistException('歌单曲目加载失败');
+        }
+        return <String, dynamic>{
+          'playlist': <String, dynamic>{'trackIds': _ids(total)},
+        };
+      }
+      songRequests += 1;
       if (fail) {
         throw const HotPlaylistException('歌单曲目加载失败');
       }
-      if (url.contains('/api/v6/playlist/detail')) {
-        return <String, dynamic>{
-          'playlist': <String, dynamic>{
-            'trackIds': <Map<String, dynamic>>[
-              for (int index = 0; index < trackCount; index += 1)
-                <String, dynamic>{'id': 1000 + index},
-            ],
-          },
-        };
+      if (failAfterFirstPage && songRequests > 1) {
+        throw const HotPlaylistException('下一页加载失败');
       }
+      final String ids = (query['ids'] as String)
+          .replaceAll('[', '')
+          .replaceAll(']', '');
       return <String, dynamic>{
         'songs': <Map<String, dynamic>>[
-          for (int index = 0; index < trackCount; index += 1)
+          for (final String id in ids.split(','))
             <String, dynamic>{
-              'name': '歌曲 $index',
-              'dt': 200000,
+              'name': '歌曲 $id',
+              'duration': 200000,
               'artists': <Map<String, dynamic>>[
                 <String, dynamic>{'name': '歌手'},
               ],
@@ -47,11 +64,11 @@ HotPlaylistRepository _repository({bool fail = false, int trackCount = 1}) {
 }
 
 Future<HotPlaylistDetailState> _settle(ProviderContainer container) async {
-  for (int attempt = 0; attempt < 100; attempt += 1) {
+  for (int attempt = 0; attempt < 200; attempt += 1) {
     final HotPlaylistDetailState state = container.read(
       hotPlaylistDetailControllerProvider(_playlist),
     );
-    if (!state.isLoading) {
+    if (!state.isLoading && !state.isLoadingMore) {
       return state;
     }
     await Future<void>.delayed(const Duration(milliseconds: 1));
@@ -73,24 +90,32 @@ ProviderContainer _container(HotPlaylistRepository repository) {
   return container;
 }
 
+HotPlaylistDetailController _controller(ProviderContainer container) {
+  return container.read(
+    hotPlaylistDetailControllerProvider(_playlist).notifier,
+  );
+}
+
 void main() {
-  test('loads tracks for the playlist', () async {
+  test('loads the first page and marks the end', () async {
     final ProviderContainer container = _container(_repository());
 
-    container.read(hotPlaylistDetailControllerProvider(_playlist).notifier);
+    _controller(container);
     final HotPlaylistDetailState state = await _settle(container);
 
     expect(state.playlist, _playlist);
-    expect(state.tracks.single.title, '歌曲 0');
+    expect(state.tracks.single.title, '歌曲 1');
     expect(state.tracks.single.rank, 1);
-    expect(state.isLoading, isFalse);
+    expect(state.totalCount, 1);
+    expect(state.hasMore, isFalse);
     expect(state.hasError, isFalse);
+    expect(state.progressText, '1 / 1');
   });
 
   test('keeps the playlist on failure', () async {
     final ProviderContainer container = _container(_repository(fail: true));
 
-    container.read(hotPlaylistDetailControllerProvider(_playlist).notifier);
+    _controller(container);
     final HotPlaylistDetailState state = await _settle(container);
 
     expect(state.playlist, _playlist);
@@ -100,43 +125,71 @@ void main() {
     expect(state.isEmpty, isFalse);
   });
 
-  test('refresh reloads tracks and bypasses cache', () async {
-    int trackRequests = 0;
-    final HotPlaylistRepository repository = HotPlaylistRepository(
-      httpGet: (String url, Map<String, dynamic> query, _) async {
-        if (url.contains('/api/v6/playlist/detail')) {
-          return <String, dynamic>{
-            'playlist': <String, dynamic>{
-              'trackIds': <Map<String, dynamic>>[
-                <String, dynamic>{'id': 1},
-              ],
-            },
-          };
-        }
-        trackRequests += 1;
-        return <String, dynamic>{
-          'songs': <Map<String, dynamic>>[
-            <String, dynamic>{
-              'name': '歌曲 $trackRequests',
-              'dt': 200000,
-              'artists': <Map<String, dynamic>>[
-                <String, dynamic>{'name': '歌手'},
-              ],
-            },
-          ],
-        };
-      },
-    );
-    final ProviderContainer container = _container(repository);
+  test(
+    'loadMore appends the next page until the playlist is complete',
+    () async {
+      final ProviderContainer container = _container(_repository(total: 35));
 
-    container.read(hotPlaylistDetailControllerProvider(_playlist).notifier);
+      _controller(container);
+      final HotPlaylistDetailState first = await _settle(container);
+      expect(first.tracks, hasLength(30));
+      expect(first.hasMore, isTrue);
+      expect(first.totalCount, 35);
+      expect(first.progressText, '30 / 35');
+
+      await _controller(container).loadMore();
+      final HotPlaylistDetailState second = await _settle(container);
+
+      expect(second.tracks, hasLength(35));
+      expect(second.tracks.first.rank, 1);
+      expect(second.tracks.last.rank, 35);
+      expect(second.hasMore, isFalse);
+      expect(second.isLoadingMore, isFalse);
+      expect(second.progressText, '35 / 35');
+    },
+  );
+
+  test('loadMore keeps loaded tracks when the next page fails', () async {
+    final ProviderContainer container = _container(
+      _repository(total: 35, failAfterFirstPage: true),
+    );
+
+    _controller(container);
     await _settle(container);
-    await container
-        .read(hotPlaylistDetailControllerProvider(_playlist).notifier)
-        .refresh();
+    await _controller(container).loadMore();
     final HotPlaylistDetailState state = await _settle(container);
 
-    expect(trackRequests, 2);
-    expect(state.tracks.single.title, '歌曲 2');
+    expect(state.tracks, hasLength(30));
+    expect(state.hasMore, isTrue);
+    expect(state.hasMoreError, isTrue);
+    expect(state.moreErrorMessage, contains('下一页加载失败'));
+  });
+
+  test('loadMore is a no-op once everything is loaded', () async {
+    final ProviderContainer container = _container(_repository(total: 5));
+
+    _controller(container);
+    await _settle(container);
+    await _controller(container).loadMore();
+    final HotPlaylistDetailState state = await _settle(container);
+
+    expect(state.tracks, hasLength(5));
+    expect(state.hasMore, isFalse);
+  });
+
+  test('refresh reloads from the first page', () async {
+    final ProviderContainer container = _container(_repository(total: 35));
+
+    _controller(container);
+    await _settle(container);
+    await _controller(container).loadMore();
+    await _settle(container);
+
+    await _controller(container).refresh();
+    final HotPlaylistDetailState state = await _settle(container);
+
+    expect(state.tracks, hasLength(30));
+    expect(state.hasMore, isTrue);
+    expect(state.totalCount, 35);
   });
 }

@@ -254,7 +254,7 @@ void main() {
   });
 
   group('fetching', () {
-    test('netease tracks use playlist detail then batch song detail', () async {
+    test('netease first page uses detail then batch song detail', () async {
       final List<String> urls = <String>[];
       final List<Map<String, dynamic>> queries = <Map<String, dynamic>>[];
       final HotPlaylistRepository repository = HotPlaylistRepository(
@@ -271,14 +271,175 @@ void main() {
         },
       );
 
-      final List<HotPlaylistTrack> tracks = await repository.fetchTracks(
+      final HotPlaylistTrackPage page = await repository.fetchTrackPage(
         _playlist(MusicChartPlatform.netease, '18428485896'),
       );
 
       expect(urls, hasLength(2));
       expect(queries.first['id'], '18428485896');
       expect(queries.last['ids'], '[186016,1901371647]');
-      expect(tracks.first.title, '晴天');
+      expect(page.tracks.first.title, '晴天');
+      expect(page.totalCount, 2);
+      expect(page.hasMore, isFalse);
+    });
+
+    test('netease pages slice the full track id list', () async {
+      final List<String> requestedIds = <String>[];
+      final HotPlaylistRepository repository = HotPlaylistRepository(
+        httpGet: (String url, Map<String, dynamic> query, _) async {
+          if (url.contains('/api/v6/playlist/detail')) {
+            return <String, dynamic>{
+              'playlist': <String, dynamic>{
+                'trackIds': <Map<String, dynamic>>[
+                  for (int index = 0; index < 35; index += 1)
+                    <String, dynamic>{'id': 100 + index},
+                ],
+              },
+            };
+          }
+          requestedIds.add(query['ids'] as String);
+          final String ids = (query['ids'] as String)
+              .replaceAll('[', '')
+              .replaceAll(']', '');
+          final List<String> parts = ids.split(',');
+          return <String, dynamic>{
+            'songs': <Map<String, dynamic>>[
+              for (final String id in parts)
+                <String, dynamic>{
+                  'name': '歌曲 $id',
+                  'duration': 200000,
+                  'artists': <Map<String, dynamic>>[
+                    <String, dynamic>{'name': '歌手'},
+                  ],
+                },
+            ],
+          };
+        },
+      );
+      final HotPlaylist playlist = _playlist(
+        MusicChartPlatform.netease,
+        '18000000000',
+      );
+
+      final HotPlaylistTrackPage first = await repository.fetchTrackPage(
+        playlist,
+      );
+      final HotPlaylistTrackPage second = await repository.fetchTrackPage(
+        playlist,
+        offset: 30,
+      );
+
+      expect(first.tracks, hasLength(30));
+      expect(first.tracks.first.rank, 1);
+      expect(first.tracks.last.rank, 30);
+      expect(first.totalCount, 35);
+      expect(first.hasMore, isTrue);
+      expect(second.tracks, hasLength(5));
+      expect(second.tracks.first.rank, 31);
+      expect(second.totalCount, 35);
+      expect(second.hasMore, isFalse);
+      expect(requestedIds, hasLength(2));
+    });
+
+    test('tencent pages send song_begin and read the total', () async {
+      final List<Map<String, dynamic>> queries = <Map<String, dynamic>>[];
+      final HotPlaylistRepository repository = HotPlaylistRepository(
+        httpGet: (String url, Map<String, dynamic> query, _) async {
+          queries.add(query);
+          final int begin = int.parse(query['song_begin'] as String);
+          return <String, dynamic>{
+            'data': <String, dynamic>{
+              'cdlist': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'total_song_num': 66,
+                  'songlist': <Map<String, dynamic>>[
+                    <String, dynamic>{
+                      'name': '歌曲 $begin',
+                      'interval': 200,
+                      'singer': <Map<String, dynamic>>[
+                        <String, dynamic>{'name': '歌手'},
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          };
+        },
+      );
+
+      final HotPlaylistTrackPage page = await repository.fetchTrackPage(
+        _playlist(MusicChartPlatform.tencent, '7707261125'),
+        offset: 30,
+      );
+
+      expect(queries.single['song_begin'], '30');
+      expect(queries.single['song_num'], '30');
+      expect(page.tracks.single.rank, 31);
+      expect(page.totalCount, 66);
+      expect(page.hasMore, isTrue);
+    });
+
+    test('kugou pages send a 1-based page index', () async {
+      final List<Map<String, dynamic>> queries = <Map<String, dynamic>>[];
+      final HotPlaylistRepository repository = HotPlaylistRepository(
+        httpGet: (String url, Map<String, dynamic> query, _) async {
+          queries.add(query);
+          return <String, dynamic>{
+            'status': 1,
+            'data': <String, dynamic>{
+              'total': 90,
+              'info': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'songname': '歌曲',
+                  'duration': 200,
+                  'authors': <Map<String, dynamic>>[],
+                },
+              ],
+            },
+          };
+        },
+      );
+
+      final HotPlaylistTrackPage second = await repository.fetchTrackPage(
+        _playlist(MusicChartPlatform.kugou, '8268942'),
+        offset: 30,
+      );
+      final HotPlaylistTrackPage third = await repository.fetchTrackPage(
+        _playlist(MusicChartPlatform.kugou, '8268942'),
+        offset: 60,
+      );
+
+      expect(queries.first['page'], '2');
+      expect(queries.first['pagesize'], '30');
+      expect(second.tracks.single.rank, 31);
+      expect(second.totalCount, 90);
+      expect(second.hasMore, isTrue);
+      expect(queries.last['page'], '3');
+      expect(third.hasMore, isFalse);
+    });
+
+    test('track pages are cached per offset', () async {
+      int requests = 0;
+      final HotPlaylistRepository repository = HotPlaylistRepository(
+        httpGet: (String url, Map<String, dynamic> query, _) async {
+          requests += 1;
+          if (url.contains('/api/v6/playlist/detail')) {
+            return _neteaseDetailFixture;
+          }
+          return _neteaseSongsFixture;
+        },
+      );
+      final HotPlaylist playlist = _playlist(
+        MusicChartPlatform.netease,
+        '19000000000',
+      );
+
+      await repository.fetchTrackPage(playlist);
+      await repository.fetchTrackPage(playlist);
+
+      // 一次 detail + 一次 song/detail，第二次全部命中缓存。
+      expect(requests, 2);
     });
 
     test('playlists are cached per platform', () async {

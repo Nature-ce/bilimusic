@@ -4,6 +4,7 @@ import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
+import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_detail_state.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
@@ -113,7 +114,10 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: <Widget>[
-            _HotPlaylistHeader(playlist: playlist),
+            _HotPlaylistHeader(
+              playlist: playlist,
+              totalCount: state.totalCount,
+            ),
             const SizedBox(height: AppSpacing.xl),
             if (state.isLoading)
               const _HotPlaylistTracksLoading()
@@ -140,7 +144,7 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
                     )
                     .refresh(),
               )
-            else
+            else ...<Widget>[
               for (final HotPlaylistTrack track in state.tracks)
                 TrackRowTile(
                   rank: track.rank,
@@ -151,6 +155,15 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
                   isResolving: _resolvingTrackKey == track.key,
                   onTap: () => _playTrack(track),
                 ),
+              _HotPlaylistFooter(
+                state: state,
+                onLoadMore: () => ref
+                    .read(
+                      hotPlaylistDetailControllerProvider(playlist).notifier,
+                    )
+                    .loadMore(),
+              ),
+            ],
           ],
         ),
       ),
@@ -158,19 +171,87 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
   }
 }
 
+class _HotPlaylistFooter extends StatelessWidget {
+  const _HotPlaylistFooter({required this.state, required this.onLoadMore});
+
+  final HotPlaylistDetailState state;
+  final VoidCallback onLoadMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    if (state.isLoading || state.hasError || state.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    if (state.isLoadingMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    if (state.hasMoreError) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Center(
+          child: TextButton(
+            onPressed: onLoadMore,
+            child: const Text('加载失败，点击重试'),
+          ),
+        ),
+      );
+    }
+    if (state.hasMore) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Center(
+          child: TextButton.icon(
+            onPressed: onLoadMore,
+            icon: const Icon(Icons.expand_more_rounded, size: 20),
+            label: Text('加载更多（${state.progressText}）'),
+          ),
+        ),
+      );
+    }
+    if (state.tracks.length >= HotPlaylistRepository.defaultTrackPageSize) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        child: Center(
+          child: Text(
+            '已加载全部 ${state.tracks.length} 首',
+            style: AppTextStyles.meta(theme, fontSize: 12),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
 class _HotPlaylistHeader extends StatelessWidget {
-  const _HotPlaylistHeader({required this.playlist});
+  const _HotPlaylistHeader({required this.playlist, this.totalCount = 0});
 
   final HotPlaylist playlist;
+
+  /// 列表接口可能不返回曲目数（如 QQ音乐），加载首屏后用它补齐。
+  final int totalCount;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final int effectiveTrackCount = playlist.trackCount > 0
+        ? playlist.trackCount
+        : totalCount;
     final List<String> meta = <String>[
       playlist.platform.label,
       if (playlist.playCount > 0) '${playlist.playCountText}次播放',
-      if (playlist.trackCount > 0) playlist.trackCountText,
+      if (effectiveTrackCount > 0) '$effectiveTrackCount 首',
     ];
 
     return Row(

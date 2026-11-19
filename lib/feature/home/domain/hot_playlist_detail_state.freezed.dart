@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HotPlaylistDetailState {
 
- HotPlaylist get playlist; List<HotPlaylistTrack> get tracks; bool get isLoading; String? get errorMessage;
+ HotPlaylist get playlist; List<HotPlaylistTrack> get tracks; bool get isLoading; bool get isLoadingMore; bool get hasMore; int get totalCount; String? get errorMessage; String? get moreErrorMessage;
 /// Create a copy of HotPlaylistDetailState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $HotPlaylistDetailStateCopyWith<HotPlaylistDetailState> get copyWith => _$HotPla
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HotPlaylistDetailState&&(identical(other.playlist, playlist) || other.playlist == playlist)&&const DeepCollectionEquality().equals(other.tracks, tracks)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HotPlaylistDetailState&&(identical(other.playlist, playlist) || other.playlist == playlist)&&const DeepCollectionEquality().equals(other.tracks, tracks)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.totalCount, totalCount) || other.totalCount == totalCount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.moreErrorMessage, moreErrorMessage) || other.moreErrorMessage == moreErrorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,playlist,const DeepCollectionEquality().hash(tracks),isLoading,errorMessage);
+int get hashCode => Object.hash(runtimeType,playlist,const DeepCollectionEquality().hash(tracks),isLoading,isLoadingMore,hasMore,totalCount,errorMessage,moreErrorMessage);
 
 @override
 String toString() {
-  return 'HotPlaylistDetailState(playlist: $playlist, tracks: $tracks, isLoading: $isLoading, errorMessage: $errorMessage)';
+  return 'HotPlaylistDetailState(playlist: $playlist, tracks: $tracks, isLoading: $isLoading, isLoadingMore: $isLoadingMore, hasMore: $hasMore, totalCount: $totalCount, errorMessage: $errorMessage, moreErrorMessage: $moreErrorMessage)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $HotPlaylistDetailStateCopyWith<$Res>  {
   factory $HotPlaylistDetailStateCopyWith(HotPlaylistDetailState value, $Res Function(HotPlaylistDetailState) _then) = _$HotPlaylistDetailStateCopyWithImpl;
 @useResult
 $Res call({
- HotPlaylist playlist, List<HotPlaylistTrack> tracks, bool isLoading, String? errorMessage
+ HotPlaylist playlist, List<HotPlaylistTrack> tracks, bool isLoading, bool isLoadingMore, bool hasMore, int totalCount, String? errorMessage, String? moreErrorMessage
 });
 
 
@@ -62,12 +62,16 @@ class _$HotPlaylistDetailStateCopyWithImpl<$Res>
 
 /// Create a copy of HotPlaylistDetailState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? playlist = null,Object? tracks = null,Object? isLoading = null,Object? errorMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? playlist = null,Object? tracks = null,Object? isLoading = null,Object? isLoadingMore = null,Object? hasMore = null,Object? totalCount = null,Object? errorMessage = freezed,Object? moreErrorMessage = freezed,}) {
   return _then(_self.copyWith(
 playlist: null == playlist ? _self.playlist : playlist // ignore: cast_nullable_to_non_nullable
 as HotPlaylist,tracks: null == tracks ? _self.tracks : tracks // ignore: cast_nullable_to_non_nullable
 as List<HotPlaylistTrack>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
+as bool,hasMore: null == hasMore ? _self.hasMore : hasMore // ignore: cast_nullable_to_non_nullable
+as bool,totalCount: null == totalCount ? _self.totalCount : totalCount // ignore: cast_nullable_to_non_nullable
+as int,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as String?,moreErrorMessage: freezed == moreErrorMessage ? _self.moreErrorMessage : moreErrorMessage // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -162,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( HotPlaylist playlist,  List<HotPlaylistTrack> tracks,  bool isLoading,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( HotPlaylist playlist,  List<HotPlaylistTrack> tracks,  bool isLoading,  bool isLoadingMore,  bool hasMore,  int totalCount,  String? errorMessage,  String? moreErrorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HotPlaylistDetailState() when $default != null:
-return $default(_that.playlist,_that.tracks,_that.isLoading,_that.errorMessage);case _:
+return $default(_that.playlist,_that.tracks,_that.isLoading,_that.isLoadingMore,_that.hasMore,_that.totalCount,_that.errorMessage,_that.moreErrorMessage);case _:
   return orElse();
 
 }
@@ -183,10 +187,10 @@ return $default(_that.playlist,_that.tracks,_that.isLoading,_that.errorMessage);
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( HotPlaylist playlist,  List<HotPlaylistTrack> tracks,  bool isLoading,  String? errorMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( HotPlaylist playlist,  List<HotPlaylistTrack> tracks,  bool isLoading,  bool isLoadingMore,  bool hasMore,  int totalCount,  String? errorMessage,  String? moreErrorMessage)  $default,) {final _that = this;
 switch (_that) {
 case _HotPlaylistDetailState():
-return $default(_that.playlist,_that.tracks,_that.isLoading,_that.errorMessage);case _:
+return $default(_that.playlist,_that.tracks,_that.isLoading,_that.isLoadingMore,_that.hasMore,_that.totalCount,_that.errorMessage,_that.moreErrorMessage);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +207,10 @@ return $default(_that.playlist,_that.tracks,_that.isLoading,_that.errorMessage);
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( HotPlaylist playlist,  List<HotPlaylistTrack> tracks,  bool isLoading,  String? errorMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( HotPlaylist playlist,  List<HotPlaylistTrack> tracks,  bool isLoading,  bool isLoadingMore,  bool hasMore,  int totalCount,  String? errorMessage,  String? moreErrorMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _HotPlaylistDetailState() when $default != null:
-return $default(_that.playlist,_that.tracks,_that.isLoading,_that.errorMessage);case _:
+return $default(_that.playlist,_that.tracks,_that.isLoading,_that.isLoadingMore,_that.hasMore,_that.totalCount,_that.errorMessage,_that.moreErrorMessage);case _:
   return null;
 
 }
@@ -218,7 +222,7 @@ return $default(_that.playlist,_that.tracks,_that.isLoading,_that.errorMessage);
 
 
 class _HotPlaylistDetailState extends HotPlaylistDetailState {
-  const _HotPlaylistDetailState({required this.playlist, final  List<HotPlaylistTrack> tracks = const <HotPlaylistTrack>[], this.isLoading = false, this.errorMessage}): _tracks = tracks,super._();
+  const _HotPlaylistDetailState({required this.playlist, final  List<HotPlaylistTrack> tracks = const <HotPlaylistTrack>[], this.isLoading = false, this.isLoadingMore = false, this.hasMore = true, this.totalCount = 0, this.errorMessage, this.moreErrorMessage}): _tracks = tracks,super._();
   
 
 @override final  HotPlaylist playlist;
@@ -230,7 +234,11 @@ class _HotPlaylistDetailState extends HotPlaylistDetailState {
 }
 
 @override@JsonKey() final  bool isLoading;
+@override@JsonKey() final  bool isLoadingMore;
+@override@JsonKey() final  bool hasMore;
+@override@JsonKey() final  int totalCount;
 @override final  String? errorMessage;
+@override final  String? moreErrorMessage;
 
 /// Create a copy of HotPlaylistDetailState
 /// with the given fields replaced by the non-null parameter values.
@@ -242,16 +250,16 @@ _$HotPlaylistDetailStateCopyWith<_HotPlaylistDetailState> get copyWith => __$Hot
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HotPlaylistDetailState&&(identical(other.playlist, playlist) || other.playlist == playlist)&&const DeepCollectionEquality().equals(other._tracks, _tracks)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HotPlaylistDetailState&&(identical(other.playlist, playlist) || other.playlist == playlist)&&const DeepCollectionEquality().equals(other._tracks, _tracks)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&(identical(other.hasMore, hasMore) || other.hasMore == hasMore)&&(identical(other.totalCount, totalCount) || other.totalCount == totalCount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.moreErrorMessage, moreErrorMessage) || other.moreErrorMessage == moreErrorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,playlist,const DeepCollectionEquality().hash(_tracks),isLoading,errorMessage);
+int get hashCode => Object.hash(runtimeType,playlist,const DeepCollectionEquality().hash(_tracks),isLoading,isLoadingMore,hasMore,totalCount,errorMessage,moreErrorMessage);
 
 @override
 String toString() {
-  return 'HotPlaylistDetailState(playlist: $playlist, tracks: $tracks, isLoading: $isLoading, errorMessage: $errorMessage)';
+  return 'HotPlaylistDetailState(playlist: $playlist, tracks: $tracks, isLoading: $isLoading, isLoadingMore: $isLoadingMore, hasMore: $hasMore, totalCount: $totalCount, errorMessage: $errorMessage, moreErrorMessage: $moreErrorMessage)';
 }
 
 
@@ -262,7 +270,7 @@ abstract mixin class _$HotPlaylistDetailStateCopyWith<$Res> implements $HotPlayl
   factory _$HotPlaylistDetailStateCopyWith(_HotPlaylistDetailState value, $Res Function(_HotPlaylistDetailState) _then) = __$HotPlaylistDetailStateCopyWithImpl;
 @override @useResult
 $Res call({
- HotPlaylist playlist, List<HotPlaylistTrack> tracks, bool isLoading, String? errorMessage
+ HotPlaylist playlist, List<HotPlaylistTrack> tracks, bool isLoading, bool isLoadingMore, bool hasMore, int totalCount, String? errorMessage, String? moreErrorMessage
 });
 
 
@@ -279,12 +287,16 @@ class __$HotPlaylistDetailStateCopyWithImpl<$Res>
 
 /// Create a copy of HotPlaylistDetailState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? playlist = null,Object? tracks = null,Object? isLoading = null,Object? errorMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? playlist = null,Object? tracks = null,Object? isLoading = null,Object? isLoadingMore = null,Object? hasMore = null,Object? totalCount = null,Object? errorMessage = freezed,Object? moreErrorMessage = freezed,}) {
   return _then(_HotPlaylistDetailState(
 playlist: null == playlist ? _self.playlist : playlist // ignore: cast_nullable_to_non_nullable
 as HotPlaylist,tracks: null == tracks ? _self._tracks : tracks // ignore: cast_nullable_to_non_nullable
 as List<HotPlaylistTrack>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
+as bool,hasMore: null == hasMore ? _self.hasMore : hasMore // ignore: cast_nullable_to_non_nullable
+as bool,totalCount: null == totalCount ? _self.totalCount : totalCount // ignore: cast_nullable_to_non_nullable
+as int,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as String?,moreErrorMessage: freezed == moreErrorMessage ? _self.moreErrorMessage : moreErrorMessage // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

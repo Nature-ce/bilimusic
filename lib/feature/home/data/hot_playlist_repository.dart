@@ -23,6 +23,13 @@ class HotPlaylistException implements Exception {
   String toString() => message;
 }
 
+/// 一页歌单曲目：`hasMore` 决定是否还能继续加载，`totalCount` 是歌单曲目总数。
+typedef HotPlaylistTrackPage = ({
+  List<HotPlaylistTrack> tracks,
+  bool hasMore,
+  int totalCount,
+});
+
 /// 拉取网易云 / QQ音乐 / 酷狗的热门歌单与歌单曲目。
 class HotPlaylistRepository {
   HotPlaylistRepository({Dio? dio, HotPlaylistHttpGet? httpGet})
@@ -31,7 +38,7 @@ class HotPlaylistRepository {
   }
 
   static const int maxPlaylistCount = 12;
-  static const int maxTrackCount = 30;
+  static const int defaultTrackPageSize = 30;
   static const Duration cacheTtl = Duration(minutes: 10);
 
   static const String _neteaseListUrl =
@@ -72,7 +79,10 @@ class HotPlaylistRepository {
   late final HotPlaylistHttpGet _httpGet;
   final Map<MusicChartPlatform, _CachedPlaylists> _playlistCache =
       <MusicChartPlatform, _CachedPlaylists>{};
-  final Map<String, _CachedTracks> _trackCache = <String, _CachedTracks>{};
+  final Map<String, _CachedTrackPage> _trackPageCache =
+      <String, _CachedTrackPage>{};
+  final Map<String, _CachedTrackIds> _trackIdCache =
+      <String, _CachedTrackIds>{};
 
   Future<List<HotPlaylist>> fetchPlaylists(
     MusicChartPlatform platform, {
@@ -100,30 +110,45 @@ class HotPlaylistRepository {
     return playlists;
   }
 
-  Future<List<HotPlaylistTrack>> fetchTracks(
+  Future<HotPlaylistTrackPage> fetchTrackPage(
     HotPlaylist playlist, {
+    int offset = 0,
+    int limit = defaultTrackPageSize,
     bool forceRefresh = false,
   }) async {
-    final _CachedTracks? cached = _trackCache[playlist.key];
+    final String cacheKey = '${playlist.key}@$offset@$limit';
+    final _CachedTrackPage? cached = _trackPageCache[cacheKey];
     if (!forceRefresh && cached != null && !cached.isExpired) {
-      return cached.tracks;
+      return cached.page;
     }
-    final List<HotPlaylistTrack> tracks = switch (playlist.platform) {
-      MusicChartPlatform.netease => await _fetchNeteaseTracks(playlist),
-      MusicChartPlatform.tencent => await _fetchTencentTracks(playlist),
-      MusicChartPlatform.kugou => await _fetchKugouTracks(playlist),
+    final HotPlaylistTrackPage page = switch (playlist.platform) {
+      MusicChartPlatform.netease => await _fetchNeteaseTrackPage(
+        playlist,
+        offset: offset,
+        limit: limit,
+      ),
+      MusicChartPlatform.tencent => await _fetchTencentTrackPage(
+        playlist,
+        offset: offset,
+        limit: limit,
+      ),
+      MusicChartPlatform.kugou => await _fetchKugouTrackPage(
+        playlist,
+        offset: offset,
+        limit: limit,
+      ),
       MusicChartPlatform.bilibili => throw const HotPlaylistException(
         '该平台暂无热门歌单',
       ),
     };
-    _trackCache[playlist.key] = _CachedTracks(
-      tracks: tracks,
+    _trackPageCache[cacheKey] = _CachedTrackPage(
+      page: page,
       fetchedAt: DateTime.now(),
     );
-    if (_trackCache.length > 40) {
-      _trackCache.remove(_trackCache.keys.first);
+    if (_trackPageCache.length > 80) {
+      _trackPageCache.remove(_trackPageCache.keys.first);
     }
-    return tracks;
+    return page;
   }
 
   Future<List<HotPlaylist>> _fetchNeteasePlaylists() async {
@@ -165,47 +190,155 @@ class HotPlaylistRepository {
     return parseKugouPlaylists(payload);
   }
 
-  Future<List<HotPlaylistTrack>> _fetchNeteaseTracks(
-    HotPlaylist playlist,
-  ) async {
+  Future<HotPlaylistTrackPage> _fetchNeteaseTrackPage(
+    HotPlaylist playlist, {
+    required int offset,
+    required int limit,
+  }) async {
+    final List<String> trackIds = await _neteaseTrackIds(playlist);
+    if (trackIds.isEmpty) {
+      throw const HotPlaylistException('网易云歌单暂无曲目');
+    }
+    final List<String> pageIds = trackIds
+        .skip(offset)
+        .take(limit)
+        .toList(growable: false);
+    if (pageIds.isEmpty) {
+      return (
+        tracks: const <HotPlaylistTrack>[],
+        hasMore: false,
+        totalCount: trackIds.length,
+      );
+    }
+    final Object? songs = await _httpGet(
+      _neteaseSongDetailUrl,
+      <String, dynamic>{'ids': '[${pageIds.join(',')}]'},
+      _neteaseHeaders,
+    );
+    final List<HotPlaylistTrack> tracks = parseNeteaseTracks(
+      songs,
+      playlist,
+      startRank: offset + 1,
+    );
+    return (
+      tracks: tracks,
+      hasMore: offset + pageIds.length < trackIds.length,
+      totalCount: trackIds.length,
+    );
+  }
+
+  Future<List<String>> _neteaseTrackIds(
+    HotPlaylist playlist, {
+    bool forceRefresh = false,
+  }) async {
+    final _CachedTrackIds? cached = _trackIdCache[playlist.key];
+    if (!forceRefresh && cached != null && !cached.isExpired) {
+      return cached.trackIds;
+    }
     final Object? detail = await _httpGet(_neteaseDetailUrl, <String, dynamic>{
       'id': playlist.id,
       'n': '1000',
     }, _neteaseHeaders);
     final List<String> trackIds = _parseNeteaseTrackIds(detail);
-    if (trackIds.isEmpty) {
-      throw const HotPlaylistException('网易云歌单暂无曲目');
-    }
-    final Object? songs = await _httpGet(
-      _neteaseSongDetailUrl,
-      <String, dynamic>{'ids': '[${trackIds.take(maxTrackCount).join(',')}]'},
-      _neteaseHeaders,
+    _trackIdCache[playlist.key] = _CachedTrackIds(
+      trackIds: trackIds,
+      fetchedAt: DateTime.now(),
     );
-    return parseNeteaseTracks(songs, playlist);
+    if (_trackIdCache.length > 40) {
+      _trackIdCache.remove(_trackIdCache.keys.first);
+    }
+    return trackIds;
   }
 
-  Future<List<HotPlaylistTrack>> _fetchTencentTracks(
-    HotPlaylist playlist,
-  ) async {
+  Future<HotPlaylistTrackPage> _fetchTencentTrackPage(
+    HotPlaylist playlist, {
+    required int offset,
+    required int limit,
+  }) async {
     final Object? payload = await _httpGet(_tencentTracksUrl, <String, dynamic>{
       'id': playlist.id,
       'format': 'json',
       'newsong': '1',
-      'song_begin': '0',
-      'song_num': '$maxTrackCount',
+      'song_begin': '$offset',
+      'song_num': '$limit',
     }, _tencentHeaders);
-    return parseTencentTracks(payload, playlist);
+    final List<HotPlaylistTrack> tracks = parseTencentTracks(
+      payload,
+      playlist,
+      startRank: offset + 1,
+    );
+    final int totalCount = _tencentTotal(payload);
+    return (
+      tracks: tracks,
+      hasMore: _hasMore(
+        totalCount: totalCount,
+        offset: offset,
+        limit: limit,
+        fetched: tracks.length,
+      ),
+      totalCount: totalCount,
+    );
   }
 
-  Future<List<HotPlaylistTrack>> _fetchKugouTracks(HotPlaylist playlist) async {
+  Future<HotPlaylistTrackPage> _fetchKugouTrackPage(
+    HotPlaylist playlist, {
+    required int offset,
+    required int limit,
+  }) async {
+    final int page = offset ~/ limit + 1;
     final Object? payload = await _httpGet(_kugouTracksUrl, <String, dynamic>{
       'specialid': playlist.id,
-      'page': '1',
-      'pagesize': '$maxTrackCount',
+      'page': '$page',
+      'pagesize': '$limit',
       'plat': '0',
       'version': '8000',
     }, _kugouHeaders);
-    return parseKugouTracks(payload, playlist);
+    final List<HotPlaylistTrack> tracks = parseKugouTracks(
+      payload,
+      playlist,
+      startRank: offset + 1,
+    );
+    final int totalCount = _kugouTotal(payload);
+    return (
+      tracks: tracks,
+      hasMore: _hasMore(
+        totalCount: totalCount,
+        offset: offset,
+        limit: limit,
+        fetched: tracks.length,
+      ),
+      totalCount: totalCount,
+    );
+  }
+
+  static bool _hasMore({
+    required int totalCount,
+    required int offset,
+    required int limit,
+    required int fetched,
+  }) {
+    if (totalCount > 0) {
+      return offset + limit < totalCount;
+    }
+    return fetched >= limit;
+  }
+
+  static int _tencentTotal(Object? payload) {
+    final Map<String, dynamic>? root = _asMap(_decode(payload));
+    final Map<String, dynamic> data =
+        _asMap(root?['data']) ?? <String, dynamic>{};
+    final List<Map<String, dynamic>> cdlist = _asListOfMaps(data['cdlist']);
+    if (cdlist.isEmpty) {
+      return 0;
+    }
+    final Map<String, dynamic> cd = cdlist.first;
+    return _readInt(cd['total_song_num'] ?? cd['songnum']);
+  }
+
+  static int _kugouTotal(Object? payload) {
+    final Map<String, dynamic>? root = _asMap(_decode(payload));
+    final Map<String, dynamic>? data = _asMap(root?['data']);
+    return _readInt(data?['total']);
   }
 
   static List<HotPlaylist> parseNeteasePlaylists(Object? payload) {
@@ -324,8 +457,9 @@ class HotPlaylistRepository {
 
   static List<HotPlaylistTrack> parseNeteaseTracks(
     Object? payload,
-    HotPlaylist playlist,
-  ) {
+    HotPlaylist playlist, {
+    int startRank = 1,
+  }) {
     final Map<String, dynamic>? root = _asMap(_decode(payload));
     if (root == null) {
       throw const HotPlaylistException('网易云歌单曲目数据异常');
@@ -358,13 +492,14 @@ class HotPlaylistRepository {
         ),
       );
     }
-    return _finalizeTracks(tracks);
+    return _finalizeTracks(tracks, startRank: startRank);
   }
 
   static List<HotPlaylistTrack> parseTencentTracks(
     Object? payload,
-    HotPlaylist playlist,
-  ) {
+    HotPlaylist playlist, {
+    int startRank = 1,
+  }) {
     final Map<String, dynamic>? root = _asMap(_decode(payload));
     if (root == null) {
       throw const HotPlaylistException('QQ音乐歌单曲目数据异常');
@@ -397,13 +532,14 @@ class HotPlaylistRepository {
         ),
       );
     }
-    return _finalizeTracks(tracks);
+    return _finalizeTracks(tracks, startRank: startRank);
   }
 
   static List<HotPlaylistTrack> parseKugouTracks(
     Object? payload,
-    HotPlaylist playlist,
-  ) {
+    HotPlaylist playlist, {
+    int startRank = 1,
+  }) {
     final Map<String, dynamic>? root = _asMap(_decode(payload));
     if (root == null) {
       throw const HotPlaylistException('酷狗歌单曲目数据异常');
@@ -449,7 +585,7 @@ class HotPlaylistRepository {
         ),
       );
     }
-    return _finalizeTracks(tracks);
+    return _finalizeTracks(tracks, startRank: startRank);
   }
 
   static List<String> _parseNeteaseTrackIds(Object? payload) {
@@ -485,7 +621,10 @@ class HotPlaylistRepository {
     return List<HotPlaylist>.unmodifiable(unique);
   }
 
-  static List<HotPlaylistTrack> _finalizeTracks(List<HotPlaylistTrack> tracks) {
+  static List<HotPlaylistTrack> _finalizeTracks(
+    List<HotPlaylistTrack> tracks, {
+    int startRank = 1,
+  }) {
     final List<HotPlaylistTrack> unique = <HotPlaylistTrack>[];
     final Set<String> seen = <String>{};
     for (final HotPlaylistTrack track in tracks) {
@@ -495,13 +634,10 @@ class HotPlaylistRepository {
         continue;
       }
       unique.add(track);
-      if (unique.length >= maxTrackCount) {
-        break;
-      }
     }
     return List<HotPlaylistTrack>.unmodifiable(<HotPlaylistTrack>[
       for (int index = 0; index < unique.length; index += 1)
-        unique[index].copyWith(rank: index + 1),
+        unique[index].copyWith(rank: startRank + index),
     ]);
   }
 
@@ -618,10 +754,20 @@ class _CachedPlaylists {
       DateTime.now().difference(fetchedAt) > HotPlaylistRepository.cacheTtl;
 }
 
-class _CachedTracks {
-  const _CachedTracks({required this.tracks, required this.fetchedAt});
+class _CachedTrackPage {
+  const _CachedTrackPage({required this.page, required this.fetchedAt});
 
-  final List<HotPlaylistTrack> tracks;
+  final HotPlaylistTrackPage page;
+  final DateTime fetchedAt;
+
+  bool get isExpired =>
+      DateTime.now().difference(fetchedAt) > HotPlaylistRepository.cacheTtl;
+}
+
+class _CachedTrackIds {
+  const _CachedTrackIds({required this.trackIds, required this.fetchedAt});
+
+  final List<String> trackIds;
   final DateTime fetchedAt;
 
   bool get isExpired =>
