@@ -4,6 +4,9 @@ import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:flutter/material.dart';
 
 /// 首页热榜与热门歌单共用的胶囊 chip。
+///
+/// 选中态是品牌实心填充 + 反色文字（绿底黑字），未选中为透明底 + 次级文字，
+/// 与频道 Tab 的视觉规则保持一致。
 class HomeChip extends StatelessWidget {
   const HomeChip({
     super.key,
@@ -18,7 +21,7 @@ class HomeChip extends StatelessWidget {
   final bool selected;
   final bool compact;
 
-  /// 平台级 chip：选中时用主色实心，视觉权重高于榜单项。
+  /// 平台级 chip：选中时字重更重，视觉权重高于榜单项。
   final bool emphasis;
   final VoidCallback onTap;
 
@@ -26,12 +29,10 @@ class HomeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final Color background = selected
-        ? (emphasis
-              ? colorScheme.primary
-              : appChipBackgroundColor(context, selected: true))
-        : appChipBackgroundColor(context, selected: false);
+        ? appBrandFillColor(context)
+        : Colors.transparent;
     final Color foreground = selected
-        ? (emphasis ? colorScheme.onPrimary : colorScheme.primary)
+        ? appOnBrandFillColor(context)
         : colorScheme.onSurfaceVariant;
 
     return Material(
@@ -56,8 +57,10 @@ class HomeChip extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: compact ? 12 : 12.5,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                fontSize: compact ? 13 : 14,
+                fontWeight: selected
+                    ? FontWeight.w700
+                    : (emphasis ? FontWeight.w600 : FontWeight.w500),
                 color: foreground,
                 height: 1.15,
               ),
@@ -69,7 +72,7 @@ class HomeChip extends StatelessWidget {
   }
 }
 
-/// 平台选择行：选中项用主色实心。
+/// 平台选择行：选中项用品牌实心填充。
 class HomePlatformBar extends StatelessWidget {
   const HomePlatformBar({
     super.key,

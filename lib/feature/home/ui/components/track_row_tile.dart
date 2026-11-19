@@ -4,6 +4,9 @@ import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:flutter/material.dart';
 
 /// 曲目行：序号 + 封面 + 标题/副标题 + 时长，热榜与歌单共用。
+///
+/// 规格对齐设计规范：封面 50dp / 圆角 8dp、标题 14sp、副标题 12sp、
+/// 序号 14sp（前三名橙色加粗），整行左右 20dp 安全边距由外层负责。
 class TrackRowTile extends StatelessWidget {
   const TrackRowTile({
     super.key,
@@ -27,7 +30,6 @@ class TrackRowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs + 2),
@@ -39,12 +41,12 @@ class TrackRowTile extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.xs,
-              vertical: AppSpacing.sm - 2,
+              vertical: AppSpacing.xs + 2,
             ),
             child: Row(
               children: <Widget>[
                 _TrackRankBadge(rank: rank),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.sm),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                   child: CommonCachedImage(
@@ -53,7 +55,7 @@ class TrackRowTile extends StatelessWidget {
                     height: AppSizes.listCover,
                     fit: BoxFit.cover,
                     fallbackIcon: Icons.music_note_rounded,
-                    iconColor: colorScheme.onSurfaceVariant,
+                    iconColor: appTertiaryTextColor(context),
                     backgroundColor: appSkeletonColor(context),
                   ),
                 ),
@@ -69,12 +71,14 @@ class TrackRowTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.listTitle(theme),
                       ),
-                      const SizedBox(height: AppSpacing.xs),
+                      const SizedBox(height: 2),
                       Text(
                         artist,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.meta(theme, fontSize: 12),
+                        style: AppTextStyles.meta(
+                          theme,
+                        ).copyWith(color: appSecondaryTextColor(context)),
                       ),
                     ],
                   ),
@@ -89,11 +93,9 @@ class TrackRowTile extends StatelessWidget {
                 else
                   Text(
                     durationText,
-                    style: AppTextStyles.meta(theme, fontSize: 12).copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.75,
-                      ),
-                    ),
+                    style: AppTextStyles.meta(
+                      theme,
+                    ).copyWith(color: appTertiaryTextColor(context)),
                   ),
               ],
             ),
@@ -109,46 +111,27 @@ class _TrackRankBadge extends StatelessWidget {
 
   final int rank;
 
-  static const double _size = 24;
+  static const double _size = 20;
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final TextStyle baseStyle = TextStyle(
-      fontSize: 12,
-      height: 1.1,
-      fontWeight: FontWeight.w700,
-      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-    );
     final bool highlighted = rank > 0 && rank <= 3;
+    final TextStyle style = TextStyle(
+      fontSize: 14,
+      height: 1.2,
+      fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+      color: highlighted
+          ? AppNeutralColors.chartHot
+          : appTertiaryTextColor(context),
+    );
 
-    if (!highlighted) {
-      return SizedBox(
-        width: _size,
-        child: Text(
-          rank > 0 ? '$rank' : '·',
-          textAlign: TextAlign.center,
-          style: baseStyle.copyWith(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
-          ),
-        ),
-      );
-    }
-
-    return Container(
+    return SizedBox(
       width: _size,
-      height: _size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
       child: Text(
-        '$rank',
-        style: baseStyle.copyWith(
-          color: colorScheme.primary,
-          fontWeight: FontWeight.w800,
-        ),
+        rank > 0 ? '$rank' : '·',
+        textAlign: TextAlign.center,
+        style: style,
       ),
     );
   }

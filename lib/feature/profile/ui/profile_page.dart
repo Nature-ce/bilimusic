@@ -9,7 +9,6 @@ import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
-import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/favorites/ui/components/collection_kind_dialog.dart';
@@ -88,10 +87,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pageMargin,
+            AppSpacing.md,
+            AppSpacing.pageMargin,
+            0,
+          ),
           children: <Widget>[
             UserCard(onSettingsPressed: () => context.push('/settings')),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             _ProfileQuickActions(
               likedCount: likedCount,
               recentCount: recentCount,
@@ -107,62 +111,71 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               onRecentTap: () => context.push('/profile/recent'),
               onDownloadTap: () => context.push('/profile/downloads'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.sectionGap),
             _ProfileSectionHeader(onAddPressed: _handleAddPressed),
-            if (visibleCollections.isNotEmpty) const SizedBox(height: 14),
-            ...visibleCollections.map((FavoriteCollection collection) {
-              final List<FavoriteEntry> items = favoritesState
-                  .itemsForCollection(collection.id);
-              final FavoriteEntry? latestItem = items.isEmpty
-                  ? null
-                  : items.first;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _PlaylistTile(
-                  title: collection.name,
-                  count: favoritesState.itemCountForCollection(collection.id),
-                  isRemote: collection.isRemote,
-                  coverUrl: latestItem?.coverUrl,
-                  onTap: () =>
-                      context.push('/profile/favorites/${collection.id}'),
-                  onLongPressStart: (LongPressStartDetails details) {
-                    _showCollectionActionMenu(
-                      globalPosition: details.globalPosition,
-                      collection: collection,
-                    );
-                  },
-                  onMenuPressed: (Offset globalPosition) {
-                    _showCollectionActionMenu(
-                      globalPosition: globalPosition,
-                      collection: collection,
-                    );
-                  },
+            if (visibleCollections.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                decoration: appCardDecoration(context),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                child: Column(
+                  children: <Widget>[
+                    for (final FavoriteCollection collection
+                        in visibleCollections)
+                      _PlaylistTile(
+                        title: collection.name,
+                        count: favoritesState.itemCountForCollection(
+                          collection.id,
+                        ),
+                        isRemote: collection.isRemote,
+                        coverUrl: favoritesState
+                            .itemsForCollection(collection.id)
+                            .firstOrNull
+                            ?.coverUrl,
+                        onTap: () =>
+                            context.push('/profile/favorites/${collection.id}'),
+                        onLongPressStart: (LongPressStartDetails details) {
+                          _showCollectionActionMenu(
+                            globalPosition: details.globalPosition,
+                            collection: collection,
+                          );
+                        },
+                        onMenuPressed: (Offset globalPosition) {
+                          _showCollectionActionMenu(
+                            globalPosition: globalPosition,
+                            collection: collection,
+                          );
+                        },
+                      ),
+                  ],
                 ),
-              );
-            }),
+              ),
+            ],
             if (shouldCollapse)
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCollections = !_showAllCollections;
-                    });
-                  },
-                  iconAlignment: IconAlignment.end,
-                  icon: Icon(
-                    _showAllCollections
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    size: 22,
-                  ),
-                  label: Text(_showAllCollections ? '收起歌单' : '展开全部歌单'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant,
-                    textStyle: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w500),
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showAllCollections = !_showAllCollections;
+                      });
+                    },
+                    iconAlignment: IconAlignment.end,
+                    icon: Icon(
+                      _showAllCollections
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                    ),
+                    label: Text(_showAllCollections ? '收起歌单' : '展开全部歌单'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: appSecondaryTextColor(context),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -748,59 +761,38 @@ class _ProfileQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Container(
-        decoration: appElevatedCardDecoration(context),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: _ProfileStatItem(
-                icon: Icons.favorite_rounded,
-                label: '我喜欢',
-                count: likedCount,
-                onTap: onLikedTap,
-                onLongPressStart: onLikedLongPressStart,
-              ),
-            ),
-            _ProfileStatDivider(colorScheme: colorScheme),
-            Expanded(
-              child: _ProfileStatItem(
-                icon: Icons.history_rounded,
-                label: '历史记录',
-                count: recentCount,
-                onTap: onRecentTap,
-              ),
-            ),
-            _ProfileStatDivider(colorScheme: colorScheme),
-            Expanded(
-              child: _ProfileStatItem(
-                icon: Icons.library_music_rounded,
-                label: '本地',
-                count: downloadCount,
-                onTap: onDownloadTap,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileStatDivider extends StatelessWidget {
-  const _ProfileStatDivider({required this.colorScheme});
-
-  final ColorScheme colorScheme;
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      width: 0.5,
-      height: 28,
-      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+      decoration: appCardDecoration(context),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: _ProfileStatItem(
+              icon: Icons.favorite_rounded,
+              label: '我喜欢',
+              count: likedCount,
+              onTap: onLikedTap,
+              onLongPressStart: onLikedLongPressStart,
+            ),
+          ),
+          Expanded(
+            child: _ProfileStatItem(
+              icon: Icons.history_rounded,
+              label: '历史记录',
+              count: recentCount,
+              onTap: onRecentTap,
+            ),
+          ),
+          Expanded(
+            child: _ProfileStatItem(
+              icon: Icons.library_music_rounded,
+              label: '本地',
+              count: downloadCount,
+              onTap: onDownloadTap,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -830,33 +822,24 @@ class _ProfileStatItem extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md - 2),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(icon, size: 15, color: colorScheme.primary),
-                      ),
-                    ),
+                    Icon(icon, size: 18, color: colorScheme.onSurface),
                     const SizedBox(width: AppSpacing.xs + 2),
                     Text(
                       '$count',
                       style: TextStyle(
-                        fontSize: 17,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
                         color: colorScheme.onSurface,
                         fontFeatures: const <FontFeature>[
                           FontFeature.tabularFigures(),
@@ -865,8 +848,13 @@ class _ProfileStatItem extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.xs + 2),
-                Text(label, style: AppTextStyles.meta(theme, fontSize: 12)),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  label,
+                  style: AppTextStyles.meta(
+                    theme,
+                  ).copyWith(color: appTertiaryTextColor(context)),
+                ),
               ],
             ),
           ),
@@ -884,24 +872,40 @@ class _ProfileSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     return Row(
       children: <Widget>[
-        Text('歌单', style: AppTextStyles.sectionTitle(theme)),
-        const Spacer(),
-        FilledButton.icon(
-          onPressed: onAddPressed,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('新建'),
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
-            foregroundColor: colorScheme.primary,
-            minimumSize: const Size(0, 34),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            visualDensity: VisualDensity.compact,
-            textStyle: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+        Expanded(child: Text('我的歌单', style: AppTextStyles.pageTitle(theme))),
+        Material(
+          color: appBrandFillColor(context),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            onTap: onAddPressed,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm - 1,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.add_rounded,
+                    size: 18,
+                    color: appOnBrandFillColor(context),
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    '新建',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.2,
+                      fontWeight: FontWeight.w700,
+                      color: appOnBrandFillColor(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -932,17 +936,19 @@ class _PlaylistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
     return Material(
       color: Colors.transparent,
       child: GestureDetector(
         onLongPressStart: onLongPressStart,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
             child: Row(
               children: <Widget>[
                 _PlaylistCover(coverUrl: coverUrl),
@@ -959,28 +965,33 @@ class _PlaylistTile extends StatelessWidget {
                               title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.listTitle(
-                                theme,
-                              ).copyWith(fontWeight: FontWeight.w700),
+                              style: AppTextStyles.listTitle(theme),
                             ),
                           ),
                           if (isRemote) ...<Widget>[
                             const SizedBox(width: AppSpacing.xs + 2),
-                            _RemoteSourceBadge(colorScheme: colorScheme),
+                            const _RemoteSourceBadge(),
                           ],
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text('$count 首', style: AppTextStyles.meta(theme)),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$count 首',
+                        style: AppTextStyles.meta(
+                          theme,
+                        ).copyWith(color: appTertiaryTextColor(context)),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
                 Builder(
                   builder: (BuildContext buttonContext) {
                     return IconButton(
                       tooltip: '歌单设置',
                       visualDensity: VisualDensity.compact,
+                      color: appTertiaryTextColor(context),
+                      iconSize: 20,
                       onPressed: () {
                         final RenderBox? box =
                             buttonContext.findRenderObject() as RenderBox?;
@@ -991,10 +1002,7 @@ class _PlaylistTile extends StatelessWidget {
                           box.localToGlobal(box.size.center(Offset.zero)),
                         );
                       },
-                      icon: Icon(
-                        Icons.more_horiz_rounded,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      icon: const Icon(Icons.more_horiz_rounded),
                     );
                   },
                 ),
@@ -1008,30 +1016,32 @@ class _PlaylistTile extends StatelessWidget {
 }
 
 class _RemoteSourceBadge extends StatelessWidget {
-  const _RemoteSourceBadge({required this.colorScheme});
-
-  final ColorScheme colorScheme;
+  const _RemoteSourceBadge();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        color: appFillColor(context),
+        borderRadius: BorderRadius.circular(AppRadius.xs),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.sync_rounded, size: 10, color: colorScheme.primary),
+          Icon(
+            Icons.sync_rounded,
+            size: 10,
+            color: appSecondaryTextColor(context),
+          ),
           const SizedBox(width: 2),
           Text(
             'B站',
             style: TextStyle(
-              fontSize: 9,
+              fontSize: 10,
               height: 1.3,
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w700,
+              color: appSecondaryTextColor(context),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1047,24 +1057,20 @@ class _PlaylistCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color primary = Theme.of(context).colorScheme.primary;
-
     return CommonCachedImage(
       imageUrl: coverUrl,
       width: AppSizes.tileCover,
       height: AppSizes.tileCover,
       fit: BoxFit.cover,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      placeholder: _PlaylistPlaceholder(primary: primary),
-      errorWidget: _PlaylistPlaceholder(primary: primary),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      placeholder: const _PlaylistPlaceholder(),
+      errorWidget: const _PlaylistPlaceholder(),
     );
   }
 }
 
 class _PlaylistPlaceholder extends StatelessWidget {
-  const _PlaylistPlaceholder({required this.primary});
-
-  final Color primary;
+  const _PlaylistPlaceholder();
 
   @override
   Widget build(BuildContext context) {
@@ -1072,17 +1078,14 @@ class _PlaylistPlaceholder extends StatelessWidget {
       width: AppSizes.tileCover,
       height: AppSizes.tileCover,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            primary.withValues(alpha: 0.18),
-            primary.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(8),
+        color: appFillColor(context),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
-      child: Icon(Icons.queue_music_rounded, color: primary, size: 28),
+      child: Icon(
+        Icons.queue_music_rounded,
+        color: appTertiaryTextColor(context),
+        size: 24,
+      ),
     );
   }
 }

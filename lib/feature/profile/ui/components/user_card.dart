@@ -2,10 +2,12 @@ import 'package:bilimusic/common/components/cached_avatar.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// 用户卡片：白底卡面 + 圆形头像，未登录时用品牌实心胶囊作主 CTA。
 class UserCard extends ConsumerWidget {
   const UserCard({super.key, this.onSettingsPressed});
 
@@ -13,103 +15,127 @@ class UserCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
     final BiliSession? session = ref.watch(biliSessionControllerProvider);
     final bool isLoggedIn = session?.isLoggedIn ?? false;
-    final ColorScheme colorScheme = theme.colorScheme;
     final String? face = session?.face;
     final String? uname = session?.uname;
     final int? mid = session?.mid;
-    final String title = isLoggedIn
-        ? (uname?.isNotEmpty == true ? uname! : '已登录 B 站账号')
-        : '点击登录';
-    final String subtitle = isLoggedIn ? 'mid: ${mid ?? '-'}' : '扫码同步 B 站账号信息';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          onTap: isLoggedIn ? null : () => context.push('/auth'),
-          child: Ink(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: <Color>[
-                  colorScheme.primary.withValues(alpha: 0.16),
-                  colorScheme.primary.withValues(alpha: 0.04),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return Material(
+      color: appCardSurfaceColor(context),
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        onTap: isLoggedIn ? null : () => context.push('/auth'),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: <Widget>[
+              CommonCachedAvatar(
+                imageUrl: isLoggedIn ? face : null,
+                radius: 26,
+                backgroundColor: appFillColor(context),
+                fallbackIcon: Icons.person_rounded,
+                iconColor: appTertiaryTextColor(context),
+                iconSize: 28,
               ),
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.12),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: isLoggedIn
+                    ? _LoggedInInfo(uname: uname, mid: mid)
+                    : const _LoginPrompt(),
               ),
-            ),
+              if (onSettingsPressed != null) ...<Widget>[
+                const SizedBox(width: AppSpacing.xs),
+                IconButton(
+                  onPressed: onSettingsPressed,
+                  tooltip: '设置',
+                  iconSize: 22,
+                  color: appSecondaryTextColor(context),
+                  icon: const Icon(Icons.settings_outlined),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoggedInInfo extends StatelessWidget {
+  const _LoggedInInfo({required this.uname, required this.mid});
+
+  final String? uname;
+  final int? mid;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final String title = (uname?.isNotEmpty ?? false) ? uname! : '已登录 B 站账号';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.pageTitle(theme).copyWith(fontSize: 18),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'mid: ${mid ?? '-'}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.meta(
+            theme,
+          ).copyWith(color: appTertiaryTextColor(context)),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoginPrompt extends StatelessWidget {
+  const _LoginPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Material(
+          color: appBrandFillColor(context),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            onTap: () => context.push('/auth'),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm + 2,
+              ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.5),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: CommonCachedAvatar(
-                      imageUrl: isLoggedIn ? face : null,
-                      radius: 23,
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      fallbackIcon: Icons.person,
-                      iconColor: colorScheme.primary,
-                      iconSize: 24,
-                    ),
+                  Icon(
+                    Icons.person_rounded,
+                    size: 18,
+                    color: appOnBrandFillColor(context),
                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.pageTitle(
-                            theme,
-                          ).copyWith(fontSize: 18),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.meta(theme),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  if (!isLoggedIn)
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: colorScheme.primary,
-                    ),
-                  Material(
-                    color: colorScheme.surface.withValues(alpha: 0.6),
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      onPressed: onSettingsPressed,
-                      tooltip: '设置',
-                      iconSize: 20,
-                      icon: Icon(
-                        Icons.settings_rounded,
-                        color: colorScheme.primary,
-                      ),
+                  const SizedBox(width: AppSpacing.xs + 2),
+                  Text(
+                    '立即登录',
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.2,
+                      fontWeight: FontWeight.w700,
+                      color: appOnBrandFillColor(context),
                     ),
                   ),
                 ],
@@ -117,7 +143,16 @@ class UserCard extends ConsumerWidget {
             ),
           ),
         ),
-      ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '扫码同步 B 站账号信息',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.meta(
+            theme,
+          ).copyWith(color: appTertiaryTextColor(context)),
+        ),
+      ],
     );
   }
 }

@@ -14,6 +14,8 @@ extension HomeSectionLabel on HomeSection {
 }
 
 /// 首页顶部栏目切换：音乐热榜 / 热门歌单。
+///
+/// 采用频道 Tab 的范式：无轨道底色，选中项直接是品牌实心胶囊 + 反色文字。
 class HomeSectionSwitch extends StatelessWidget {
   const HomeSectionSwitch({
     super.key,
@@ -24,35 +26,20 @@ class HomeSectionSwitch extends StatelessWidget {
   final HomeSection selected;
   final ValueChanged<HomeSection> onSelected;
 
-  static const double _height = 44;
-
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320),
-        child: Container(
-          height: _height,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: appSurfaceContainerColor(context, alpha: 0.55),
-            borderRadius: BorderRadius.circular(AppRadius.pill),
+    return Row(
+      children: <Widget>[
+        for (final HomeSection section in HomeSection.values)
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.lg),
+            child: _HomeSectionTab(
+              label: section.label,
+              selected: section == selected,
+              onTap: () => onSelected(section),
+            ),
           ),
-          child: Row(
-            children: <Widget>[
-              for (final HomeSection section in HomeSection.values)
-                Expanded(
-                  child: _HomeSectionTab(
-                    label: section.label,
-                    selected: section == selected,
-                    onTap: () => onSelected(section),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -71,42 +58,41 @@ class _HomeSectionTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color background = selected
+        ? appBrandFillColor(context)
+        : Colors.transparent;
+    final Color foreground = selected
+        ? appOnBrandFillColor(context)
+        : colorScheme.onSurface;
+
     return Semantics(
       selected: selected,
       button: true,
       child: Material(
-        color: Colors.transparent,
+        color: background,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           child: AnimatedContainer(
             duration: AppMotion.fast,
             curve: AppMotion.standard,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: selected
-                  ? appCardSurfaceColor(context)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              boxShadow: selected
-                  ? <BoxShadow>[
-                      BoxShadow(
-                        color: appShadowColor(context),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : null,
-            ),
+            padding: selected
+                ? const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs + 2,
+                  )
+                : const EdgeInsets.symmetric(
+                    horizontal: 0,
+                    vertical: AppSpacing.xs + 2,
+                  ),
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 14,
-                height: 1.15,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                color: selected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
+                fontSize: 16,
+                height: 1.2,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: foreground,
               ),
             ),
           ),

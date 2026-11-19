@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 统一的间距栅格（8pt 体系，配合 4pt 微调）。
+/// 统一的间距栅格（2dp 栅格，常用 4/8/12/16/20/24）。
 abstract final class AppSpacing {
   static const double xs = 4;
   static const double sm = 8;
@@ -9,24 +9,34 @@ abstract final class AppSpacing {
   static const double xl = 20;
   static const double xxl = 24;
   static const double xxxl = 32;
+
+  /// 页面左右安全边距，全站一致。
+  static const double pageMargin = xl;
+
+  /// 区块之间的垂直留白。
+  static const double sectionGap = xxl;
 }
 
-/// 圆角分层：小控件 < 卡片 < 面板，chip 与按钮用 pill。
+/// 圆角分层：小标签 4、封面/小卡 8、白卡 12、输入框 16、半屏面板 20，按钮与胶囊全圆角。
 abstract final class AppRadius {
-  static const double xs = 8;
-  static const double sm = 10;
-  static const double md = 14;
-  static const double lg = 18;
-  static const double card = 20;
-  static const double xl = 24;
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double card = md;
+  static const double xl = 20;
   static const double pill = 999;
 }
 
 abstract final class AppSizes {
-  static const double listCover = 48;
-  static const double tileCover = 56;
-  static const double listRowHeight = 62;
-  static const double miniPlayerHeight = 64;
+  static const double listCover = 50;
+  static const double tileCover = 50;
+  static const double songRowHeight = 50;
+  static const double listRowHeight = songRowHeight;
+  static const double miniPlayerHeight = 52;
+  static const double navigationBarHeight = 58;
+  static const double searchBarHeight = 36;
+  static const double sectionHeaderHeight = 40;
   static const double minTapTarget = 48;
   static const double minIconTapTarget = 44;
 }
@@ -52,19 +62,17 @@ abstract final class AppTextStyles {
   static TextStyle pageTitleFrom(ColorScheme colors) {
     return TextStyle(
       fontSize: 20,
-      fontWeight: FontWeight.w800,
-      letterSpacing: -0.4,
-      height: 1.15,
+      fontWeight: FontWeight.w700,
+      height: 1.3,
       color: colors.onSurface,
     );
   }
 
   static TextStyle sectionTitleFrom(ColorScheme colors) {
     return TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w800,
-      letterSpacing: -0.3,
-      height: 1.2,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      height: 1.3,
       color: colors.onSurface,
     );
   }
@@ -73,7 +81,7 @@ abstract final class AppTextStyles {
     return TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w600,
-      height: 1.25,
+      height: 1.3,
       color: colors.onSurface,
     );
   }

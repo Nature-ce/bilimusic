@@ -1,9 +1,11 @@
 import 'package:bilimusic/common/util/platform_util.dart';
+import 'package:bilimusic/core/theme/app_brand_colors.dart';
 import 'package:bilimusic/core/theme/app_contrast.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/components/no_transition_builder.dart';
 import 'package:bilimusic/core/theme/desktop_chinese_font.dart';
 import 'package:bilimusic/core/theme/theme_catalog.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:chinese_font_library/chinese_font_library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -48,7 +50,10 @@ final class AppTheme {
 
     const StadiumBorder pillBorder = StadiumBorder();
     final RoundedRectangleBorder cardBorder = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
+      borderRadius: BorderRadius.circular(AppRadius.card),
+    );
+    final AppBrandColors brandColors = AppBrandColors.fromFill(
+      definition.resolvedBrandFillColor,
     );
 
     return ThemeData(
@@ -56,6 +61,7 @@ final class AppTheme {
       brightness: brightness,
       textTheme: _textTheme(brightness),
       colorScheme: colorScheme,
+      extensions: <ThemeExtension<dynamic>>[brandColors],
       scaffoldBackgroundColor: isDark
           ? definition.darkScaffoldBackgroundColor
           : definition.lightScaffoldBackgroundColor,
@@ -78,14 +84,15 @@ final class AppTheme {
             : definition.lightSurfaceColor,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.xl),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: isDark
             ? definition.darkSurfaceColor
-            : definition.lightSurfaceColor,
+            : AppNeutralColors.sheet,
         surfaceTintColor: Colors.transparent,
+        dragHandleColor: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppRadius.xl),
@@ -104,57 +111,70 @@ final class AppTheme {
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs + 2,
+          vertical: AppSpacing.sm - 2,
         ),
         labelStyle: TextStyle(
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           color: colorScheme.onSurfaceVariant,
         ),
-        backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.55,
+        secondaryLabelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: brandColors.onFill,
         ),
-        selectedColor: colorScheme.primary.withValues(alpha: 0.14),
-        secondarySelectedColor: colorScheme.primary.withValues(alpha: 0.14),
+        backgroundColor: Colors.transparent,
+        selectedColor: brandColors.fill,
+        secondarySelectedColor: brandColors.fill,
         showCheckmark: false,
       ),
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        minVerticalPadding: AppSpacing.sm + 2,
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        minVerticalPadding: AppSpacing.md,
         iconColor: colorScheme.onSurfaceVariant,
-        titleTextStyle: AppTextStyles.listTitleFrom(colorScheme),
+        titleTextStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+        ).copyWith(color: colorScheme.onSurface),
         subtitleTextStyle: AppTextStyles.metaFrom(colorScheme),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-        thickness: 0.5,
+        color: isDark
+            ? colorScheme.outlineVariant.withValues(alpha: 0.5)
+            : AppNeutralColors.divider,
+        thickness: 1,
         space: 1,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        fillColor: isDark
+            ? colorScheme.surfaceContainerHighest
+            : AppNeutralColors.fill,
         isDense: true,
+        hintStyle: TextStyle(
+          fontSize: 14,
+          color: isDark
+              ? colorScheme.onSurfaceVariant.withValues(alpha: 0.8)
+              : AppNeutralColors.textSecondary.withValues(alpha: 0.8),
+        ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.sm + 2,
         ),
-        hintStyle: TextStyle(
-          fontSize: 13,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           borderSide: BorderSide(
             color: colorScheme.primary.withValues(alpha: 0.7),
             width: 1.2,
@@ -164,20 +184,24 @@ final class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           shape: pillBorder,
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          minimumSize: const Size(0, AppSizes.minIconTapTarget),
+          backgroundColor: brandColors.fill,
+          foregroundColor: brandColors.onFill,
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           shape: pillBorder,
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          minimumSize: const Size(0, AppSizes.minIconTapTarget),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           side: BorderSide(color: colorScheme.outlineVariant),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           shape: pillBorder,
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       snackBarTheme: SnackBarThemeData(

@@ -23,27 +23,27 @@ class MiniPlayerBar extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
-            color: colorScheme.surface.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.10),
-            ),
+            color: colorScheme.surface.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 color: appShadowColor(context),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+                blurRadius: 14,
+                offset: const Offset(0, -2),
               ),
             ],
           ),
           child: MiniPlayerContent(
             state: state,
             onTogglePlayback: onTogglePlayback,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: 1,
+            ),
           ),
         ),
       ),

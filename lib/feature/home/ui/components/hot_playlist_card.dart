@@ -54,9 +54,9 @@ class HotPlaylistCard extends StatelessWidget {
               playlist.summaryText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.meta(theme, fontSize: 12).copyWith(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
-              ),
+              style: AppTextStyles.meta(
+                theme,
+              ).copyWith(color: appTertiaryTextColor(context)),
             ),
           ],
         ),
