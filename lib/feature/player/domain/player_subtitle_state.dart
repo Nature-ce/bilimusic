@@ -13,6 +13,7 @@ abstract class PlayerSubtitleState with _$PlayerSubtitleState {
     @Default(<BiliSubtitleLine>[]) List<BiliSubtitleLine> lines,
     @Default(0) int offsetMs,
     @Default(false) bool isDiscovering,
+    @Default(false) bool userSelected,
     String? errorMessage,
   }) = _PlayerSubtitleState;
 

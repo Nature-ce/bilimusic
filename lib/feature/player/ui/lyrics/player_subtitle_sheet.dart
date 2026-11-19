@@ -103,7 +103,7 @@ class _PlayerSubtitleSheet extends ConsumerWidget {
                         if (!_isCurrent(ref)) return;
                         final bool selected = await ref
                             .read(playerSubtitleControllerProvider.notifier)
-                            .selectTrack(track.id);
+                            .selectTrack(track.id, fromUser: true);
                         if (!context.mounted) return;
                         if (selected && _isCurrent(ref)) {
                           Navigator.of(context).pop();

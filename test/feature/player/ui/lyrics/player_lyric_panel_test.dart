@@ -293,7 +293,12 @@ void main() {
         );
         expect(lines[index].text, initial.lines[index].text);
       }
-      expect(document.lines.every((line) => line.words == null), isTrue);
+      expect(
+        document.lines.every(
+          (line) => line.words!.map((word) => word.text).join() == line.text,
+        ),
+        isTrue,
+      );
       for (final int positionMs in <int>[2016, 2032, 2048]) {
         await _pumpPanel(
           tester,
@@ -909,7 +914,11 @@ Future<void> _pumpPanel(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        metadataControllerProvider.overrideWith(_MetadataController.new),
+        metadataControllerProvider.overrideWith(
+          useAiSubtitles
+              ? _NoLyricMetadataController.new
+              : _MetadataController.new,
+        ),
         playerSubtitleControllerProvider.overrideWith(
           useAiSubtitles ? _AiSubtitles.new : _NoSubtitles.new,
         ),
@@ -1005,6 +1014,11 @@ class _LyricSettingsLogic extends PlayerLyricSettingsLogic {
 
   @override
   Future<void> update(PlayerLyricSettings value) async => state = value;
+}
+
+class _NoLyricMetadataController extends MetadataController {
+  @override
+  MetadataState build() => MetadataState(stableId: _item.stableId);
 }
 
 class _MetadataController extends MetadataController {

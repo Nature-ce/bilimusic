@@ -119,11 +119,12 @@ class PlayerSubtitleController extends _$PlayerSubtitleController {
       pendingTrackId: null,
       lines: const [],
       offsetMs: 0,
+      userSelected: false,
       errorMessage: null,
     );
   }
 
-  Future<bool> selectTrack(String trackId) async {
+  Future<bool> selectTrack(String trackId, {bool fromUser = false}) async {
     final BiliSubtitleTrack? track = state.tracks
         .where((value) => value.id == trackId)
         .firstOrNull;
@@ -147,6 +148,7 @@ class PlayerSubtitleController extends _$PlayerSubtitleController {
         pendingTrackId: null,
         lines: lines,
         offsetMs: _offsets[trackId] ?? 0,
+        userSelected: fromUser,
         errorMessage: null,
       );
       return true;

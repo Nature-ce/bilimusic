@@ -94,8 +94,14 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
     final PlayerSubtitleState subtitles = ref.watch(
       playerSubtitleControllerProvider,
     );
-    final bool useSubtitles =
-        subtitles.stableId == widget.item?.stableId && subtitles.usesSubtitles;
+    final bool useSubtitles = shouldRenderSubtitleLyrics(
+      itemIsSpoken: widget.item?.isSpoken == true,
+      hasMetingLyrics: metadataState.hasLyrics,
+      subtitlesSelected:
+          subtitles.stableId == widget.item?.stableId &&
+          subtitles.usesSubtitles,
+      userSelected: subtitles.userSelected,
+    );
     if (useSubtitles) {
       _syncSubtitles(subtitles);
     } else {
@@ -423,14 +429,10 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
       reduceMotion: MediaQuery.disableAnimationsOf(context),
     ).copyWith(selectionForegroundBuilder: _buildSelectionForeground);
     if (!useSubtitles) return preset;
-    return preset.copyWith(
-      activeTextStyle: preset.activeTextStyle.copyWith(
-        color: preset.highlight.color,
-      ),
-      highlight: const LyricHighlight.none(),
-      wordEffects: const LyricWordEffects(),
-      countdown: const LyricCountdown.none(),
-    );
+    // 字幕与正规歌词共用同一套逐字高亮：预设的 simulateTiming 会把没有逐字
+    // 时间戳的行按字符均分时值，从而跟随进度扫过。字幕只有长间奏缺省，
+    // 关掉呼吸点即可。
+    return preset.copyWith(countdown: const LyricCountdown.none());
   }
 
   Widget _buildSelectionForeground(

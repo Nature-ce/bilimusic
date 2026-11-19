@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlayerSubtitleState {
 
- String? get stableId; List<BiliSubtitleTrack> get tracks; String? get selectedTrackId; String? get pendingTrackId; List<BiliSubtitleLine> get lines; int get offsetMs; bool get isDiscovering; String? get errorMessage;
+ String? get stableId; List<BiliSubtitleTrack> get tracks; String? get selectedTrackId; String? get pendingTrackId; List<BiliSubtitleLine> get lines; int get offsetMs; bool get isDiscovering; bool get userSelected; String? get errorMessage;
 /// Create a copy of PlayerSubtitleState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $PlayerSubtitleStateCopyWith<PlayerSubtitleState> get copyWith => _$PlayerSubtit
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerSubtitleState&&(identical(other.stableId, stableId) || other.stableId == stableId)&&const DeepCollectionEquality().equals(other.tracks, tracks)&&(identical(other.selectedTrackId, selectedTrackId) || other.selectedTrackId == selectedTrackId)&&(identical(other.pendingTrackId, pendingTrackId) || other.pendingTrackId == pendingTrackId)&&const DeepCollectionEquality().equals(other.lines, lines)&&(identical(other.offsetMs, offsetMs) || other.offsetMs == offsetMs)&&(identical(other.isDiscovering, isDiscovering) || other.isDiscovering == isDiscovering)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerSubtitleState&&(identical(other.stableId, stableId) || other.stableId == stableId)&&const DeepCollectionEquality().equals(other.tracks, tracks)&&(identical(other.selectedTrackId, selectedTrackId) || other.selectedTrackId == selectedTrackId)&&(identical(other.pendingTrackId, pendingTrackId) || other.pendingTrackId == pendingTrackId)&&const DeepCollectionEquality().equals(other.lines, lines)&&(identical(other.offsetMs, offsetMs) || other.offsetMs == offsetMs)&&(identical(other.isDiscovering, isDiscovering) || other.isDiscovering == isDiscovering)&&(identical(other.userSelected, userSelected) || other.userSelected == userSelected)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,stableId,const DeepCollectionEquality().hash(tracks),selectedTrackId,pendingTrackId,const DeepCollectionEquality().hash(lines),offsetMs,isDiscovering,errorMessage);
+int get hashCode => Object.hash(runtimeType,stableId,const DeepCollectionEquality().hash(tracks),selectedTrackId,pendingTrackId,const DeepCollectionEquality().hash(lines),offsetMs,isDiscovering,userSelected,errorMessage);
 
 @override
 String toString() {
-  return 'PlayerSubtitleState(stableId: $stableId, tracks: $tracks, selectedTrackId: $selectedTrackId, pendingTrackId: $pendingTrackId, lines: $lines, offsetMs: $offsetMs, isDiscovering: $isDiscovering, errorMessage: $errorMessage)';
+  return 'PlayerSubtitleState(stableId: $stableId, tracks: $tracks, selectedTrackId: $selectedTrackId, pendingTrackId: $pendingTrackId, lines: $lines, offsetMs: $offsetMs, isDiscovering: $isDiscovering, userSelected: $userSelected, errorMessage: $errorMessage)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $PlayerSubtitleStateCopyWith<$Res>  {
   factory $PlayerSubtitleStateCopyWith(PlayerSubtitleState value, $Res Function(PlayerSubtitleState) _then) = _$PlayerSubtitleStateCopyWithImpl;
 @useResult
 $Res call({
- String? stableId, List<BiliSubtitleTrack> tracks, String? selectedTrackId, String? pendingTrackId, List<BiliSubtitleLine> lines, int offsetMs, bool isDiscovering, String? errorMessage
+ String? stableId, List<BiliSubtitleTrack> tracks, String? selectedTrackId, String? pendingTrackId, List<BiliSubtitleLine> lines, int offsetMs, bool isDiscovering, bool userSelected, String? errorMessage
 });
 
 
@@ -62,7 +62,7 @@ class _$PlayerSubtitleStateCopyWithImpl<$Res>
 
 /// Create a copy of PlayerSubtitleState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? stableId = freezed,Object? tracks = null,Object? selectedTrackId = freezed,Object? pendingTrackId = freezed,Object? lines = null,Object? offsetMs = null,Object? isDiscovering = null,Object? errorMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? stableId = freezed,Object? tracks = null,Object? selectedTrackId = freezed,Object? pendingTrackId = freezed,Object? lines = null,Object? offsetMs = null,Object? isDiscovering = null,Object? userSelected = null,Object? errorMessage = freezed,}) {
   return _then(_self.copyWith(
 stableId: freezed == stableId ? _self.stableId : stableId // ignore: cast_nullable_to_non_nullable
 as String?,tracks: null == tracks ? _self.tracks : tracks // ignore: cast_nullable_to_non_nullable
@@ -71,6 +71,7 @@ as String?,pendingTrackId: freezed == pendingTrackId ? _self.pendingTrackId : pe
 as String?,lines: null == lines ? _self.lines : lines // ignore: cast_nullable_to_non_nullable
 as List<BiliSubtitleLine>,offsetMs: null == offsetMs ? _self.offsetMs : offsetMs // ignore: cast_nullable_to_non_nullable
 as int,isDiscovering: null == isDiscovering ? _self.isDiscovering : isDiscovering // ignore: cast_nullable_to_non_nullable
+as bool,userSelected: null == userSelected ? _self.userSelected : userSelected // ignore: cast_nullable_to_non_nullable
 as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? stableId,  List<BiliSubtitleTrack> tracks,  String? selectedTrackId,  String? pendingTrackId,  List<BiliSubtitleLine> lines,  int offsetMs,  bool isDiscovering,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? stableId,  List<BiliSubtitleTrack> tracks,  String? selectedTrackId,  String? pendingTrackId,  List<BiliSubtitleLine> lines,  int offsetMs,  bool isDiscovering,  bool userSelected,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlayerSubtitleState() when $default != null:
-return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingTrackId,_that.lines,_that.offsetMs,_that.isDiscovering,_that.errorMessage);case _:
+return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingTrackId,_that.lines,_that.offsetMs,_that.isDiscovering,_that.userSelected,_that.errorMessage);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingT
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? stableId,  List<BiliSubtitleTrack> tracks,  String? selectedTrackId,  String? pendingTrackId,  List<BiliSubtitleLine> lines,  int offsetMs,  bool isDiscovering,  String? errorMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? stableId,  List<BiliSubtitleTrack> tracks,  String? selectedTrackId,  String? pendingTrackId,  List<BiliSubtitleLine> lines,  int offsetMs,  bool isDiscovering,  bool userSelected,  String? errorMessage)  $default,) {final _that = this;
 switch (_that) {
 case _PlayerSubtitleState():
-return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingTrackId,_that.lines,_that.offsetMs,_that.isDiscovering,_that.errorMessage);case _:
+return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingTrackId,_that.lines,_that.offsetMs,_that.isDiscovering,_that.userSelected,_that.errorMessage);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingT
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? stableId,  List<BiliSubtitleTrack> tracks,  String? selectedTrackId,  String? pendingTrackId,  List<BiliSubtitleLine> lines,  int offsetMs,  bool isDiscovering,  String? errorMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? stableId,  List<BiliSubtitleTrack> tracks,  String? selectedTrackId,  String? pendingTrackId,  List<BiliSubtitleLine> lines,  int offsetMs,  bool isDiscovering,  bool userSelected,  String? errorMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _PlayerSubtitleState() when $default != null:
-return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingTrackId,_that.lines,_that.offsetMs,_that.isDiscovering,_that.errorMessage);case _:
+return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingTrackId,_that.lines,_that.offsetMs,_that.isDiscovering,_that.userSelected,_that.errorMessage);case _:
   return null;
 
 }
@@ -213,7 +214,7 @@ return $default(_that.stableId,_that.tracks,_that.selectedTrackId,_that.pendingT
 
 
 class _PlayerSubtitleState extends PlayerSubtitleState {
-  const _PlayerSubtitleState({this.stableId, final  List<BiliSubtitleTrack> tracks = const <BiliSubtitleTrack>[], this.selectedTrackId, this.pendingTrackId, final  List<BiliSubtitleLine> lines = const <BiliSubtitleLine>[], this.offsetMs = 0, this.isDiscovering = false, this.errorMessage}): _tracks = tracks,_lines = lines,super._();
+  const _PlayerSubtitleState({this.stableId, final  List<BiliSubtitleTrack> tracks = const <BiliSubtitleTrack>[], this.selectedTrackId, this.pendingTrackId, final  List<BiliSubtitleLine> lines = const <BiliSubtitleLine>[], this.offsetMs = 0, this.isDiscovering = false, this.userSelected = false, this.errorMessage}): _tracks = tracks,_lines = lines,super._();
   
 
 @override final  String? stableId;
@@ -235,6 +236,7 @@ class _PlayerSubtitleState extends PlayerSubtitleState {
 
 @override@JsonKey() final  int offsetMs;
 @override@JsonKey() final  bool isDiscovering;
+@override@JsonKey() final  bool userSelected;
 @override final  String? errorMessage;
 
 /// Create a copy of PlayerSubtitleState
@@ -247,16 +249,16 @@ _$PlayerSubtitleStateCopyWith<_PlayerSubtitleState> get copyWith => __$PlayerSub
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerSubtitleState&&(identical(other.stableId, stableId) || other.stableId == stableId)&&const DeepCollectionEquality().equals(other._tracks, _tracks)&&(identical(other.selectedTrackId, selectedTrackId) || other.selectedTrackId == selectedTrackId)&&(identical(other.pendingTrackId, pendingTrackId) || other.pendingTrackId == pendingTrackId)&&const DeepCollectionEquality().equals(other._lines, _lines)&&(identical(other.offsetMs, offsetMs) || other.offsetMs == offsetMs)&&(identical(other.isDiscovering, isDiscovering) || other.isDiscovering == isDiscovering)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerSubtitleState&&(identical(other.stableId, stableId) || other.stableId == stableId)&&const DeepCollectionEquality().equals(other._tracks, _tracks)&&(identical(other.selectedTrackId, selectedTrackId) || other.selectedTrackId == selectedTrackId)&&(identical(other.pendingTrackId, pendingTrackId) || other.pendingTrackId == pendingTrackId)&&const DeepCollectionEquality().equals(other._lines, _lines)&&(identical(other.offsetMs, offsetMs) || other.offsetMs == offsetMs)&&(identical(other.isDiscovering, isDiscovering) || other.isDiscovering == isDiscovering)&&(identical(other.userSelected, userSelected) || other.userSelected == userSelected)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,stableId,const DeepCollectionEquality().hash(_tracks),selectedTrackId,pendingTrackId,const DeepCollectionEquality().hash(_lines),offsetMs,isDiscovering,errorMessage);
+int get hashCode => Object.hash(runtimeType,stableId,const DeepCollectionEquality().hash(_tracks),selectedTrackId,pendingTrackId,const DeepCollectionEquality().hash(_lines),offsetMs,isDiscovering,userSelected,errorMessage);
 
 @override
 String toString() {
-  return 'PlayerSubtitleState(stableId: $stableId, tracks: $tracks, selectedTrackId: $selectedTrackId, pendingTrackId: $pendingTrackId, lines: $lines, offsetMs: $offsetMs, isDiscovering: $isDiscovering, errorMessage: $errorMessage)';
+  return 'PlayerSubtitleState(stableId: $stableId, tracks: $tracks, selectedTrackId: $selectedTrackId, pendingTrackId: $pendingTrackId, lines: $lines, offsetMs: $offsetMs, isDiscovering: $isDiscovering, userSelected: $userSelected, errorMessage: $errorMessage)';
 }
 
 
@@ -267,7 +269,7 @@ abstract mixin class _$PlayerSubtitleStateCopyWith<$Res> implements $PlayerSubti
   factory _$PlayerSubtitleStateCopyWith(_PlayerSubtitleState value, $Res Function(_PlayerSubtitleState) _then) = __$PlayerSubtitleStateCopyWithImpl;
 @override @useResult
 $Res call({
- String? stableId, List<BiliSubtitleTrack> tracks, String? selectedTrackId, String? pendingTrackId, List<BiliSubtitleLine> lines, int offsetMs, bool isDiscovering, String? errorMessage
+ String? stableId, List<BiliSubtitleTrack> tracks, String? selectedTrackId, String? pendingTrackId, List<BiliSubtitleLine> lines, int offsetMs, bool isDiscovering, bool userSelected, String? errorMessage
 });
 
 
@@ -284,7 +286,7 @@ class __$PlayerSubtitleStateCopyWithImpl<$Res>
 
 /// Create a copy of PlayerSubtitleState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? stableId = freezed,Object? tracks = null,Object? selectedTrackId = freezed,Object? pendingTrackId = freezed,Object? lines = null,Object? offsetMs = null,Object? isDiscovering = null,Object? errorMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? stableId = freezed,Object? tracks = null,Object? selectedTrackId = freezed,Object? pendingTrackId = freezed,Object? lines = null,Object? offsetMs = null,Object? isDiscovering = null,Object? userSelected = null,Object? errorMessage = freezed,}) {
   return _then(_PlayerSubtitleState(
 stableId: freezed == stableId ? _self.stableId : stableId // ignore: cast_nullable_to_non_nullable
 as String?,tracks: null == tracks ? _self._tracks : tracks // ignore: cast_nullable_to_non_nullable
@@ -293,6 +295,7 @@ as String?,pendingTrackId: freezed == pendingTrackId ? _self.pendingTrackId : pe
 as String?,lines: null == lines ? _self._lines : lines // ignore: cast_nullable_to_non_nullable
 as List<BiliSubtitleLine>,offsetMs: null == offsetMs ? _self.offsetMs : offsetMs // ignore: cast_nullable_to_non_nullable
 as int,isDiscovering: null == isDiscovering ? _self.isDiscovering : isDiscovering // ignore: cast_nullable_to_non_nullable
+as bool,userSelected: null == userSelected ? _self.userSelected : userSelected // ignore: cast_nullable_to_non_nullable
 as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,
   ));

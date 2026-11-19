@@ -7,6 +7,7 @@ import 'package:bilimusic/feature/metadata/ui/components/lyric_search_sheet.dart
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/domain/player_subtitle_state.dart';
+import 'package:bilimusic/feature/player/logic/lyrics/lyric_source_policy.dart';
 import 'package:bilimusic/feature/player/logic/lyrics/player_subtitle_controller.dart';
 import 'package:bilimusic/feature/player/logic/lyrics/player_lyric_settings_logic.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -58,8 +59,14 @@ class PlayerLyricPage extends ConsumerWidget {
     final PlayerSubtitleState subtitleState = ref.watch(
       playerSubtitleControllerProvider,
     );
-    final bool usesSubtitles =
-        subtitleState.stableId == item?.stableId && subtitleState.usesSubtitles;
+    final bool usesSubtitles = shouldRenderSubtitleLyrics(
+      itemIsSpoken: isSpoken,
+      hasMetingLyrics: metadataState.hasLyrics,
+      subtitlesSelected:
+          subtitleState.stableId == item?.stableId &&
+          subtitleState.usesSubtitles,
+      userSelected: subtitleState.userSelected,
+    );
     final bool canSelectSubtitles =
         subtitleState.stableId == item?.stableId && subtitleState.hasTracks;
     final String translationLyrics =

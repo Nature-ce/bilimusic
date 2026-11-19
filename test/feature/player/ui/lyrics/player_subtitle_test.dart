@@ -340,7 +340,7 @@ void main() {
   );
 
   testWidgets(
-    'AI panel preserves line timestamps and disables simulated word timing',
+    'AI panel keeps line timestamps and sweeps the highlight with progress',
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(320, 700);
@@ -364,20 +364,60 @@ void main() {
           actualLines[index].end,
           Duration(milliseconds: _lines[index].endMs),
         );
-        expect(actualLines[index].words, isNull);
-        expect(actualLines[index].translation, isNull);
+        expect(actualLines[index].words, isNotNull);
+        expect(
+          actualLines[index].words!.map((word) => word.text).join(),
+          actualLines[index].text,
+        );
       }
-      expect(document.lines.every((line) => line.words == null), isTrue);
+      expect(
+        document.lines.every(
+          (line) => line.words!.map((word) => word.text).join() == line.text,
+        ),
+        isTrue,
+      );
       expect(document.lines, hasLength(_lines.length));
       expect(document.lines.every((line) => line.text.isNotEmpty), isTrue);
       expect(view.controller.timeOffset, const Duration(milliseconds: 175));
-      expect(view.preset!.wordEffects.simulateTiming, isFalse);
-      expect(view.preset!.highlight.enabled, isFalse);
+      expect(view.preset!.wordEffects.simulateTiming, isTrue);
+      expect(view.preset!.highlight.enabled, isTrue);
+      expect(view.preset!.countdown.enabled, isFalse);
       expect(find.byTooltip('隐藏译文'), findsNothing);
       expect(find.byTooltip('显示译文'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Meting lyrics win over an auto-selected AI subtitle track', (
+    tester,
+  ) async {
+    await _pumpPage(tester, selectedTrackId: 'zh', withMetingLyrics: true);
+
+    final LyricView view = tester.widget<LyricView>(find.byType(LyricView));
+    final List<String> texts = view.controller.document!.lines
+        .map((LyricLine line) => line.text)
+        .toList();
+
+    expect(texts, contains('Meting第一行'));
+    expect(texts, isNot(contains(_lines.first.text)));
+  });
+
+  testWidgets('an explicitly picked subtitle track still beats Meting', (
+    tester,
+  ) async {
+    final _Fixture fixture = await _pumpPage(
+      tester,
+      selectedTrackId: 'zh',
+      withMetingLyrics: true,
+    );
+    fixture.subtitles.setValue(
+      fixture.subtitles.state.copyWith(userSelected: true),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final LyricView view = tester.widget<LyricView>(find.byType(LyricView));
+    expect(view.controller.document!.lines.first.text, _lines.first.text);
+  });
 
   for (final selectedTrackId in <String?>[null, 'zh']) {
     testWidgets(
@@ -503,12 +543,14 @@ Future<_Fixture> _pumpPage(
   String? selectedTrackId,
   PlayableItem item = _item,
   double horizontalPadding = 24,
+  bool? withMetingLyrics,
 }) async {
   final fixture = _Fixture(
     tracks: tracks,
     selectedTrackId: selectedTrackId,
     item: item,
     horizontalPadding: horizontalPadding,
+    withMetingLyrics: withMetingLyrics ?? selectedTrackId == null,
   );
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -544,6 +586,7 @@ class _Fixture {
     required String? selectedTrackId,
     required PlayableItem item,
     required double horizontalPadding,
+    bool withMetingLyrics = true,
   }) : player = _PlayerController(item),
        subtitles = _SubtitleController(
          PlayerSubtitleState(
@@ -556,7 +599,9 @@ class _Fixture {
     container = ProviderContainer(
       overrides: [
         playerControllerProvider.overrideWith(() => player),
-        metadataControllerProvider.overrideWith(_MetadataController.new),
+        metadataControllerProvider.overrideWith(
+          () => _MetadataController(withMetingLyrics),
+        ),
         playerLyricSettingsLogicProvider.overrideWith(
           () => _LyricSettings(horizontalPadding),
         ),
@@ -599,18 +644,27 @@ class _PlayerController extends PlayerController {
 }
 
 class _MetadataController extends MetadataController {
+  _MetadataController(this.withLyrics);
+
+  final bool withLyrics;
+
   @override
-  MetadataState build() => MetadataState(
-    stableId: _item.stableId,
-    metadata: Metadata(
+  MetadataState build() {
+    if (!withLyrics) {
+      return MetadataState(stableId: _item.stableId);
+    }
+    return MetadataState(
       stableId: _item.stableId,
-      metaLyrics: const MetaLyrics(
-        lyric: '[00:01.000]Meting第一行\n[00:04.000]Meting第二行',
-        translatedLyric:
-            '[00:01.000]Translation one\n[00:04.000]Translation two',
+      metadata: Metadata(
+        stableId: _item.stableId,
+        metaLyrics: const MetaLyrics(
+          lyric: '[00:01.000]Meting第一行\n[00:04.000]Meting第二行',
+          translatedLyric:
+              '[00:01.000]Translation one\n[00:04.000]Translation two',
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _LyricSettings extends PlayerLyricSettingsLogic {

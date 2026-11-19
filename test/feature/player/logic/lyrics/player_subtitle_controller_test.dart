@@ -125,6 +125,25 @@ void main() {
     },
   );
 
+  test('automatic AI subtitle selection is not a user choice', () async {
+    final fixture = _Fixture(preferAiLyrics: true);
+    await fixture.discover();
+    expect(fixture.value.selectedTrackId, 'zh');
+    expect(fixture.value.userSelected, isFalse);
+  });
+
+  test('picking a subtitle track marks it as a user choice', () async {
+    final fixture = _Fixture();
+    await fixture.discover();
+    expect(await fixture.controller.selectTrack('zh', fromUser: true), isTrue);
+    expect(fixture.value.selectedTrackId, 'zh');
+    expect(fixture.value.userSelected, isTrue);
+
+    fixture.controller.useMeting();
+    expect(fixture.value.selectedTrackId, isNull);
+    expect(fixture.value.userSelected, isFalse);
+  });
+
   test(
     'chaptered videos stay on Meting even when AI lyrics are enabled',
     () async {
