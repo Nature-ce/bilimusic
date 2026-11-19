@@ -43,7 +43,7 @@ void main() {
         ]);
       },
       coverRequest: (MetingServer server, String pictureId) async {
-        return 'https://p3.music.126.net/$pictureId.jpg';
+        return 'http://p3.music.126.net/$pictureId.jpg';
       },
     );
 

@@ -1,4 +1,4 @@
-import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
+import 'package:bilimusic/feature/home/domain/matchable_track.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 
 class ChartTrackMatcher {
@@ -17,7 +17,7 @@ class ChartTrackMatcher {
   );
 
   static SearchResultItem? pickBest({
-    required MusicChartTrack track,
+    required MatchableTrack track,
     required List<SearchResultItem> candidates,
   }) {
     SearchResultItem? best;
@@ -36,14 +36,14 @@ class ChartTrackMatcher {
   }
 
   static int scoreOf({
-    required MusicChartTrack track,
+    required MatchableTrack track,
     required SearchResultItem item,
   }) {
     return _score(track: track, item: item).total;
   }
 
   static _MatchScore _score({
-    required MusicChartTrack track,
+    required MatchableTrack track,
     required SearchResultItem item,
   }) {
     final String title = normalize(track.title);

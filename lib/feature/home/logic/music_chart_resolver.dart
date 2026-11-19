@@ -1,4 +1,4 @@
-import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
+import 'package:bilimusic/feature/home/domain/matchable_track.dart';
 import 'package:bilimusic/feature/home/logic/chart_track_matcher.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
@@ -27,7 +27,7 @@ class MusicChartResolver {
   final BiliSearchRepository searchRepository;
   final BiliPlayerRepository playerRepository;
 
-  Future<PlayableItem?> resolve(MusicChartTrack track) async {
+  Future<PlayableItem?> resolve(MatchableTrack track) async {
     final PlayableItem? directItem = track.directItem;
     if (directItem != null) {
       return directItem;
@@ -46,7 +46,7 @@ class MusicChartResolver {
 
   Future<SearchResultItem?> _searchBest(
     String keyword,
-    MusicChartTrack track,
+    MatchableTrack track,
   ) async {
     final String trimmedKeyword = keyword.trim();
     if (trimmedKeyword.isEmpty) {

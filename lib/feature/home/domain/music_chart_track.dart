@@ -1,3 +1,4 @@
+import 'package:bilimusic/feature/home/domain/matchable_track.dart';
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -5,7 +6,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'music_chart_track.freezed.dart';
 
 @freezed
-abstract class MusicChartTrack with _$MusicChartTrack {
+abstract class MusicChartTrack
+    with _$MusicChartTrack
+    implements MatchableTrack {
   const factory MusicChartTrack({
     required MusicChart chart,
     required int rank,
@@ -20,6 +23,7 @@ abstract class MusicChartTrack with _$MusicChartTrack {
 
   String get key => '${chart.key}:$rank:$title:$artist';
 
+  @override
   String get searchKeyword => '$title $artist'.trim();
 
   String get durationText {

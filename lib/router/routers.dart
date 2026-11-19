@@ -6,7 +6,10 @@ import 'package:bilimusic/feature/download/ui/downloads_page.dart';
 import 'package:bilimusic/feature/auth/ui/auth_page.dart';
 import 'package:bilimusic/feature/favorites/ui/desktop/desktop_favorite_collection_page.dart';
 import 'package:bilimusic/feature/favorites/ui/favorite_collection_page.dart';
+import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
+import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/ui/home_page.dart';
+import 'package:bilimusic/feature/home/ui/hot_playlist_page.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/ui/desktop/desktop_player_page.dart';
 import 'package:bilimusic/feature/profile/ui/profile_page.dart';
@@ -75,6 +78,24 @@ final List<Map<String, dynamic>> mobileTabs = [
   {
     'path': '/home',
     'builder': (context, state) => const HomePage(),
+    'routes': <RouteBase>[
+      GoRoute(
+        path: 'playlist/:platform/:id',
+        builder: (context, state) {
+          final MusicChartPlatform platform =
+              MusicChartPlatform.tryFromName(
+                state.pathParameters['platform'] ?? '',
+              ) ??
+              MusicChartPlatform.netease;
+          final Object? extra = state.extra;
+          return HotPlaylistPage(
+            platform: platform,
+            playlistId: state.pathParameters['id'] ?? '',
+            initialPlaylist: extra is HotPlaylist ? extra : null,
+          );
+        },
+      ),
+    ],
     'icon': HugeIcon(icon: HugeIcons.strokeRoundedHome07),
     'label': '首页',
   },

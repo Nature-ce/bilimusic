@@ -1,16 +1,17 @@
-import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
+import 'package:bilimusic/feature/home/ui/components/home_chips.dart';
+import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,8 +28,7 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final MusicChartState state = ref.watch(musicChartControllerProvider);
 
     return Padding(
@@ -36,29 +36,8 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 4,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                '音乐热榜',
-                style: AppTextStyles.sectionTitle(theme).copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _ChartPlatformBar(
+          HomePlatformBar(
+            platforms: MusicChartPlatform.values,
             selected: state.platform,
             onSelected: (MusicChartPlatform platform) {
               ref
@@ -143,30 +122,6 @@ class _MusicChartSectionState extends ConsumerState<MusicChartSection> {
   }
 }
 
-class _ChartPlatformBar extends StatelessWidget {
-  const _ChartPlatformBar({required this.selected, required this.onSelected});
-
-  final MusicChartPlatform selected;
-  final ValueChanged<MusicChartPlatform> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      children: <Widget>[
-        for (final MusicChartPlatform platform in MusicChartPlatform.values)
-          _ChartChip(
-            label: platform.label,
-            selected: platform == selected,
-            emphasis: true,
-            onTap: () => onSelected(platform),
-          ),
-      ],
-    );
-  }
-}
-
 class _ChartNameBar extends StatelessWidget {
   const _ChartNameBar({
     required this.charts,
@@ -181,7 +136,7 @@ class _ChartNameBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 30,
+      height: 32,
       child: SingleChildScrollView(
         key: ValueKey<String>(selected.platform.name),
         scrollDirection: Axis.horizontal,
@@ -190,7 +145,7 @@ class _ChartNameBar extends StatelessWidget {
             for (final MusicChart chart in charts)
               Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
-                child: _ChartChip(
+                child: HomeChip(
                   label: chart.name,
                   selected: chart == selected,
                   compact: true,
@@ -198,66 +153,6 @@ class _ChartNameBar extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChartChip extends StatelessWidget {
-  const _ChartChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.compact = false,
-    this.emphasis = false,
-  });
-
-  final String label;
-  final bool selected;
-  final bool compact;
-
-  /// 平台级 chip：选中时用主色实心，视觉权重高于榜单 chip。
-  final bool emphasis;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final Color background = selected
-        ? (emphasis
-              ? colorScheme.primary
-              : appChipBackgroundColor(context, selected: true))
-        : appChipBackgroundColor(context, selected: false);
-    final Color foreground = selected
-        ? (emphasis ? colorScheme.onPrimary : colorScheme.primary)
-        : colorScheme.onSurfaceVariant;
-
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        child: Padding(
-          padding: compact
-              ? const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs + 2,
-                )
-              : const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg - 2,
-                  vertical: AppSpacing.sm - 1,
-                ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: compact ? 11.5 : 12.5,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-              color: foreground,
-              height: 1.15,
-            ),
-          ),
         ),
       ),
     );
@@ -278,16 +173,7 @@ class _MusicChartTracks extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!PlatformUtil.isDesktop) {
-      return Column(
-        children: <Widget>[
-          for (final MusicChartTrack track in tracks)
-            _MusicChartTrackTile(
-              track: track,
-              isResolving: resolvingTrackKey == track.key,
-              onTap: () => onTrackTap(track),
-            ),
-        ],
-      );
+      return Column(children: _buildTiles(tracks));
     }
 
     final List<MusicChartTrack> left = <MusicChartTrack>[];
@@ -298,174 +184,26 @@ class _MusicChartTracks extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Expanded(
-          child: Column(
-            children: <Widget>[
-              for (final MusicChartTrack track in left)
-                _MusicChartTrackTile(
-                  track: track,
-                  isResolving: resolvingTrackKey == track.key,
-                  onTap: () => onTrackTap(track),
-                ),
-            ],
-          ),
-        ),
+        Expanded(child: Column(children: _buildTiles(left))),
         const SizedBox(width: 24),
-        Expanded(
-          child: Column(
-            children: <Widget>[
-              for (final MusicChartTrack track in right)
-                _MusicChartTrackTile(
-                  track: track,
-                  isResolving: resolvingTrackKey == track.key,
-                  onTap: () => onTrackTap(track),
-                ),
-            ],
-          ),
-        ),
+        Expanded(child: Column(children: _buildTiles(right))),
       ],
     );
   }
-}
 
-class _MusicChartTrackTile extends StatelessWidget {
-  const _MusicChartTrackTile({
-    required this.track,
-    required this.isResolving,
-    required this.onTap,
-  });
-
-  final MusicChartTrack track;
-  final bool isResolving;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs + 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isResolving ? null : onTap,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xs,
-              vertical: AppSpacing.sm - 2,
-            ),
-            child: Row(
-              children: <Widget>[
-                _ChartRankBadge(rank: track.rank),
-                const SizedBox(width: AppSpacing.md),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  child: CommonCachedImage(
-                    imageUrl: track.coverUrl,
-                    width: AppSizes.listCover,
-                    height: AppSizes.listCover,
-                    fit: BoxFit.cover,
-                    fallbackIcon: Icons.music_note_rounded,
-                    iconColor: colorScheme.onSurfaceVariant,
-                    backgroundColor: appSkeletonColor(context),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        track.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.listTitle(theme),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        track.artist.isEmpty ? track.chart.name : track.artist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.meta(theme, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                if (isResolving)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  Text(
-                    track.durationText,
-                    style: AppTextStyles.meta(theme, fontSize: 12).copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.75,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+  List<Widget> _buildTiles(List<MusicChartTrack> tracks) {
+    return <Widget>[
+      for (final MusicChartTrack track in tracks)
+        TrackRowTile(
+          rank: track.rank,
+          title: track.title,
+          artist: track.artist.isEmpty ? track.chart.name : track.artist,
+          coverUrl: track.coverUrl,
+          durationText: track.durationText,
+          isResolving: resolvingTrackKey == track.key,
+          onTap: () => onTrackTap(track),
         ),
-      ),
-    );
-  }
-}
-
-class _ChartRankBadge extends StatelessWidget {
-  const _ChartRankBadge({required this.rank});
-
-  final int rank;
-
-  static const double _size = 24;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final TextStyle baseStyle = TextStyle(
-      fontSize: 12,
-      height: 1.1,
-      fontWeight: FontWeight.w700,
-      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-    );
-    final bool highlighted = rank <= 3;
-
-    if (!highlighted) {
-      return SizedBox(
-        width: _size,
-        child: Text(
-          '$rank',
-          textAlign: TextAlign.center,
-          style: baseStyle.copyWith(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      width: _size,
-      height: _size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      child: Text(
-        '$rank',
-        style: baseStyle.copyWith(
-          color: colorScheme.primary,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
+    ];
   }
 }
 

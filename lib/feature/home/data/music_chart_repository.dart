@@ -100,7 +100,7 @@ class MusicChartRepository {
       String coverUrl = '';
       if (pictureId.isNotEmpty) {
         try {
-          coverUrl = await _coverRequest(server, pictureId);
+          coverUrl = _httpsImageUrl(await _coverRequest(server, pictureId));
         } on Object {
           coverUrl = '';
         }

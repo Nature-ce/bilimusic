@@ -1,3 +1,4 @@
+import 'package:bilimusic/core/cache/image_file_service.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class AppImageCacheManager extends CacheManager with ImageCacheManager {
@@ -7,6 +8,7 @@ class AppImageCacheManager extends CacheManager with ImageCacheManager {
           _cacheKey,
           stalePeriod: const Duration(days: 14),
           maxNrOfCacheObjects: 400,
+          fileService: ImageHttpFileService(),
         ),
       );
 
