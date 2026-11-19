@@ -171,7 +171,7 @@ class _SettingPageState extends ConsumerState<SettingPage> {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.palette_outlined),
             title: const Text('外观设置'),
-            subtitle: Text('外观、主题选择', style: theme.textTheme.bodySmall),
+            subtitle: Text('外观,主题选择', style: theme.textTheme.bodySmall),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push('/settings/theme'),
           ),

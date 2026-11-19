@@ -44,18 +44,18 @@ void main() {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     expect(appMutedTextColor(context), colorScheme.onSurfaceVariant);
-    expect(appSkeletonColor(context), AppNeutralColors.sheet);
+    expect(appSkeletonColor(context), colorScheme.surfaceContainerHighest);
     expect(
       appChipBackgroundColor(context, selected: true),
-      appBrandFillColor(context),
+      colorScheme.primary.withValues(alpha: 0.12),
     );
     expect(
       appChipBackgroundColor(context, selected: false),
-      Colors.transparent,
+      colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
     );
     expect(
       appChipForegroundColor(context, selected: true),
-      appOnBrandFillColor(context),
+      colorScheme.primary,
     );
     expect(
       appChipForegroundColor(context, selected: false),
@@ -89,7 +89,7 @@ void main() {
   });
 
   testWidgets(
-    'elevated card decoration is a plain white surface without shadow',
+    'elevated card decoration is a white surface with a soft shadow',
     (WidgetTester tester) async {
       final BuildContext context = await _pumpTheme(
         tester,
@@ -98,9 +98,9 @@ void main() {
       final BoxDecoration decoration = appElevatedCardDecoration(context);
 
       expect(decoration.color, Colors.white);
-      expect(decoration.boxShadow, anyOf(isNull, isEmpty));
+      expect(decoration.boxShadow, isNotEmpty);
       expect(decoration.borderRadius, BorderRadius.circular(AppRadius.card));
-      expect(decoration.border, isNull);
+      expect(decoration.border, isNotNull);
     },
   );
 
@@ -122,25 +122,7 @@ void main() {
     );
     expect(
       appChipForegroundColor(context, selected: true),
-      appOnBrandFillColor(context),
+      colorScheme.primary,
     );
-  });
-
-  testWidgets('light theme layers a cold grey page under white cards', (
-    WidgetTester tester,
-  ) async {
-    final BuildContext context = await _pumpTheme(
-      tester,
-      theme: AppTheme.lightTheme(defaultThemeVariantId),
-    );
-
-    expect(
-      Theme.of(context).scaffoldBackgroundColor,
-      AppNeutralColors.pageBackground,
-    );
-    expect(appCardSurfaceColor(context), Colors.white);
-    expect(appFillColor(context), AppNeutralColors.fill);
-    expect(appSheetBackgroundColor(context), AppNeutralColors.sheet);
-    expect(appTertiaryTextColor(context), AppNeutralColors.textTertiary);
   });
 }

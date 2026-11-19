@@ -1,4 +1,3 @@
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/ui/components/home_section_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,7 +52,7 @@ void main() {
     expect(tapped, HomeSection.playlists);
   });
 
-  testWidgets('active tab uses the brand fill with a readable foreground', (
+  testWidgets('active tab is emphasized with the primary color', (
     WidgetTester tester,
   ) async {
     await _pumpSwitch(
@@ -64,11 +63,12 @@ void main() {
 
     final Text active = tester.widget<Text>(find.text('热门歌单'));
     final Text inactive = tester.widget<Text>(find.text('音乐热榜'));
-    final BuildContext context = tester.element(find.text('热门歌单'));
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final ColorScheme colorScheme = Theme.of(
+      tester.element(find.text('热门歌单')),
+    ).colorScheme;
 
-    expect(active.style?.color, appOnBrandFillColor(context));
-    expect(active.style?.fontWeight, FontWeight.w700);
-    expect(inactive.style?.color, colorScheme.onSurface);
+    expect(active.style?.color, colorScheme.primary);
+    expect(active.style?.fontWeight, FontWeight.w800);
+    expect(inactive.style?.color, colorScheme.onSurfaceVariant);
   });
 }

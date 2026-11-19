@@ -1,5 +1,3 @@
-import 'package:bilimusic/core/theme/app_design.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:flutter/material.dart';
 
 // 全站统一的状态块（空态/错误/未登录）。样式在这里定死，调用点不要再调尺寸、
@@ -17,14 +15,14 @@ class StatusView extends StatelessWidget {
     this.actions = const <Widget>[],
   });
 
-  static const double _iconBoxSize = 80;
-  static const double _iconSize = 34;
+  static const double _iconBoxSize = 72;
+  static const double _iconSize = 32;
 
   final String title;
   final String? description;
   final IconData? icon;
 
-  // 错误态传 colorScheme.error，其余走中性灰
+  // 错误态传 colorScheme.error，其余用主题主色
   final Color? iconColor;
 
   // 最常见的动作，单独留参数省得到处拼按钮
@@ -38,16 +36,14 @@ class StatusView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
     final String? description = this.description;
-    final Color tint = iconColor ?? appTertiaryTextColor(context);
+    final Color tint = iconColor ?? colorScheme.primary;
     final bool hasAction = onRetry != null || actions.isNotEmpty;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xxxl,
-          vertical: AppSpacing.lg,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -57,66 +53,43 @@ class StatusView extends StatelessWidget {
                 height: _iconBoxSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: appSkeletonColor(context),
+                  color: tint.withValues(alpha: 0.12),
                 ),
                 child: Icon(icon, size: _iconSize, color: tint),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: 20),
             ],
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
-                color: theme.colorScheme.onSurface,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
               ),
             ),
             if (description != null && description.isNotEmpty) ...<Widget>[
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 8),
               Text(
                 description,
                 textAlign: TextAlign.center,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   height: 1.5,
-                  color: appTertiaryTextColor(context),
                 ),
               ),
             ],
             if (hasAction) ...<Widget>[
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: 20),
               Wrap(
                 alignment: WrapAlignment.center,
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
+                spacing: 8,
+                runSpacing: 8,
                 children: <Widget>[
                   if (onRetry != null)
-                    Material(
-                      color: appBrandFillColor(context),
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        onTap: isRetrying ? null : onRetry,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xl,
-                            vertical: AppSpacing.sm + 2,
-                          ),
-                          child: Text(
-                            isRetrying ? '重试中' : retryLabel,
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 1.2,
-                              fontWeight: FontWeight.w700,
-                              color: appOnBrandFillColor(context),
-                            ),
-                          ),
-                        ),
-                      ),
+                    FilledButton.tonal(
+                      onPressed: isRetrying ? null : onRetry,
+                      child: Text(isRetrying ? '重试中' : retryLabel),
                     ),
                   ...actions,
                 ],

@@ -75,7 +75,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           : AppBar(
               toolbarHeight: 48,
               title: CommonSearchBar(
-                hintText: '搜索歌曲、歌手、视频',
                 onTap: () => context.push('/search?from=/home'),
               ),
             ),
