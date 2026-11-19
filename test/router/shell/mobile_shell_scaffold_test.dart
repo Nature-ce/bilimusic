@@ -100,8 +100,9 @@ void main() {
             lessThanOrEqualTo(miniRect.top - 16),
           );
 
+          // 三个 Tab：首页 / 雷达 / 我的，点最右侧进入「我的」。
           await tester.tapAt(
-            Offset(tabsRect.left + tabsRect.width * 0.75, tabsRect.center.dy),
+            Offset(tabsRect.left + tabsRect.width * 5 / 6, tabsRect.center.dy),
           );
           await tester.pumpAndSettle();
           expect(router.routeInformationProvider.value.uri.path, '/profile');
@@ -317,6 +318,7 @@ Future<GoRouter> _pumpShell(
         branches: <StatefulShellBranch>[
           for (final String path in <String>[
             '/home',
+            '/radar',
             '/profile',
             '/search',
             '/settings',

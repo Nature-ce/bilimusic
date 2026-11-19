@@ -198,6 +198,10 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
           label: '首页',
         ),
         GlassTab(
+          icon: HugeIcon(icon: HugeIcons.strokeRoundedRadar01, size: 20),
+          label: '雷达',
+        ),
+        GlassTab(
           icon: HugeIcon(icon: HugeIcons.strokeRoundedUser, size: 20),
           label: '我的',
         ),
@@ -238,12 +242,20 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
                 onTap: () => _selectBranch(0),
               ),
               _BottomNavItem(
-                icon: Icons.person_outlined,
-                selectedIcon: Icons.person,
+                icon: Icons.radar_outlined,
+                selectedIcon: Icons.radar,
                 selected: widget.navigationShell.currentIndex == 1,
                 selectedColor: colorScheme.primary,
                 indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
                 onTap: () => _selectBranch(1),
+              ),
+              _BottomNavItem(
+                icon: Icons.person_outlined,
+                selectedIcon: Icons.person,
+                selected: widget.navigationShell.currentIndex == 2,
+                selectedColor: colorScheme.primary,
+                indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
+                onTap: () => _selectBranch(2),
               ),
             ],
           ),
