@@ -8,7 +8,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'hot_playlist_controller.g.dart';
 
-@riverpod
+/// 仓库要活到整个会话：它内部记住“当前翻到第几页”，被回收后下拉刷新就永远停在第一批。
+@Riverpod(keepAlive: true)
 HotPlaylistRepository hotPlaylistRepository(Ref ref) {
   return HotPlaylistRepository();
 }

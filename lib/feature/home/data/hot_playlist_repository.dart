@@ -79,11 +79,17 @@ class HotPlaylistRepository {
   late final HotPlaylistHttpGet _httpGet;
   final Map<MusicChartPlatform, _CachedPlaylists> _playlistCache =
       <MusicChartPlatform, _CachedPlaylists>{};
+  final Map<MusicChartPlatform, int> _playlistPage =
+      <MusicChartPlatform, int>{};
   final Map<String, _CachedTrackPage> _trackPageCache =
       <String, _CachedTrackPage>{};
   final Map<String, _CachedTrackIds> _trackIdCache =
       <String, _CachedTrackIds>{};
 
+  /// 拉一页热门歌单。
+  ///
+  /// [forceRefresh]（下拉刷新）会翻到下一批，翻到底了再从第一批重新开始，
+  /// 这样每次刷新都能看到不一样的歌单。
   Future<List<HotPlaylist>> fetchPlaylists(
     MusicChartPlatform platform, {
     bool forceRefresh = false,
@@ -95,19 +101,34 @@ class HotPlaylistRepository {
     if (!forceRefresh && cached != null && !cached.isExpired) {
       return cached.playlists;
     }
-    final List<HotPlaylist> playlists = switch (platform) {
-      MusicChartPlatform.netease => await _fetchNeteasePlaylists(),
-      MusicChartPlatform.tencent => await _fetchTencentPlaylists(),
-      MusicChartPlatform.kugou => await _fetchKugouPlaylists(),
-      MusicChartPlatform.bilibili => throw const HotPlaylistException(
-        '该平台暂无热门歌单',
-      ),
-    };
+    int page = forceRefresh ? _pageOf(platform) + 1 : _pageOf(platform);
+    List<HotPlaylist> playlists = await _fetchPlaylistPage(platform, page);
+    if (playlists.isEmpty && page != 0) {
+      page = 0;
+      playlists = await _fetchPlaylistPage(platform, page);
+    }
+    _playlistPage[platform] = page;
     _playlistCache[platform] = _CachedPlaylists(
       playlists: playlists,
       fetchedAt: DateTime.now(),
     );
     return playlists;
+  }
+
+  int _pageOf(MusicChartPlatform platform) => _playlistPage[platform] ?? 0;
+
+  Future<List<HotPlaylist>> _fetchPlaylistPage(
+    MusicChartPlatform platform,
+    int page,
+  ) {
+    return switch (platform) {
+      MusicChartPlatform.netease => _fetchNeteasePlaylists(page),
+      MusicChartPlatform.tencent => _fetchTencentPlaylists(page),
+      MusicChartPlatform.kugou => _fetchKugouPlaylists(page),
+      MusicChartPlatform.bilibili => throw const HotPlaylistException(
+        '该平台暂无热门歌单',
+      ),
+    };
   }
 
   Future<HotPlaylistTrackPage> fetchTrackPage(
@@ -151,17 +172,18 @@ class HotPlaylistRepository {
     return page;
   }
 
-  Future<List<HotPlaylist>> _fetchNeteasePlaylists() async {
+  Future<List<HotPlaylist>> _fetchNeteasePlaylists(int page) async {
     final Object? payload = await _httpGet(_neteaseListUrl, <String, dynamic>{
       'cat': '全部',
       'order': 'hot',
       'limit': '$maxPlaylistCount',
-      'offset': '0',
+      'offset': '${page * maxPlaylistCount}',
     }, _neteaseHeaders);
     return parseNeteasePlaylists(payload);
   }
 
-  Future<List<HotPlaylist>> _fetchTencentPlaylists() async {
+  Future<List<HotPlaylist>> _fetchTencentPlaylists(int page) async {
+    final int sin = page * maxPlaylistCount;
     final Object? payload = await _httpGet(_tencentListUrl, <String, dynamic>{
       'picmid': '1',
       'rnd': '0.1',
@@ -176,15 +198,15 @@ class HotPlaylistRepository {
       'needNewCode': '0',
       'categoryId': '10000000',
       'sortId': '5',
-      'sin': '0',
-      'ein': '${maxPlaylistCount - 1}',
+      'sin': '$sin',
+      'ein': '${sin + maxPlaylistCount - 1}',
     }, _tencentHeaders);
     return parseTencentPlaylists(payload);
   }
 
-  Future<List<HotPlaylist>> _fetchKugouPlaylists() async {
+  Future<List<HotPlaylist>> _fetchKugouPlaylists(int page) async {
     final Object? payload = await _httpGet(_kugouListUrl, <String, dynamic>{
-      'page': '1',
+      'page': '${page + 1}',
       'json': 'true',
     }, _kugouHeaders);
     return parseKugouPlaylists(payload);

@@ -8,9 +8,12 @@ part of 'hot_playlist_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// 仓库要活到整个会话：它内部记住“当前翻到第几页”，被回收后下拉刷新就永远停在第一批。
 
 @ProviderFor(hotPlaylistRepository)
 final hotPlaylistRepositoryProvider = HotPlaylistRepositoryProvider._();
+
+/// 仓库要活到整个会话：它内部记住“当前翻到第几页”，被回收后下拉刷新就永远停在第一批。
 
 final class HotPlaylistRepositoryProvider
     extends
@@ -20,13 +23,14 @@ final class HotPlaylistRepositoryProvider
           HotPlaylistRepository
         >
     with $Provider<HotPlaylistRepository> {
+  /// 仓库要活到整个会话：它内部记住“当前翻到第几页”，被回收后下拉刷新就永远停在第一批。
   HotPlaylistRepositoryProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'hotPlaylistRepositoryProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -55,7 +59,7 @@ final class HotPlaylistRepositoryProvider
 }
 
 String _$hotPlaylistRepositoryHash() =>
-    r'fbf74a0c0ba68baf25b6036cbc39f374e7f825be';
+    r'cacca59f7f80322b55249bc343f8865b1a33536f';
 
 @ProviderFor(HotPlaylistController)
 final hotPlaylistControllerProvider = HotPlaylistControllerProvider._();

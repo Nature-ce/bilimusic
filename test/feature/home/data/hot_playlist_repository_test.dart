@@ -478,6 +478,82 @@ void main() {
       expect(calls, 2);
     });
 
+    test('首次加载取第一页，下拉刷新翻到下一批', () async {
+      final List<String?> offsets = <String?>[];
+      final HotPlaylistRepository repository = HotPlaylistRepository(
+        httpGet: (String url, Map<String, dynamic> query, _) async {
+          offsets.add(query['offset']?.toString());
+          return _neteaseListFixture;
+        },
+      );
+
+      await repository.fetchPlaylists(MusicChartPlatform.netease);
+      await repository.fetchPlaylists(
+        MusicChartPlatform.netease,
+        forceRefresh: true,
+      );
+      await repository.fetchPlaylists(
+        MusicChartPlatform.netease,
+        forceRefresh: true,
+      );
+
+      expect(offsets, <String>['0', '12', '24']);
+    });
+
+    test('刷新时 QQ音乐 / 酷狗也翻页', () async {
+      final List<Map<String, dynamic>> queries = <Map<String, dynamic>>[];
+      final HotPlaylistRepository repository = HotPlaylistRepository(
+        httpGet: (String url, Map<String, dynamic> query, _) async {
+          queries.add(query);
+          return url.contains('kugou')
+              ? _kugouListFixture
+              : _tencentListFixture;
+        },
+      );
+
+      await repository.fetchPlaylists(MusicChartPlatform.tencent);
+      await repository.fetchPlaylists(
+        MusicChartPlatform.tencent,
+        forceRefresh: true,
+      );
+      expect(queries[0]['sin'], '0');
+      expect(queries[0]['ein'], '11');
+      expect(queries[1]['sin'], '12');
+      expect(queries[1]['ein'], '23');
+
+      queries.clear();
+      await repository.fetchPlaylists(MusicChartPlatform.kugou);
+      await repository.fetchPlaylists(
+        MusicChartPlatform.kugou,
+        forceRefresh: true,
+      );
+      expect(queries[0]['page'], '1');
+      expect(queries[1]['page'], '2');
+    });
+
+    test('翻到底之后回到第一批', () async {
+      final List<String?> offsets = <String?>[];
+      final HotPlaylistRepository repository = HotPlaylistRepository(
+        httpGet: (String url, Map<String, dynamic> query, _) async {
+          final String offset = query['offset']?.toString() ?? '';
+          offsets.add(offset);
+          return offset == '0'
+              ? _neteaseListFixture
+              : <String, dynamic>{'playlists': <Map<String, dynamic>>[]};
+        },
+      );
+
+      await repository.fetchPlaylists(MusicChartPlatform.netease);
+      final List<HotPlaylist> refreshed = await repository.fetchPlaylists(
+        MusicChartPlatform.netease,
+        forceRefresh: true,
+      );
+
+      expect(offsets, <String>['0', '12', '0']);
+      expect(refreshed, isNotEmpty);
+      expect(refreshed.first.name, '扩次元日语潮流神曲');
+    });
+
     test('bilibili is rejected', () async {
       final HotPlaylistRepository repository = HotPlaylistRepository(
         httpGet: (String url, _, _) async => _neteaseListFixture,
