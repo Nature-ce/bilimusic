@@ -1167,6 +1167,26 @@ void main() {
     },
   );
 
+  testWidgets('embedded player page shows an exit affordance instead of pop', (
+    WidgetTester tester,
+  ) async {
+    int exits = 0;
+    await _pumpPlayer(
+      tester,
+      _metadata,
+      home: Scaffold(
+        body: PlayerPage(embedded: true, onExit: () => exits += 1),
+      ),
+    );
+
+    final Finder exitButton = find.byIcon(Icons.keyboard_arrow_down_rounded);
+    expect(exitButton, findsOneWidget);
+
+    await tester.tap(exitButton);
+    await tester.pump();
+    expect(exits, 1);
+  });
+
   testWidgets('compact dark landscape respects safe insets and large text', (
     WidgetTester tester,
   ) async {

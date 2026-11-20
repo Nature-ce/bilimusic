@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
@@ -191,7 +192,7 @@ void main() {
     expect(find.textContaining('𝐇𝐢-𝐑𝐞𝐬'), findsNothing);
   });
 
-  testWidgets('队列弹层使用与迷你播放器同款 liquid glass', (WidgetTester tester) async {
+  testWidgets('队列弹层使用烟熏黑玻璃，文字改白色', (WidgetTester tester) async {
     final ProviderContainer container = ProviderContainer(
       overrides: [
         playerControllerProvider.overrideWith(_ReorderablePlayer.new),
@@ -202,7 +203,20 @@ void main() {
     await _openQueueSheet(tester, container);
 
     // 和迷你播放器一样走 liquid_glass_widgets 的着色器玻璃，不是纯色面板。
-    expect(find.byType(GlassContainer), findsWidgets);
+    final GlassContainer glass = tester.widget<GlassContainer>(
+      find.byType(GlassContainer).first,
+    );
+    expect(glass.useOwnLayer, isTrue);
+    expect(glass.settings?.glassColor, GlassTone.smoke.settings.glassColor);
+
+    final Text title = tester.widget<Text>(find.text('播放队列'));
+    expect(title.style?.color, GlassTone.smoke.primaryText);
+
+    final Text subtitle = tester.widget<Text>(find.textContaining('项 ·'));
+    expect(subtitle.style?.color, GlassTone.smoke.secondaryText);
+
+    final Text pendingRow = tester.widget<Text>(find.textContaining('队列歌曲1'));
+    expect(pendingRow.style?.color, GlassTone.smoke.primaryText);
   });
 
   for (final (PlayerQueueMode mode, Type iconType) in <(PlayerQueueMode, Type)>[

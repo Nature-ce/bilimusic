@@ -12,6 +12,7 @@ import 'package:bilimusic/feature/player/logic/player_online_audience_controller
 import 'package:bilimusic/feature/player/ui/components/player_artwork.dart';
 import 'package:bilimusic/feature/player/ui/components/player_controls.dart';
 import 'package:bilimusic/feature/player/ui/components/player_quality_badge.dart';
+import 'package:bilimusic/feature/player/ui/components/player_quality_sheet.dart';
 import 'package:bilimusic/feature/player/ui/components/player_shared.dart';
 import 'package:bilimusic/feature/player/logic/utils/player_ui_helpers.dart';
 import 'package:flutter/material.dart';
@@ -388,65 +389,23 @@ class _PlayerQualityToolButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final String badgeLabel = qualityBadgeLabel(qualities: qualities);
     return IconButton(
-      onPressed: !isEnabled
-          ? null
-          : () => _showPlayerQualitySheet(
-              context: context,
-              ref: ref,
-              qualities: qualities,
-            ),
+      onPressed: !isEnabled ? null : () => _pickQuality(context, ref),
       icon: PlayerQualityBadge(label: badgeLabel),
     );
   }
-}
 
-Future<void> _showPlayerQualitySheet({
-  required BuildContext context,
-  required WidgetRef ref,
-  required List<AudioQualityOption> qualities,
-}) async {
-  final ThemeData theme = Theme.of(context);
-  await showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    backgroundColor: theme.colorScheme.surface,
-    builder: (BuildContext context) {
-      return SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          itemCount: qualities.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 10),
-          itemBuilder: (BuildContext context, int index) {
-            final AudioQualityOption option = qualities[index];
-            final bool isSelected = option.isSelected;
-            return ListTile(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              tileColor: isSelected
-                  ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                  : null,
-              title: Text(
-                option.label,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              trailing: isSelected
-                  ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
-                  : const Icon(Icons.play_arrow_rounded),
-              onTap: () async {
-                Navigator.of(context).pop();
-                await ref
-                    .read(playerControllerProvider.notifier)
-                    .switchCurrentAudioQuality(option.qualityId);
-              },
-            );
-          },
-        ),
-      );
-    },
-  );
+  Future<void> _pickQuality(BuildContext context, WidgetRef ref) async {
+    final int? qualityId = await showPlayerQualitySheet(
+      context: context,
+      qualities: qualities,
+    );
+    if (qualityId == null) {
+      return;
+    }
+    await ref
+        .read(playerControllerProvider.notifier)
+        .switchCurrentAudioQuality(qualityId);
+  }
 }
 
 class _PlayerPartToolButton extends ConsumerWidget {

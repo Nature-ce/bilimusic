@@ -16,6 +16,8 @@ class PlayerTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color iconColor = neutralColorOf(context);
+
     return SizedBox(
       height: 48,
       child: Row(
@@ -23,7 +25,7 @@ class PlayerTopBar extends StatelessWidget {
           if (onBack != null)
             IconButton(
               onPressed: onBack,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              icon: Icon(Icons.keyboard_arrow_down_rounded, color: iconColor),
             )
           else
             const SizedBox(width: 48),
@@ -33,7 +35,11 @@ class PlayerTopBar extends StatelessWidget {
           IconButton(
             key: const Key('playerMenuButton'),
             onPressed: onOpenMenu,
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedMenu01, size: 20),
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedMenu01,
+              size: 20,
+              color: iconColor,
+            ),
           ),
         ],
       ),

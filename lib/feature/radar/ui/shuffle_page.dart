@@ -12,6 +12,7 @@ import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:bilimusic/feature/radar/ui/components/music_radar_visual.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// 是否该给刷歌队列补货。
 ///
@@ -261,10 +262,11 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
 
     if (player.currentItem == null) {
       if (_isBootstrapping) {
-        return const _ShuffleStatus(
+        return _ShuffleStatus(
           title: '正在为你挑歌',
           message: '从网易云 / QQ音乐 / 酷狗的热门歌单里随机发现…',
           isLoading: true,
+          onExit: _exitToHome,
         );
       }
       return _ShuffleStatus(
@@ -272,6 +274,7 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
         message: _errorMessage ?? '点下面的按钮重新取样',
         actionLabel: '重新取样',
         onAction: () => unawaited(_ensureShuffleQueue(force: true)),
+        onExit: _exitToHome,
       );
     }
 
@@ -280,16 +283,24 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       onVerticalDragEnd: _handleVerticalSwipe,
       child: PlayerPage(
         embedded: true,
-        bottomInset: MediaQuery.viewPaddingOf(context).bottom + 104,
+        onExit: _exitToHome,
+        bottomInset: AppSpacing.xl,
       ),
     );
   }
+
+  void _exitToHome() {
+    GoRouter.maybeOf(context)?.go(_homeRoutePath);
+  }
 }
+
+const String _homeRoutePath = '/home';
 
 class _ShuffleStatus extends StatelessWidget {
   const _ShuffleStatus({
     required this.title,
     required this.message,
+    required this.onExit,
     this.isLoading = false,
     this.actionLabel,
     this.onAction,
@@ -297,6 +308,7 @@ class _ShuffleStatus extends StatelessWidget {
 
   final String title;
   final String message;
+  final VoidCallback onExit;
   final bool isLoading;
   final String? actionLabel;
   final VoidCallback? onAction;
@@ -305,41 +317,60 @@ class _ShuffleStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: const Color(0xFF15100E),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (isLoading) ...<Widget>[
-              const MusicRadarVisual(scanning: true, size: 148),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+      child: Stack(
+        children: <Widget>[
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (isLoading) ...<Widget>[
+                  const MusicRadarVisual(scanning: true, size: 148),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxxl,
+                  ),
+                  child: Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Color(0xB3FFFFFF),
+                    ),
+                  ),
+                ),
+                if (actionLabel != null) ...<Widget>[
+                  const SizedBox(height: AppSpacing.xl),
+                  FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+                ],
+              ],
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: Color(0xB3FFFFFF),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: IconButton(
+                tooltip: '返回首页',
+                onPressed: onExit,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white,
                 ),
               ),
             ),
-            if (actionLabel != null) ...<Widget>[
-              const SizedBox(height: AppSpacing.xl),
-              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

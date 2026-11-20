@@ -240,6 +240,17 @@ void main() {
     expect(find.byType(MusicRadarVisual), findsNothing);
   });
 
+  testWidgets('底部导航已隐藏的刷歌页在异常态仍留了退出入口', (WidgetTester tester) async {
+    await _pumpPage(tester, controller: _EmptyFeed.new);
+
+    expect(find.byTooltip('返回首页'), findsOneWidget);
+
+    // 不在 GoRouter 里点击也不应抛异常（正常场景下会跳回首页）。
+    await tester.tap(find.byTooltip('返回首页'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   group('shouldTopUpShuffleQueue', () {
     test('非刷歌队列一律不补货', () {
       expect(

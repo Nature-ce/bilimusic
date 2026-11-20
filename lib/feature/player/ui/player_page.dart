@@ -34,15 +34,19 @@ class PlayerPage extends ConsumerStatefulWidget {
     this.initialItem,
     this.embedded = false,
     this.bottomInset = 0,
+    this.onExit,
   });
 
   final PlayableItem? initialItem;
 
-  /// 嵌入到 Tab 里（例如刷歌页）时使用：不显示返回箭头、不响应下滑关闭。
+  /// 嵌入到 Tab 里（例如刷歌页）时使用：不响应下滑关闭。
   final bool embedded;
 
   /// 嵌入时底部需要预留的空白，避免被悬浮导航遮挡。
   final double bottomInset;
+
+  /// 嵌入时的退出入口（左上角向下箭头）；为 null 时不显示该按钮。
+  final VoidCallback? onExit;
 
   @override
   ConsumerState<PlayerPage> createState() => _PlayerPageState();
@@ -261,7 +265,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   Widget _buildTopBar(BuildContext context, PlayableItem? item) {
     final Widget bar = PlayerTopBar(
       currentPage: _currentPage,
-      onBack: widget.embedded ? null : () => Navigator.of(context).maybePop(),
+      onBack: widget.embedded
+          ? widget.onExit
+          : () => Navigator.of(context).maybePop(),
       onOpenMenu: item == null ? null : () => _showPlayerMenu(item),
     );
     if (widget.embedded) {

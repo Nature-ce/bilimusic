@@ -1,7 +1,7 @@
 import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/queue_mode_icon.dart';
 import 'package:bilimusic/common/util/display_text.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 Future<void> showPlayerQueueSheet({
@@ -26,71 +25,16 @@ Future<void> showPlayerQueueSheet({
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     elevation: 0,
-    barrierColor: Colors.black.withValues(alpha: 0.25),
+    barrierColor: Colors.black.withValues(alpha: 0.3),
     builder: (BuildContext context) {
-      return _GlassQueueSheet(
-        child: SafeArea(child: const _PlayerQueueSheet()),
+      return GlassSheetPanel(
+        tone: GlassTone.smoke,
+        child: Flexible(
+          child: SafeArea(top: false, child: _PlayerQueueSheet()),
+        ),
       );
     },
   );
-}
-
-/// 队列弹层的玻璃壳：与迷你播放器同一套 liquid_glass_widgets 玻璃。
-///
-/// 大面积玻璃在 Android 上会退化成磨砂面，所以保持浅色磨砂 + 深色文字，
-/// 与迷你播放器、底部导航的玻璃家族保持一致。
-class _GlassQueueSheet extends StatelessWidget {
-  const _GlassQueueSheet({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      useOwnLayer: true,
-      clipBehavior: Clip.antiAlias,
-      shape: const LiquidVerticalRoundedSuperellipse(
-        topRadius: AppRadius.xl,
-        bottomRadius: 0,
-      ),
-      settings: const LiquidGlassSettings(
-        thickness: 26,
-        blur: 20,
-        frost: 0.28,
-        lightIntensity: 0.85,
-        saturation: 1.35,
-      ),
-      padding: EdgeInsets.zero,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const _GlassDragHandle(),
-          Flexible(child: child),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlassDragHandle extends StatelessWidget {
-  const _GlassDragHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
-      child: Container(
-        width: 36,
-        height: 4,
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurface.withValues(alpha: 0.28),
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-      ),
-    );
-  }
 }
 
 Future<void> showDesktopPlayerQueuePanel({
@@ -126,16 +70,22 @@ class _PlayerQueueSheet extends ConsumerWidget {
       minChildSize: 0.4,
       maxChildSize: 0.92,
       builder: (BuildContext context, ScrollController _) {
-        return _PlayerQueueContent(closeTarget: _QueueCloseTarget.navigator);
+        return _PlayerQueueContent(
+          closeTarget: _QueueCloseTarget.navigator,
+          tone: GlassTone.smoke,
+        );
       },
     );
   }
 }
 
 class _PlayerQueueContent extends ConsumerStatefulWidget {
-  const _PlayerQueueContent({required this.closeTarget});
+  const _PlayerQueueContent({required this.closeTarget, this.tone});
 
   final _QueueCloseTarget closeTarget;
+
+  /// 玻璃弹层里用 [GlassTone] 定的文字色；桌面侧栏为 null，沿用主题色。
+  final GlassTone? tone;
 
   @override
   ConsumerState<_PlayerQueueContent> createState() =>
@@ -170,6 +120,10 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
     );
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final GlassTone? tone = widget.tone;
+    final Color primaryText = tone?.primaryText ?? colorScheme.onSurface;
+    final Color secondaryText =
+        tone?.secondaryText ?? colorScheme.onSurfaceVariant;
     final String modeLabel = switch (liveState.queueMode) {
       PlayerQueueMode.sequence => '列表循环',
       PlayerQueueMode.singleRepeat => '单曲循环',
@@ -191,6 +145,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                     Text(
                       '播放队列',
                       style: theme.textTheme.titleLarge?.copyWith(
+                        color: primaryText,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -198,7 +153,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                     Text(
                       '${liveState.queue.length} 项 · $modeLabel',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.65),
+                        color: secondaryText,
                       ),
                     ),
                   ],
@@ -206,6 +161,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
               ),
               if (liveState.hasQueue)
                 TextButton(
+                  style: TextButton.styleFrom(foregroundColor: secondaryText),
                   onPressed: () async {
                     await liveController.clearQueue();
                     if (!context.mounted) {
@@ -215,12 +171,27 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                   },
                   child: const Text('清空'),
                 ),
-              IconButton.filledTonal(
-                onPressed: liveState.hasQueue
-                    ? liveController.toggleQueueMode
-                    : null,
-                icon: queueModeIcon(liveState.queueMode),
-              ),
+              if (tone == null)
+                IconButton.filledTonal(
+                  onPressed: liveState.hasQueue
+                      ? liveController.toggleQueueMode
+                      : null,
+                  icon: queueModeIcon(liveState.queueMode),
+                )
+              else
+                IconButton(
+                  onPressed: liveState.hasQueue
+                      ? liveController.toggleQueueMode
+                      : null,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.14),
+                    foregroundColor: primaryText,
+                    disabledBackgroundColor: Colors.white.withValues(
+                      alpha: 0.06,
+                    ),
+                  ),
+                  icon: queueModeIcon(liveState.queueMode),
+                ),
             ],
           ),
         ),
@@ -279,8 +250,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                                             ?.copyWith(
                                               color: isCurrent
                                                   ? colorScheme.primary
-                                                  : colorScheme
-                                                        .onSurfaceVariant,
+                                                  : secondaryText,
                                               fontWeight: FontWeight.normal,
                                             ),
                                       ),
@@ -291,7 +261,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   color: isCurrent
                                       ? colorScheme.primary
-                                      : colorScheme.onSurface,
+                                      : primaryText,
                                   fontWeight: isCurrent
                                       ? FontWeight.w600
                                       : FontWeight.normal,
@@ -327,7 +297,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                               },
                               icon: HugeIcon(
                                 icon: HugeIcons.strokeRoundedCancel01,
-                                color: colorScheme.onSurfaceVariant,
+                                color: secondaryText,
                                 size: 18,
                               ),
                             ),

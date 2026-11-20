@@ -1,11 +1,14 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/color_util.dart';
 import 'package:bilimusic/common/util/display_text.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/display/player_cover_color_provider.dart';
 import 'package:bilimusic/feature/player/logic/utils/player_ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 class PlayerMetaPage extends ConsumerWidget {
   const PlayerMetaPage({super.key, required this.state, required this.item});
@@ -22,88 +25,53 @@ class PlayerMetaPage extends ConsumerWidget {
     return ListView(
       physics: const BouncingScrollPhysics(),
       children: <Widget>[
-        PlayerMetaSheet(state: state, item: item, activeColor: activeColor),
+        PlayerMetaSheet(state: state, item: item),
         const SizedBox(height: 18),
         PlayerStatsGrid(item: item, activeColor: activeColor),
         const SizedBox(height: 18),
         if ((item?.description ?? '').trim().isNotEmpty)
-          PlayerDescriptionCard(
-            description: item!.description!,
-            activeColor: activeColor,
-          ),
+          PlayerDescriptionCard(description: item!.description!),
       ],
     );
   }
 }
 
 class PlayerMetaSheet extends StatelessWidget {
-  const PlayerMetaSheet({
-    super.key,
-    required this.state,
-    required this.item,
-    required this.activeColor,
-  });
+  const PlayerMetaSheet({super.key, required this.state, required this.item});
 
   final PlayerState state;
   final PlayableItem? item;
-  final Color activeColor;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     final String title = normalizeDisplayTextOrEmpty(item?.title);
     final String author = normalizeDisplayTextOrEmpty(item?.author);
 
-    return Container(
+    return GlassPanel(
+      tone: GlassTone.frost,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 28),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: activeColor.withValues(alpha: 0.16)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             '播放信息',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface,
+              color: GlassTone.frost.primaryText,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 16),
-          PlayerMetaRow(
-            label: '标题',
-            value: title.isEmpty ? '--' : title,
-            activeColor: activeColor,
-          ),
-          PlayerMetaRow(
-            label: 'UP主',
-            value: author.isEmpty ? '--' : author,
-            activeColor: activeColor,
-          ),
-          PlayerMetaRow(
-            label: '发布时间',
-            value: item?.publishTimeText ?? '--',
-            activeColor: activeColor,
-          ),
-          PlayerMetaRow(
-            label: 'BV',
-            value: item?.bvid ?? '--',
-            activeColor: activeColor,
-          ),
+          PlayerMetaRow(label: '标题', value: title.isEmpty ? '--' : title),
+          PlayerMetaRow(label: 'UP主', value: author.isEmpty ? '--' : author),
+          PlayerMetaRow(label: '发布时间', value: item?.publishTimeText ?? '--'),
+          PlayerMetaRow(label: 'BV', value: item?.bvid ?? '--'),
           PlayerMetaRow(
             label: '时长',
             value: resolvePlayerDurationLabel(state, item),
-            activeColor: activeColor,
+            isLast: true,
           ),
-          // PlayerMetaRow(
-          //   label: '分P',
-          //   value: state.audioStream?.pageTitle ?? '--',
-          //   activeColor: activeColor,
-          //   isLast: true,
-          // ),
         ],
       ),
     );
@@ -115,28 +83,23 @@ class PlayerMetaRow extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
-    required this.activeColor,
     this.isLast = false,
   });
 
   final String label;
   final String value;
-  final Color activeColor;
   final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : Border(
-                bottom: BorderSide(color: activeColor.withValues(alpha: 0.12)),
-              ),
+            : Border(bottom: BorderSide(color: GlassTone.frost.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +109,7 @@ class PlayerMetaRow extends StatelessWidget {
             child: Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.58),
+                color: GlassTone.frost.secondaryText,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -155,7 +118,7 @@ class PlayerMetaRow extends StatelessWidget {
             child: Text(
               value,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface,
+                color: GlassTone.frost.primaryText,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -221,19 +184,24 @@ class PlayerStatsGrid extends StatelessWidget {
       ),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: stats.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.85,
+    return GlassPanel(
+      tone: GlassTone.frost,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 28),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: stats.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.85,
+        ),
+        itemBuilder: (BuildContext context, int index) {
+          return PlayerStatCard(entry: stats[index], activeColor: activeColor);
+        },
       ),
-      itemBuilder: (BuildContext context, int index) {
-        return PlayerStatCard(entry: stats[index], activeColor: activeColor);
-      },
     );
   }
 }
@@ -263,31 +231,29 @@ class PlayerStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: activeColor.withValues(alpha: 0.12)),
+        color: Colors.white.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
         children: <Widget>[
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: activeColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
+              color: activeColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
               entry.icon,
               color: ColorUtil.getShade(activeColor, 600),
-              size: 20,
+              size: 19,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -296,17 +262,17 @@ class PlayerStatCard extends StatelessWidget {
                 Text(
                   entry.label,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.58),
+                    color: GlassTone.frost.secondaryText,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   entry.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onSurface,
+                    color: GlassTone.frost.primaryText,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -320,34 +286,25 @@ class PlayerStatCard extends StatelessWidget {
 }
 
 class PlayerDescriptionCard extends StatelessWidget {
-  const PlayerDescriptionCard({
-    super.key,
-    required this.description,
-    required this.activeColor,
-  });
+  const PlayerDescriptionCard({super.key, required this.description});
 
   final String description;
-  final Color activeColor;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
-    return Container(
+    return GlassPanel(
+      tone: GlassTone.frost,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 28),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.76),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: activeColor.withValues(alpha: 0.12)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             '简介',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface,
+              color: GlassTone.frost.primaryText,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -355,7 +312,7 @@ class PlayerDescriptionCard extends StatelessWidget {
           Text(
             description,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface.withValues(alpha: 0.78),
+              color: GlassTone.frost.secondaryText,
               height: 1.55,
               fontWeight: FontWeight.w500,
             ),

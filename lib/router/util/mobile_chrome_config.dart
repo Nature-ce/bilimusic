@@ -25,19 +25,13 @@ class MobileChromeConfig {
     showMiniPlayer: false,
   );
 
-  // 不显示迷你播放器（页面自带播放控制），保留底部导航
-  static const MobileChromeConfig immersiveTab = MobileChromeConfig(
-    showBottomTabs: true,
-    showMiniPlayer: false,
-  );
-
   static MobileChromeConfig resolve(String path) {
     if (path == '/player') {
       return fullScreen;
     }
 
     if (path == '/radar') {
-      return immersiveTab;
+      return fullScreen;
     }
 
     if (path == '/comments' || path == '/search' || path.startsWith('/up')) {
