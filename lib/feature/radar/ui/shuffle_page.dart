@@ -5,6 +5,7 @@ import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
+import 'package:bilimusic/feature/player/domain/queue_source.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/player_page.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
@@ -24,7 +25,7 @@ bool shouldTopUpShuffleQueue({
   required int queueLength,
   required int? currentIndex,
   required int lead,
-  String queueLabel = _shuffleQueueLabel,
+  String queueLabel = autoFeedQueueSourceLabel,
 }) {
   if (!(sourceLabel ?? '').startsWith(queueLabel)) {
     return false;
@@ -33,8 +34,6 @@ bool shouldTopUpShuffleQueue({
   final int remaining = queueLength - index - 1;
   return remaining < lead;
 }
-
-const String _shuffleQueueLabel = '刷歌';
 
 /// 刷歌：本质上就是播放页，只是把队列换成「跨平台推荐歌曲」。
 ///
@@ -54,8 +53,6 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
   /// 剩余未播曲目不足这个数就补货（1 表示正在播最后一首时补）。
   static const int _topUpLead = 1;
 
-  static const String _queueLabel = '刷歌';
-
   /// 已经尝试匹配过的推荐曲目，避免重复搜索同一首失败歌。
   final Set<String> _attemptedTrackKeys = <String>{};
 
@@ -73,8 +70,22 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
 
   bool get _queueIsShuffle {
     final PlayerState player = ref.read(playerControllerProvider);
-    return (player.queueSourceLabel ?? '').startsWith(_queueLabel) &&
+    return isAutoFeedQueue(player.queueSourceLabel) &&
         player.currentItem != null;
+  }
+
+  /// 刷歌是顺序补货的队列，随机播放会让播放顺序和补货逻辑对不上。
+  void _ensureSequentialQueueMode({bool always = false}) {
+    final PlayerQueueMode mode = ref.read(playerControllerProvider).queueMode;
+    if (mode == PlayerQueueMode.sequence) {
+      return;
+    }
+    if (!always && mode != PlayerQueueMode.shuffle) {
+      return;
+    }
+    ref
+        .read(playerControllerProvider.notifier)
+        .setQueueMode(PlayerQueueMode.sequence);
   }
 
   Future<void> _ensureShuffleQueue({bool force = false}) async {
@@ -83,6 +94,7 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     }
     if (!force && _queueIsShuffle) {
       // 已有刷歌队列，只需保证后面还有歌可播。
+      _ensureSequentialQueueMode();
       unawaited(_topUpIfNeeded());
       return;
     }
@@ -104,7 +116,12 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       }
       await ref
           .read(playerControllerProvider.notifier)
-          .setQueue(items, startIndex: 0, sourceLabel: _queueLabel);
+          .setQueue(
+            items,
+            startIndex: 0,
+            sourceLabel: autoFeedQueueSourceLabel,
+          );
+      _ensureSequentialQueueMode(always: true);
       // 队列不足一批时（例如只匹配到 1 首），立刻把后面补齐。
       unawaited(_topUpIfNeeded());
     } on Object {
@@ -201,7 +218,7 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
         )) {
       return;
     }
-    if (!(player.queueSourceLabel ?? '').startsWith(_queueLabel)) {
+    if (!isAutoFeedQueue(player.queueSourceLabel)) {
       return;
     }
     _isToppingUp = true;

@@ -106,12 +106,18 @@ class _ResolvedResolver extends MusicChartResolver {
 class _FakePlayer extends PlayerController {
   final List<String?> queuedLabels = <String?>[];
   final List<List<PlayableItem>> queued = <List<PlayableItem>>[];
+  final List<PlayerQueueMode> queueModes = <PlayerQueueMode>[];
   int skipNextCalls = 0;
   int skipPreviousCalls = 0;
   List<PlayableItem> enqueued = <PlayableItem>[];
 
   @override
   PlayerState build() => const PlayerState();
+
+  @override
+  void setQueueMode(PlayerQueueMode mode) {
+    queueModes.add(mode);
+  }
 
   @override
   Future<void> setQueue(
@@ -141,10 +147,17 @@ class _FakePlayer extends PlayerController {
   }
 }
 
+/// 随机播放开着进入刷歌的场景。
+class _ShuffleModePlayer extends _FakePlayer {
+  @override
+  PlayerState build() => const PlayerState(queueMode: PlayerQueueMode.shuffle);
+}
+
 Future<ProviderContainer> _pumpPage(
   WidgetTester tester, {
   required MusicRadarController Function() controller,
   MusicChartResolver? resolver,
+  PlayerController Function()? player,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -157,7 +170,7 @@ Future<ProviderContainer> _pumpPage(
       musicChartResolverProvider.overrideWith(
         (Ref ref) => resolver ?? _ResolvedResolver(),
       ),
-      playerControllerProvider.overrideWith(_FakePlayer.new),
+      playerControllerProvider.overrideWith(player ?? _FakePlayer.new),
     ],
   );
   addTearDown(container.dispose);
@@ -188,6 +201,20 @@ void main() {
       player.queued.single.map((PlayableItem item) => item.title),
       <String>['刷歌歌曲0', '刷歌歌曲1', '刷歌歌曲2', '刷歌歌曲3', '刷歌歌曲4'],
     );
+  });
+
+  testWidgets('刷歌队列建立后从随机播放切回顺序播放', (WidgetTester tester) async {
+    final ProviderContainer container = await _pumpPage(
+      tester,
+      controller: _LoadedFeed.new,
+      player: _ShuffleModePlayer.new,
+    );
+
+    final _FakePlayer player =
+        container.read(playerControllerProvider.notifier) as _FakePlayer;
+    expect(player.queuedLabels.single, '刷歌');
+    expect(player.queueModes, contains(PlayerQueueMode.sequence));
+    expect(player.queueModes, isNot(contains(PlayerQueueMode.shuffle)));
   });
 
   testWidgets('匹配失败会继续往后取候选，仍能凑够一批', (WidgetTester tester) async {

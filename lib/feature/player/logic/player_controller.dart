@@ -20,6 +20,7 @@ import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/playback_chapter.dart';
 import 'package:bilimusic/feature/player/domain/persisted_playback_queue.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
+import 'package:bilimusic/feature/player/domain/queue_source.dart';
 import 'package:bilimusic/feature/player/logic/media_session/app_audio_handler.dart';
 import 'package:bilimusic/feature/player/logic/playback/player_playback_loader.dart';
 import 'package:bilimusic/feature/player/logic/playback/player_queue_manager.dart';
@@ -789,13 +790,12 @@ class PlayerController extends Notifier<PlayerState>
   }
 
   void toggleQueueMode() {
-    final PlayerQueueMode nextMode = switch (state.queueMode) {
-      PlayerQueueMode.sequence => PlayerQueueMode.singleRepeat,
-      PlayerQueueMode.singleRepeat => PlayerQueueMode.shuffle,
-      PlayerQueueMode.shuffle => PlayerQueueMode.sequence,
-      PlayerQueueMode.sequenceOnce => PlayerQueueMode.sequence,
-    };
-    setQueueMode(nextMode);
+    setQueueMode(
+      nextQueueMode(
+        state.queueMode,
+        allowShuffle: !isAutoFeedQueue(state.queueSourceLabel),
+      ),
+    );
   }
 
   void setQueueMode(PlayerQueueMode mode) {

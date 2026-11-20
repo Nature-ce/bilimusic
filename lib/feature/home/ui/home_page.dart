@@ -49,12 +49,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _handleRefresh() {
-    return switch (_section) {
-      HomeSection.charts =>
-        ref.read(musicChartControllerProvider.notifier).refresh(),
-      HomeSection.playlists =>
-        ref.read(hotPlaylistControllerProvider.notifier).refresh(),
-    };
+    // 两个 section 一起刷：只刷当前 tab 会导致「在热榜下拉刷新，切到热门歌单还是旧数据」。
+    return Future.wait(<Future<void>>[
+      ref.read(musicChartControllerProvider.notifier).refresh(),
+      ref.read(hotPlaylistControllerProvider.notifier).refresh(),
+    ]);
   }
 
   void _selectSection(HomeSection section) {

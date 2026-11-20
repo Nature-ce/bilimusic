@@ -90,11 +90,7 @@ class _HotPlaylistGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double width = constraints.maxWidth;
-        final int columns = width >= 880
-            ? 4
-            : width >= 600
-            ? 3
-            : 2;
+        final int columns = hotPlaylistGridColumns(width);
         final double itemWidth =
             (width - _crossSpacing * (columns - 1)) / columns;
         return Wrap(
@@ -116,6 +112,12 @@ class _HotPlaylistGrid extends StatelessWidget {
   }
 }
 
+/// 热门歌单网格列数：手机三列，宽屏四列。
+@visibleForTesting
+int hotPlaylistGridColumns(double width) {
+  return width >= 880 ? 4 : 3;
+}
+
 class _HotPlaylistLoadingGrid extends StatelessWidget {
   const _HotPlaylistLoadingGrid();
 
@@ -125,11 +127,7 @@ class _HotPlaylistLoadingGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double width = constraints.maxWidth;
-        final int columns = width >= 880
-            ? 4
-            : width >= 600
-            ? 3
-            : 2;
+        final int columns = hotPlaylistGridColumns(width);
         const double crossSpacing = AppSpacing.md;
         final double itemWidth =
             (width - crossSpacing * (columns - 1)) / columns;

@@ -107,7 +107,17 @@ void main() {
     await _pumpSection(tester, controller: _LoadingPlaylists.new);
 
     expect(find.text('测试歌单 A'), findsNothing);
-    expect(find.byType(AspectRatio), findsNWidgets(4));
+    // 手机三列，骨架铺两行。
+    expect(find.byType(AspectRatio), findsNWidgets(6));
+  });
+
+  test('热门歌单手机上三列，宽屏四列', () {
+    expect(hotPlaylistGridColumns(360), 3);
+    expect(hotPlaylistGridColumns(390), 3);
+    expect(hotPlaylistGridColumns(600), 3);
+    expect(hotPlaylistGridColumns(879), 3);
+    expect(hotPlaylistGridColumns(880), 4);
+    expect(hotPlaylistGridColumns(1440), 4);
   });
 
   testWidgets('shows a retryable error state', (WidgetTester tester) async {
