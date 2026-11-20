@@ -68,7 +68,7 @@ class GlassPanel extends StatelessWidget {
   const GlassPanel({
     super.key,
     required this.child,
-    this.tone = GlassTone.frost,
+    this.tone,
     this.shape = const LiquidRoundedSuperellipse(borderRadius: AppRadius.xl),
     this.padding = EdgeInsets.zero,
     this.clipBehavior = Clip.antiAlias,
@@ -76,12 +76,14 @@ class GlassPanel extends StatelessWidget {
   });
 
   final Widget child;
-  final GlassTone tone;
+
+  /// 玻璃档位；为 null 时沿用主题 / 父层的玻璃设置（和迷你播放器同一套材质）。
+  final GlassTone? tone;
   final LiquidShape shape;
   final EdgeInsetsGeometry padding;
   final Clip clipBehavior;
 
-  /// 覆盖 [tone] 的玻璃参数（例如给选中的 chip 染主色）。
+  /// 覆盖档位的玻璃参数（例如给选中的 chip 染主色）。
   final LiquidGlassSettings? settings;
 
   @override
@@ -91,7 +93,7 @@ class GlassPanel extends StatelessWidget {
       quality: GlassQuality.standard,
       clipBehavior: clipBehavior,
       shape: shape,
-      settings: settings ?? tone.settings,
+      settings: settings ?? tone?.settings,
       padding: padding,
       child: child,
     );
@@ -99,21 +101,15 @@ class GlassPanel extends StatelessWidget {
 }
 
 /// 用某个颜色给玻璃染色，用来做「选中态」的胶囊 chip。
-LiquidGlassSettings tintedGlassSettings(
-  Color color, {
-  double alpha = 0.86,
-  double thickness = 12,
-  double blur = 10,
-}) {
+LiquidGlassSettings tintedGlassSettings(Color color, {double alpha = 0.86}) {
   return LiquidGlassSettings(
     bodyMode: GlassBodyMode.clear,
     glassColor: color.withValues(alpha: alpha),
-    thickness: thickness,
-    blur: blur,
-    chromaticAberration: 0,
-    saturation: 1.15,
-    lightIntensity: 0.55,
-    refractiveIndex: 1.14,
+    thickness: 20,
+    blur: 6,
+    saturation: 1.5,
+    lightIntensity: 0.5,
+    refractiveIndex: 1.2,
   );
 }
 

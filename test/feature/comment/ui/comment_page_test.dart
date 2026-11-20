@@ -4,6 +4,8 @@ import 'package:bilimusic/feature/comment/domain/comment_item.dart';
 import 'package:bilimusic/feature/comment/domain/comment_state.dart';
 import 'package:bilimusic/feature/comment/domain/comment_target.dart';
 import 'package:bilimusic/feature/comment/logic/comment_controller.dart';
+import 'package:bilimusic/feature/player/domain/player_state.dart';
+import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/comment/ui/comment_page.dart';
 import 'package:bilimusic/feature/player/ui/components/player_dynamic_backdrop.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +20,11 @@ const CommentTarget _target = CommentTarget(
   title: '测试视频',
   coverUrl: '',
 );
+
+class _FakePlayerController extends PlayerController {
+  @override
+  PlayerState build() => const PlayerState();
+}
 
 class _EmptyCommentController extends CommentController {
   @override
@@ -70,6 +77,7 @@ Future<void> _pumpCommentPage(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        playerControllerProvider.overrideWith(_FakePlayerController.new),
         commentControllerProvider(_target).overrideWith(
           withComment ? _OneCommentController.new : _EmptyCommentController.new,
         ),

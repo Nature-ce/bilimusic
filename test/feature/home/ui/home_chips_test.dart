@@ -14,19 +14,20 @@ Future<void> _pumpChip(WidgetTester tester, Widget chip) async {
 }
 
 void main() {
-  testWidgets('未选中的 chip 用灰白磨砂玻璃', (WidgetTester tester) async {
+  testWidgets('未选中的 chip 沿用主题玻璃（迷你播放器同款材质）', (WidgetTester tester) async {
     await _pumpChip(
       tester,
       HomeChip(label: '网易云', selected: false, onTap: () {}),
     );
 
     final GlassPanel panel = tester.widget<GlassPanel>(find.byType(GlassPanel));
+    expect(panel.tone, isNull);
     expect(panel.settings, isNull);
-    expect(panel.tone, GlassTone.frost);
     final GlassContainer glass = tester.widget<GlassContainer>(
       find.byType(GlassContainer),
     );
-    expect(glass.settings?.glassColor, GlassTone.frost.settings.glassColor);
+    expect(glass.useOwnLayer, isTrue);
+    expect(glass.shape, isA<LiquidRoundedSuperellipse>());
   });
 
   testWidgets('选中的平台 chip 用主色玻璃 + onPrimary 文字', (WidgetTester tester) async {

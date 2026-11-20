@@ -81,7 +81,7 @@ class _HomeSectionTab extends StatelessWidget {
       button: true,
       child: Material(
         color: selected
-            ? Colors.white.withValues(alpha: 0.62)
+            ? colorScheme.primary.withValues(alpha: 0.16)
             : Colors.transparent,
         borderRadius: borderRadius,
         clipBehavior: Clip.antiAlias,

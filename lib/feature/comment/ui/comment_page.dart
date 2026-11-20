@@ -10,6 +10,8 @@ import 'package:bilimusic/feature/comment/logic/comment_controller.dart';
 import 'package:bilimusic/feature/comment/ui/components/comment_card.dart';
 import 'package:bilimusic/feature/comment/ui/components/comment_composer.dart';
 import 'package:bilimusic/feature/comment/ui/comment_reply_sheet.dart';
+import 'package:bilimusic/feature/player/logic/display/player_cover_color_provider.dart';
+import 'package:bilimusic/feature/player/logic/display/player_display_provider.dart';
 import 'package:bilimusic/feature/player/ui/components/player_dynamic_backdrop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -88,6 +90,9 @@ class _CommentPageState extends ConsumerState<CommentPage> {
       commentControllerProvider(widget.target).notifier,
     );
     final ThemeData baseTheme = Theme.of(context);
+    // 背景和播放页保持一致：同一个封面、同一个封面主色。
+    final Color? coverColor = ref.watch(playerCoverColorControllerProvider);
+    final String? playerCoverUrl = ref.watch(playerDisplayProvider).coverUrl;
     final ThemeData theme = glassSurfaceTheme(context);
     final ColorScheme colorScheme = theme.colorScheme;
 
@@ -97,8 +102,10 @@ class _CommentPageState extends ConsumerState<CommentPage> {
         children: <Widget>[
           Positioned.fill(
             child: PlayerDynamicBackdrop(
-              baseColor: baseTheme.colorScheme.primary,
-              coverUrl: widget.target.coverUrl,
+              baseColor: coverColor ?? baseTheme.colorScheme.primary,
+              coverUrl: (widget.target.coverUrl ?? '').trim().isNotEmpty
+                  ? widget.target.coverUrl
+                  : playerCoverUrl,
             ),
           ),
           Scaffold(
