@@ -25,26 +25,21 @@ const HotPlaylist _playlist = HotPlaylist(
 
 List<HotPlaylistTrack> _tracks() {
   return <HotPlaylistTrack>[
-    const HotPlaylistTrack(
-      playlist: _playlist,
-      rank: 1,
-      title: '刷歌歌曲一',
-      artist: '歌手甲',
-      coverUrl: '',
-      durationSeconds: 245,
-    ),
-    const HotPlaylistTrack(
-      playlist: _playlist,
-      rank: 2,
-      title: '刷歌歌曲二',
-      artist: '歌手乙',
-      coverUrl: '',
-    ),
+    for (int index = 0; index < 12; index += 1)
+      HotPlaylistTrack(
+        playlist: _playlist,
+        rank: index + 1,
+        title: '刷歌歌曲$index',
+        artist: '歌手$index',
+        coverUrl: '',
+        durationSeconds: 200,
+      ),
   ];
 }
 
 class _LoadedFeed extends MusicRadarController {
   int scanCalls = 0;
+  int extendCalls = 0;
 
   @override
   MusicRadarState build() =>
@@ -54,11 +49,22 @@ class _LoadedFeed extends MusicRadarController {
   Future<void> scan() async {
     scanCalls += 1;
   }
+
+  @override
+  Future<void> extendFeed() async {
+    extendCalls += 1;
+  }
 }
 
 class _EmptyFeed extends MusicRadarController {
   @override
   MusicRadarState build() => const MusicRadarState();
+
+  @override
+  Future<void> scan() async {}
+
+  @override
+  Future<void> extendFeed() async {}
 }
 
 class _FakeSearchRepository implements BiliSearchRepository {
@@ -72,17 +78,18 @@ class _FakePlayerRepository implements BiliPlayerRepository {
 }
 
 class _ResolvedResolver extends MusicChartResolver {
-  _ResolvedResolver({this.fail = false})
+  _ResolvedResolver({this.fail = false, this.failTitles = const <String>{}})
     : super(
         searchRepository: _FakeSearchRepository(),
         playerRepository: _FakePlayerRepository(),
       );
 
   final bool fail;
+  final Set<String> failTitles;
 
   @override
   Future<PlayableItem?> resolve(MatchableTrack track) async {
-    if (fail) {
+    if (fail || failTitles.contains(track.title)) {
       return null;
     }
     return PlayableItem(
@@ -166,7 +173,7 @@ Future<ProviderContainer> _pumpPage(
 }
 
 void main() {
-  testWidgets('进入刷歌会把推荐曲目装进播放队列', (WidgetTester tester) async {
+  testWidgets('进入刷歌时一次只装 5 首进队列', (WidgetTester tester) async {
     final ProviderContainer container = await _pumpPage(
       tester,
       controller: _LoadedFeed.new,
@@ -176,10 +183,29 @@ void main() {
         container.read(playerControllerProvider.notifier) as _FakePlayer;
     expect(player.queued, hasLength(1));
     expect(player.queuedLabels.single, '刷歌');
-    expect(player.queued.single, hasLength(2));
+    expect(player.queued.single, hasLength(5));
     expect(
       player.queued.single.map((PlayableItem item) => item.title),
-      <String>['刷歌歌曲一', '刷歌歌曲二'],
+      <String>['刷歌歌曲0', '刷歌歌曲1', '刷歌歌曲2', '刷歌歌曲3', '刷歌歌曲4'],
+    );
+  });
+
+  testWidgets('匹配失败会继续往后取候选，仍能凑够一批', (WidgetTester tester) async {
+    // 前 3 首匹配失败，仍然要从剩下的候选里补足 5 首。
+    final ProviderContainer container = await _pumpPage(
+      tester,
+      controller: _LoadedFeed.new,
+      resolver: _ResolvedResolver(
+        failTitles: <String>{'刷歌歌曲0', '刷歌歌曲1', '刷歌歌曲2'},
+      ),
+    );
+
+    final _FakePlayer player =
+        container.read(playerControllerProvider.notifier) as _FakePlayer;
+    expect(player.queued.single, hasLength(5));
+    expect(
+      player.queued.single.map((PlayableItem item) => item.title),
+      isNot(contains('刷歌歌曲0')),
     );
   });
 
@@ -202,7 +228,7 @@ void main() {
     );
 
     expect(find.text('刷歌暂时没有发现'), findsOneWidget);
-    expect(find.text('推荐歌曲都还没匹配到 B 站视频，换个批次再试'), findsOneWidget);
+    expect(find.text('推荐歌曲暂时都没匹配到 B 站视频，换个批次再试'), findsOneWidget);
     expect(find.text('重新取样'), findsOneWidget);
   });
 
@@ -212,5 +238,82 @@ void main() {
     expect(find.text('刷歌暂时没有发现'), findsOneWidget);
     expect(find.text('重新取样'), findsOneWidget);
     expect(find.byType(MusicRadarVisual), findsNothing);
+  });
+
+  group('shouldTopUpShuffleQueue', () {
+    test('非刷歌队列一律不补货', () {
+      expect(
+        shouldTopUpShuffleQueue(
+          sourceLabel: '我喜欢',
+          queueLength: 1,
+          currentIndex: 0,
+          lead: 1,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldTopUpShuffleQueue(
+          sourceLabel: null,
+          queueLength: 1,
+          currentIndex: 0,
+          lead: 1,
+        ),
+        isFalse,
+      );
+    });
+
+    test('队列中间段不补货', () {
+      expect(
+        shouldTopUpShuffleQueue(
+          sourceLabel: '刷歌 · 网易云',
+          queueLength: 5,
+          currentIndex: 0,
+          lead: 1,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldTopUpShuffleQueue(
+          sourceLabel: '刷歌',
+          queueLength: 5,
+          currentIndex: 3,
+          lead: 1,
+        ),
+        isFalse,
+      );
+    });
+
+    test('播到最后一首时补货', () {
+      expect(
+        shouldTopUpShuffleQueue(
+          sourceLabel: '刷歌',
+          queueLength: 5,
+          currentIndex: 4,
+          lead: 1,
+        ),
+        isTrue,
+      );
+    });
+
+    test('只有一首歌时立刻补货', () {
+      expect(
+        shouldTopUpShuffleQueue(
+          sourceLabel: '刷歌',
+          queueLength: 1,
+          currentIndex: 0,
+          lead: 1,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldTopUpShuffleQueue(
+          sourceLabel: '刷歌',
+          queueLength: 1,
+          currentIndex: null,
+          lead: 1,
+        ),
+        isTrue,
+      );
+    });
   });
 }

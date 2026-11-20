@@ -13,10 +13,32 @@ import 'package:bilimusic/feature/radar/ui/components/music_radar_visual.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// 是否该给刷歌队列补货。
+///
+/// 只有当队列确实属于刷歌、并且「当前已是最后一首」（剩余 < [lead]）时才补，
+/// 这样既能一直续上，又不会一次塞太多歌。
+@visibleForTesting
+bool shouldTopUpShuffleQueue({
+  required String? sourceLabel,
+  required int queueLength,
+  required int? currentIndex,
+  required int lead,
+  String queueLabel = _shuffleQueueLabel,
+}) {
+  if (!(sourceLabel ?? '').startsWith(queueLabel)) {
+    return false;
+  }
+  final int index = currentIndex ?? 0;
+  final int remaining = queueLength - index - 1;
+  return remaining < lead;
+}
+
+const String _shuffleQueueLabel = '刷歌';
+
 /// 刷歌：本质上就是播放页，只是把队列换成「跨平台推荐歌曲」。
 ///
-/// 进入时取样推荐曲目 → 匹配 B 站条目 → 装进播放队列 → 直接展示完整播放页；
-/// 上下滑切换上一首 / 下一首，队列快放完时自动补货。
+/// 一次只装 [_batchSize] 首进队列；播到最后一首时自动再补一批，
+/// 这样既能一直刷下去，又不会一次性把播放列表塞满。
 class ShufflePage extends ConsumerStatefulWidget {
   const ShufflePage({super.key});
 
@@ -25,12 +47,19 @@ class ShufflePage extends ConsumerStatefulWidget {
 }
 
 class _ShufflePageState extends ConsumerState<ShufflePage> {
-  static const int _initialBatch = 8;
-  static const int _topUpBatch = 4;
-  static const int _topUpThreshold = 2;
+  /// 每次补货的曲目数。
+  static const int _batchSize = 5;
+
+  /// 剩余未播曲目不足这个数就补货（1 表示正在播最后一首时补）。
+  static const int _topUpLead = 1;
+
   static const String _queueLabel = '刷歌';
 
+  /// 已经尝试匹配过的推荐曲目，避免重复搜索同一首失败歌。
+  final Set<String> _attemptedTrackKeys = <String>{};
+
   bool _isBootstrapping = false;
+  bool _isToppingUp = false;
   String? _errorMessage;
 
   @override
@@ -52,41 +81,31 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       return;
     }
     if (!force && _queueIsShuffle) {
+      // 已有刷歌队列，只需保证后面还有歌可播。
+      unawaited(_topUpIfNeeded());
       return;
     }
     setState(() {
       _isBootstrapping = true;
       _errorMessage = null;
     });
+    if (force) {
+      _attemptedTrackKeys.clear();
+    }
     try {
-      final MusicRadarController radarController = ref.read(
-        musicRadarControllerProvider.notifier,
-      );
-      MusicRadarState radar = ref.read(musicRadarControllerProvider);
-      if (radar.tracks.isEmpty) {
-        await radarController.scan();
-        radar = ref.read(musicRadarControllerProvider);
-      }
-      if (radar.tracks.isEmpty) {
-        if (mounted) {
-          setState(() => _errorMessage = radar.errorMessage ?? '暂时没有推荐歌曲');
-        }
-        return;
-      }
-      final List<PlayableItem> items = await _resolveTracks(
-        radar.tracks,
-        _initialBatch,
-      );
+      final List<PlayableItem> items = await _fillBatch(_batchSize);
       if (!mounted) {
         return;
       }
       if (items.isEmpty) {
-        setState(() => _errorMessage = '推荐歌曲都还没匹配到 B 站视频，换个批次再试');
+        setState(() => _errorMessage = '推荐歌曲暂时都没匹配到 B 站视频，换个批次再试');
         return;
       }
       await ref
           .read(playerControllerProvider.notifier)
           .setQueue(items, startIndex: 0, sourceLabel: _queueLabel);
+      // 队列不足一批时（例如只匹配到 1 首），立刻把后面补齐。
+      unawaited(_topUpIfNeeded());
     } on Object {
       if (mounted) {
         setState(() => _errorMessage = '刷歌启动失败，请重试');
@@ -98,28 +117,104 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     }
   }
 
-  Future<List<PlayableItem>> _resolveTracks(
-    List<HotPlaylistTrack> tracks,
-    int limit,
-  ) async {
+  /// 从推荐流里持续解析出 [want] 首可播放条目。
+  ///
+  /// 匹配失败的曲目会计入 [_attemptedTrackKeys] 不再重试；候选不够时向
+  /// 推荐控制器要更多曲目，必要时整批重扫。
+  Future<List<PlayableItem>> _fillBatch(int want) async {
     final MusicChartResolver resolver = ref.read(musicChartResolverProvider);
     final List<PlayableItem> items = <PlayableItem>[];
-    final Set<String> seen = <String>{};
-    for (final HotPlaylistTrack track in tracks) {
-      if (items.length >= limit) {
-        break;
+    final Set<String> pickedIds = ref
+        .read(playerControllerProvider)
+        .queue
+        .map((PlayableItem item) => item.stableId)
+        .toSet();
+    bool rescanned = false;
+
+    for (
+      int round = 0;
+      round < 6 && items.length < want && mounted;
+      round += 1
+    ) {
+      final MusicRadarController radarController = ref.read(
+        musicRadarControllerProvider.notifier,
+      );
+      MusicRadarState radar = ref.read(musicRadarControllerProvider);
+      List<HotPlaylistTrack> candidates = _freshCandidates(radar);
+      if (candidates.isEmpty) {
+        if (radar.tracks.isEmpty && !rescanned) {
+          rescanned = true;
+          await radarController.scan();
+        } else {
+          await radarController.extendFeed();
+        }
+        if (!mounted) {
+          return items;
+        }
+        candidates = _freshCandidates(ref.read(musicRadarControllerProvider));
+        if (candidates.isEmpty) {
+          break;
+        }
       }
-      try {
-        final PlayableItem? item = await resolver.resolve(track);
-        if (item == null || !seen.add(item.stableId)) {
+      for (final HotPlaylistTrack track in candidates) {
+        if (items.length >= want || !mounted) {
+          break;
+        }
+        if (!_attemptedTrackKeys.add(track.key)) {
           continue;
         }
-        items.add(item);
-      } on Object {
-        continue;
+        try {
+          final PlayableItem? item = await resolver.resolve(track);
+          if (item == null || !pickedIds.add(item.stableId)) {
+            continue;
+          }
+          items.add(item);
+        } on Object {
+          continue;
+        }
       }
     }
     return items;
+  }
+
+  List<HotPlaylistTrack> _freshCandidates(MusicRadarState radar) {
+    return radar.tracks
+        .where(
+          (HotPlaylistTrack track) => !_attemptedTrackKeys.contains(track.key),
+        )
+        .toList(growable: false);
+  }
+
+  /// 播到最后一首时补货，保证「下一首」永远有歌。
+  Future<void> _topUpIfNeeded({bool force = false}) async {
+    if (_isToppingUp) {
+      return;
+    }
+    final PlayerState player = ref.read(playerControllerProvider);
+    if (!force &&
+        !shouldTopUpShuffleQueue(
+          sourceLabel: player.queueSourceLabel,
+          queueLength: player.queue.length,
+          currentIndex: player.currentQueueIndex,
+          lead: _topUpLead,
+        )) {
+      return;
+    }
+    if (!(player.queueSourceLabel ?? '').startsWith(_queueLabel)) {
+      return;
+    }
+    _isToppingUp = true;
+    try {
+      final List<PlayableItem> items = await _fillBatch(_batchSize);
+      if (!mounted || items.isEmpty) {
+        return;
+      }
+      await ref.read(playerControllerProvider.notifier).enqueue(items);
+    } on Object {
+      // 补货失败不打断当前播放，等下次切歌再试。
+    } finally {
+      _isToppingUp = false;
+    }
   }
 
   Future<void> _handleVerticalSwipe(DragEndDetails details) async {
@@ -131,47 +226,39 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       playerControllerProvider.notifier,
     );
     if (velocity < 0) {
-      await controller.skipToNext();
-      unawaited(_topUpQueue());
+      await _skipToNextWithTopUp(controller);
     } else {
       await controller.skipToPrevious();
     }
   }
 
-  /// 队列快放完时补充推荐曲目，让刷歌可以一直往下滑。
-  Future<void> _topUpQueue() async {
+  /// 点「下一首」前先确认队列里还有下一首，没有就先把货补上。
+  Future<void> _skipToNextWithTopUp(PlayerController controller) async {
     final PlayerState player = ref.read(playerControllerProvider);
     final int index = player.currentQueueIndex ?? 0;
-    if (player.queue.length - index > _topUpThreshold) {
-      return;
+    final bool hasNext = index + 1 < player.queue.length;
+    if (!hasNext) {
+      await _topUpIfNeeded(force: true);
     }
-    final MusicRadarState radar = ref.read(musicRadarControllerProvider);
-    final List<PlayableItem> items = await _resolveTracks(
-      radar.tracks,
-      _topUpBatch,
-    );
-    if (!mounted || items.isEmpty) {
-      return;
-    }
-    final Set<String> queued = ref
-        .read(playerControllerProvider)
-        .queue
-        .map((PlayableItem item) => item.stableId)
-        .toSet();
-    final List<PlayableItem> fresh = items
-        .where((PlayableItem item) => !queued.contains(item.stableId))
-        .toList(growable: false);
-    if (fresh.isEmpty) {
-      unawaited(ref.read(musicRadarControllerProvider.notifier).extendFeed());
-      return;
-    }
-    await ref.read(playerControllerProvider.notifier).enqueue(fresh);
-    unawaited(ref.read(musicRadarControllerProvider.notifier).extendFeed());
+    await controller.skipToNext();
   }
 
   @override
   Widget build(BuildContext context) {
     final PlayerState player = ref.watch(playerControllerProvider);
+
+    ref.listen<PlayerState>(playerControllerProvider, (
+      PlayerState? previous,
+      PlayerState next,
+    ) {
+      final bool indexChanged =
+          next.currentQueueIndex != previous?.currentQueueIndex;
+      final bool queueChanged = next.queue.length != previous?.queue.length;
+      if (indexChanged || queueChanged) {
+        unawaited(_topUpIfNeeded());
+      }
+    });
+
     if (player.currentItem == null) {
       if (_isBootstrapping) {
         return const _ShuffleStatus(
