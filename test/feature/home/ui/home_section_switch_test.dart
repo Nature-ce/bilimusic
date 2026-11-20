@@ -1,6 +1,8 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/home/ui/components/home_section_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 Future<void> _pumpSwitch(
   WidgetTester tester, {
@@ -70,5 +72,20 @@ void main() {
     expect(active.style?.color, colorScheme.primary);
     expect(active.style?.fontWeight, FontWeight.w800);
     expect(inactive.style?.color, colorScheme.onSurfaceVariant);
+  });
+
+  testWidgets('section switch is a glass pill', (WidgetTester tester) async {
+    await _pumpSwitch(tester, selected: HomeSection.charts, onSelected: (_) {});
+
+    final Finder glass = find.byType(GlassPanel);
+    expect(glass, findsOneWidget);
+    expect(
+      tester.widget<GlassPanel>(glass).shape,
+      isA<LiquidRoundedSuperellipse>(),
+    );
+    final GlassContainer container = tester.widget<GlassContainer>(
+      find.byType(GlassContainer),
+    );
+    expect(container.useOwnLayer, isTrue);
   });
 }

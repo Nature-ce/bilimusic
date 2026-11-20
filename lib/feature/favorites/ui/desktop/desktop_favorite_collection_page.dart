@@ -15,7 +15,6 @@ import 'package:bilimusic/feature/favorites/logic/favorite_entry_search.dart';
 import 'package:bilimusic/feature/favorites/domain/remote_collection_sync_state.dart';
 import 'package:bilimusic/feature/favorites/logic/remote_collection_sync_controller.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
-import 'package:bilimusic/feature/favorites/ui/components/collection_kind_tag.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_button.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_search_field.dart';
 import 'package:bilimusic/feature/favorites/ui/components/desktop/desktop_favorite_collection_items_list.dart';
@@ -346,8 +345,6 @@ class _DesktopFavoriteCollectionPageState
                   style: theme.textTheme.titleMedium,
                 ),
               ),
-              const SizedBox(width: 8),
-              CollectionKindTag(kind: resolvedCollection.kind),
             ],
           ),
         ),

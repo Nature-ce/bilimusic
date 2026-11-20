@@ -3,7 +3,6 @@ import 'package:bilimusic/common/components/cached_avatar.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/common_attach_menu.dart';
 import 'package:bilimusic/common/components/login_required.dart';
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
@@ -14,7 +13,6 @@ import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
-import 'package:bilimusic/feature/favorites/ui/components/collection_kind_dialog.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
 import 'package:bilimusic/feature/recent/logic/recent_playback_controller.dart';
 import 'package:flutter/material.dart';
@@ -293,14 +291,10 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
     }
 
     if (!context.mounted) return;
-    final CollectionKind? kind = await showCollectionKindDialog(
-      context: context,
-    );
-    if (!context.mounted || kind == null) return;
 
     final FavoriteCollection? collection = await ref
         .read(favoritesControllerProvider.notifier)
-        .createCollection(trimmedName, kind: kind);
+        .createCollection(trimmedName);
     if (collection == null) {
       ToastUtil.show('歌单名称已存在');
     }
@@ -326,12 +320,6 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
     if (!context.mounted || collection == null) {
       return;
     }
-
-    final CollectionKind? kind = await showCollectionKindDialog(
-      context: context,
-      initialKind: collection.kind,
-    );
-    if (!context.mounted || kind == null) return;
 
     final _RemoteImportMode? mode = await showDialog<_RemoteImportMode>(
       context: context,
@@ -367,7 +355,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
 
     if (mode == _RemoteImportMode.localCopy) {
       final FavoriteCollection? created = await controller
-          .importRemoteCollectionAsLocal(collection, kind: kind);
+          .importRemoteCollectionAsLocal(collection);
       if (!context.mounted) {
         return;
       }
@@ -377,7 +365,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
       return;
     }
 
-    await controller.bindRemoteCollection(collection.copyWith(kind: kind));
+    await controller.bindRemoteCollection(collection);
     await controller.refreshRemoteCollectionItems(collectionId: collection.id);
     if (!context.mounted) {
       return;
@@ -471,6 +459,10 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
     required FavoriteCollection collection,
     required Offset globalPosition,
   }) {
+    // 没有可操作项（例如「我喜欢」这种系统歌单）时不弹空菜单。
+    if (collection.isSystem && !collection.isRemote) {
+      return;
+    }
     final BuildContext sidebarContext = context;
 
     SmartDialog.showAttach<void>(
@@ -525,40 +517,9 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
                       label: '删除',
                       icon: Icons.delete_outline_rounded,
                     ),
-                  const CommonAttachMenuItem<_CollectionAction>(
-                    value: _CollectionAction.changeKind,
-                    label: '修改类型',
-                    icon: Icons.category_outlined,
-                  ),
                 ],
                 onSelected: (_CollectionAction action) async {
                   switch (action) {
-                    case _CollectionAction.changeKind:
-                      final CollectionKind? kind =
-                          await showCollectionKindDialog(
-                            context: sidebarContext,
-                            initialKind: collection.kind,
-                            title: '修改类型',
-                          );
-                      if (!sidebarContext.mounted ||
-                          kind == null ||
-                          kind == collection.kind) {
-                        return;
-                      }
-                      bool saved;
-                      try {
-                        saved = await ref
-                            .read(favoritesControllerProvider.notifier)
-                            .setCollectionKind(
-                              collectionId: collection.id,
-                              kind: kind,
-                            );
-                      } on Object {
-                        saved = false;
-                      }
-                      if (!saved) {
-                        ToastUtil.show('类型保存失败，请重试');
-                      }
                     case _CollectionAction.rename:
                       await _showRenameCollectionDialog(
                         sidebarContext,
@@ -806,14 +767,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
   }
 }
 
-enum _CollectionAction {
-  rename,
-  delete,
-  remove,
-  sync,
-  changeKind,
-  uploadToRemote,
-}
+enum _CollectionAction { rename, delete, remove, sync, uploadToRemote }
 
 enum _AddAction { localCreate, remoteImport }
 

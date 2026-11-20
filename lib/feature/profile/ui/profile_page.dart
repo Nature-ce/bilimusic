@@ -1,7 +1,6 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/login_required.dart';
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
@@ -12,7 +11,6 @@ import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
-import 'package:bilimusic/feature/favorites/ui/components/collection_kind_dialog.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
 import 'package:bilimusic/feature/profile/ui/components/user_card.dart';
 import 'package:bilimusic/feature/recent/logic/recent_playback_controller.dart';
@@ -194,17 +192,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
 
     if (!context.mounted) return;
-    final CollectionKind? kind = await showCollectionKindDialog(
-      context: context,
-    );
-    if (!mounted || kind == null) return;
 
     final FavoritesController controller = ref.read(
       favoritesControllerProvider.notifier,
     );
     final FavoriteCollection? collection = await controller.createCollection(
       result,
-      kind: kind,
     );
     if (!mounted) {
       return;
@@ -232,12 +225,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (!mounted || collection == null) {
       return;
     }
-
-    final CollectionKind? kind = await showCollectionKindDialog(
-      context: context,
-      initialKind: collection.kind,
-    );
-    if (!mounted || kind == null) return;
 
     final _RemoteImportMode? mode = await showDialog<_RemoteImportMode>(
       context: context,
@@ -273,7 +260,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     if (mode == _RemoteImportMode.localCopy) {
       final FavoriteCollection? created = await controller
-          .importRemoteCollectionAsLocal(collection, kind: kind);
+          .importRemoteCollectionAsLocal(collection);
       if (!mounted) {
         return;
       }
@@ -283,7 +270,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       return;
     }
 
-    await controller.bindRemoteCollection(collection.copyWith(kind: kind));
+    await controller.bindRemoteCollection(collection);
     await controller.refreshRemoteCollectionItems(collectionId: collection.id);
     if (!mounted) {
       return;
@@ -372,6 +359,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     required Offset globalPosition,
     required FavoriteCollection collection,
   }) async {
+    // 没有可操作项（例如「我喜欢」这种系统歌单）时不弹空菜单。
+    if (collection.isSystem && !collection.isRemote) {
+      return;
+    }
     final OverlayState overlay = Overlay.of(context);
     final RenderBox overlayBox =
         overlay.context.findRenderObject()! as RenderBox;
@@ -432,14 +423,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         if (!collection.isSystem || collection.isRemote)
           const PopupMenuDivider(),
-        const PopupMenuItem<_CollectionAction>(
-          value: _CollectionAction.changeKind,
-          child: ListTile(
-            leading: Icon(Icons.category_outlined),
-            title: Text('修改类型'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
       ],
     );
 
@@ -448,24 +431,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
 
     switch (action) {
-      case _CollectionAction.changeKind:
-        final CollectionKind? kind = await showCollectionKindDialog(
-          context: context,
-          initialKind: collection.kind,
-          title: '修改类型',
-        );
-        if (!mounted || kind == null || kind == collection.kind) return;
-        bool saved;
-        try {
-          saved = await ref
-              .read(favoritesControllerProvider.notifier)
-              .setCollectionKind(collectionId: collection.id, kind: kind);
-        } on Object {
-          saved = false;
-        }
-        if (!saved) {
-          _showMessage('类型保存失败，请重试');
-        }
       case _CollectionAction.rename:
         await _showRenameCollectionDialog(collection);
       case _CollectionAction.sync:
@@ -655,14 +620,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 }
 
-enum _CollectionAction {
-  rename,
-  delete,
-  remove,
-  changeKind,
-  sync,
-  uploadToRemote,
-}
+enum _CollectionAction { rename, delete, remove, sync, uploadToRemote }
 
 enum _AddAction { localCreate, remoteImport }
 

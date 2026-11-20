@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/core/theme/app_theme.dart';
 import 'package:bilimusic/core/theme/theme_catalog.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
@@ -77,7 +78,7 @@ void main() {
     expect(hasSkeleton, isTrue);
   });
 
-  testWidgets('the selected chip uses the theme primary tint', (
+  testWidgets('the selected chip is a primary tinted glass pill', (
     WidgetTester tester,
   ) async {
     await _pumpSection(
@@ -87,13 +88,16 @@ void main() {
     );
 
     final BuildContext context = tester.element(find.byType(MusicChartSection));
-    final Color selectedBackground = appChipBackgroundColor(
-      context,
-      selected: true,
-    );
+    final Color primary = Theme.of(context).colorScheme.primary;
     final bool hasSelectedChip = tester
-        .widgetList<Material>(find.byType(Material))
-        .any((Material material) => material.color == selectedBackground);
+        .widgetList<GlassPanel>(find.byType(GlassPanel))
+        .any((GlassPanel panel) {
+          final Color? tint = panel.settings?.glassColor;
+          return tint != null &&
+              tint.r == primary.r &&
+              tint.g == primary.g &&
+              tint.b == primary.b;
+        });
 
     expect(hasSelectedChip, isTrue);
   });

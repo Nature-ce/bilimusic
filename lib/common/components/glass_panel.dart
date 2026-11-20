@@ -72,6 +72,7 @@ class GlassPanel extends StatelessWidget {
     this.shape = const LiquidRoundedSuperellipse(borderRadius: AppRadius.xl),
     this.padding = EdgeInsets.zero,
     this.clipBehavior = Clip.antiAlias,
+    this.settings,
   });
 
   final Widget child;
@@ -80,6 +81,9 @@ class GlassPanel extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final Clip clipBehavior;
 
+  /// 覆盖 [tone] 的玻璃参数（例如给选中的 chip 染主色）。
+  final LiquidGlassSettings? settings;
+
   @override
   Widget build(BuildContext context) {
     return GlassContainer(
@@ -87,11 +91,30 @@ class GlassPanel extends StatelessWidget {
       quality: GlassQuality.standard,
       clipBehavior: clipBehavior,
       shape: shape,
-      settings: tone.settings,
+      settings: settings ?? tone.settings,
       padding: padding,
       child: child,
     );
   }
+}
+
+/// 用某个颜色给玻璃染色，用来做「选中态」的胶囊 chip。
+LiquidGlassSettings tintedGlassSettings(
+  Color color, {
+  double alpha = 0.86,
+  double thickness = 12,
+  double blur = 10,
+}) {
+  return LiquidGlassSettings(
+    bodyMode: GlassBodyMode.clear,
+    glassColor: color.withValues(alpha: alpha),
+    thickness: thickness,
+    blur: blur,
+    chromaticAberration: 0,
+    saturation: 1.15,
+    lightIntensity: 0.55,
+    refractiveIndex: 1.14,
+  );
 }
 
 /// 底部弹层用的玻璃壳：上方圆角、下方直角，顶部带拖动条。
