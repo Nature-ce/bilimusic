@@ -1,6 +1,10 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
-import 'package:bilimusic/common/components/sequence_play_icon.dart';
+import 'package:bilimusic/common/components/queue_mode_icon.dart';
 import 'package:bilimusic/common/util/display_text.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -21,13 +25,71 @@ Future<void> showPlayerQueueSheet({
 
   await showModalBottomSheet<void>(
     context: context,
-    showDragHandle: true,
     isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    barrierColor: Colors.black.withValues(alpha: 0.25),
     builder: (BuildContext context) {
-      return const SafeArea(child: _PlayerQueueSheet());
+      return _GlassQueueSheet(
+        child: SafeArea(child: const _PlayerQueueSheet()),
+      );
     },
   );
+}
+
+/// 队列弹层的玻璃壳：圆角 + 高斯模糊 + 半透明卡面色，能透出背后播放页。
+class _GlassQueueSheet extends StatelessWidget {
+  const _GlassQueueSheet({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppRadius.xl),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: appCardSurfaceColor(context).withValues(alpha: 0.62),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const _GlassDragHandle(),
+              Flexible(child: child),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassDragHandle extends StatelessWidget {
+  const _GlassDragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
+      child: Container(
+        width: 36,
+        height: 4,
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurface.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> showDesktopPlayerQueuePanel({
@@ -156,16 +218,7 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                 onPressed: liveState.hasQueue
                     ? liveController.toggleQueueMode
                     : null,
-                icon: switch (liveState.queueMode) {
-                  PlayerQueueMode.sequence => const Icon(Icons.repeat_rounded),
-                  PlayerQueueMode.singleRepeat => const Icon(
-                    Icons.repeat_one_rounded,
-                  ),
-                  PlayerQueueMode.shuffle => const Icon(Icons.shuffle_rounded),
-                  PlayerQueueMode.sequenceOnce => const SequencePlayIcon(
-                    size: 24,
-                  ),
-                },
+                icon: queueModeIcon(liveState.queueMode),
               ),
             ],
           ),

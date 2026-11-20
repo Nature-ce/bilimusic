@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 PlayableItem _item(int index) {
   return PlayableItem(
@@ -79,6 +81,15 @@ class _FancyTextPlayer extends PlayerController {
 
   @override
   Future<void> skipToQueueIndex(int index, {bool autoplay = true}) async {}
+}
+
+class _ModePlayer extends _ReorderablePlayer {
+  _ModePlayer(this.mode);
+
+  final PlayerQueueMode mode;
+
+  @override
+  PlayerState build() => super.build().copyWith(queueMode: mode);
 }
 
 Future<void> _openQueueSheet(
@@ -178,4 +189,49 @@ void main() {
     expect(find.textContaining('𝙋𝙡𝙖𝙮𝙡𝙞𝙨𝙩'), findsNothing);
     expect(find.textContaining('𝐇𝐢-𝐑𝐞𝐬'), findsNothing);
   });
+
+  testWidgets('队列弹层是透明玻璃质感', (WidgetTester tester) async {
+    final ProviderContainer container = ProviderContainer(
+      overrides: [
+        playerControllerProvider.overrideWith(_ReorderablePlayer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await _openQueueSheet(tester, container);
+
+    // 玻璃质感靠 BackdropFilter 模糊背后的播放页实现。
+    expect(find.byType(BackdropFilter), findsWidgets);
+  });
+
+  for (final (PlayerQueueMode mode, Type iconType) in <(PlayerQueueMode, Type)>[
+    (PlayerQueueMode.shuffle, HugeIcon),
+    (PlayerQueueMode.sequence, HugeIcon),
+    (PlayerQueueMode.singleRepeat, HugeIcon),
+    (PlayerQueueMode.sequenceOnce, SequencePlayIcon),
+  ]) {
+    testWidgets('队列模式 ${mode.name} 使用播放页同款图标', (WidgetTester tester) async {
+      final ProviderContainer container = ProviderContainer(
+        overrides: [
+          playerControllerProvider.overrideWith(() => _ModePlayer(mode)),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await _openQueueSheet(tester, container);
+
+      final Finder header = find.ancestor(
+        of: find.text('播放队列'),
+        matching: find.byType(Row),
+      );
+      expect(
+        find.descendant(of: header.first, matching: find.byType(iconType)),
+        findsOneWidget,
+      );
+      // 旧的 Material 图标不应再出现。
+      expect(find.byIcon(Icons.shuffle_rounded), findsNothing);
+      expect(find.byIcon(Icons.repeat_rounded), findsNothing);
+      expect(find.byIcon(Icons.repeat_one_rounded), findsNothing);
+    });
+  }
 }
