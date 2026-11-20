@@ -1,10 +1,7 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
 import 'package:bilimusic/common/components/queue_mode_icon.dart';
 import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -13,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 Future<void> showPlayerQueueSheet({
@@ -37,7 +35,10 @@ Future<void> showPlayerQueueSheet({
   );
 }
 
-/// 队列弹层的玻璃壳：圆角 + 高斯模糊 + 半透明卡面色，能透出背后播放页。
+/// 队列弹层的玻璃壳：与迷你播放器同一套 liquid_glass_widgets 玻璃。
+///
+/// 大面积玻璃在 Android 上会退化成磨砂面，所以保持浅色磨砂 + 深色文字，
+/// 与迷你播放器、底部导航的玻璃家族保持一致。
 class _GlassQueueSheet extends StatelessWidget {
   const _GlassQueueSheet({required this.child});
 
@@ -45,27 +46,27 @@ class _GlassQueueSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(AppRadius.xl),
+    return GlassContainer(
+      useOwnLayer: true,
+      clipBehavior: Clip.antiAlias,
+      shape: const LiquidVerticalRoundedSuperellipse(
+        topRadius: AppRadius.xl,
+        bottomRadius: 0,
       ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: appCardSurfaceColor(context).withValues(alpha: 0.62),
-            border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const _GlassDragHandle(),
-              Flexible(child: child),
-            ],
-          ),
-        ),
+      settings: const LiquidGlassSettings(
+        thickness: 26,
+        blur: 20,
+        frost: 0.28,
+        lightIntensity: 0.85,
+        saturation: 1.35,
+      ),
+      padding: EdgeInsets.zero,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const _GlassDragHandle(),
+          Flexible(child: child),
+        ],
       ),
     );
   }

@@ -280,7 +280,7 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       onVerticalDragEnd: _handleVerticalSwipe,
       child: PlayerPage(
         embedded: true,
-        bottomInset: MediaQuery.viewPaddingOf(context).bottom + 72,
+        bottomInset: MediaQuery.viewPaddingOf(context).bottom + 104,
       ),
     );
   }

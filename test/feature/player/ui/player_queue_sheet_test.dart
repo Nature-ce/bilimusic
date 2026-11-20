@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 PlayableItem _item(int index) {
   return PlayableItem(
@@ -190,7 +191,7 @@ void main() {
     expect(find.textContaining('𝐇𝐢-𝐑𝐞𝐬'), findsNothing);
   });
 
-  testWidgets('队列弹层是透明玻璃质感', (WidgetTester tester) async {
+  testWidgets('队列弹层使用与迷你播放器同款 liquid glass', (WidgetTester tester) async {
     final ProviderContainer container = ProviderContainer(
       overrides: [
         playerControllerProvider.overrideWith(_ReorderablePlayer.new),
@@ -200,8 +201,8 @@ void main() {
 
     await _openQueueSheet(tester, container);
 
-    // 玻璃质感靠 BackdropFilter 模糊背后的播放页实现。
-    expect(find.byType(BackdropFilter), findsWidgets);
+    // 和迷你播放器一样走 liquid_glass_widgets 的着色器玻璃，不是纯色面板。
+    expect(find.byType(GlassContainer), findsWidgets);
   });
 
   for (final (PlayerQueueMode mode, Type iconType) in <(PlayerQueueMode, Type)>[
