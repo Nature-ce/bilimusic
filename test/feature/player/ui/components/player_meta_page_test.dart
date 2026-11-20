@@ -41,32 +41,32 @@ Future<void> _pumpMetaPage(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('播放信息页三块卡片都换成灰白磨砂玻璃', (WidgetTester tester) async {
+  testWidgets('播放信息页三块卡片都换成烟熏玻璃', (WidgetTester tester) async {
     await _pumpMetaPage(tester);
 
     expect(find.byType(GlassContainer), findsNWidgets(3));
     for (final GlassContainer glass in tester.widgetList<GlassContainer>(
       find.byType(GlassContainer),
     )) {
-      expect(glass.settings?.glassColor, GlassTone.frost.settings.glassColor);
+      expect(glass.settings?.glassColor, GlassTone.smoke.settings.glassColor);
     }
   });
 
-  testWidgets('玻璃卡片上的文字改成深色', (WidgetTester tester) async {
+  testWidgets('玻璃卡片上的文字改成白色', (WidgetTester tester) async {
     await _pumpMetaPage(tester);
 
     for (final String label in <String>['播放信息', '简介']) {
       final Text text = tester.widget<Text>(find.text(label));
-      expect(text.style?.color, GlassTone.frost.primaryText, reason: label);
+      expect(text.style?.color, GlassTone.smoke.primaryText, reason: label);
     }
 
     for (final String label in <String>['UP主', '标题', '播放']) {
       final Text text = tester.widget<Text>(find.text(label));
-      expect(text.style?.color, GlassTone.frost.secondaryText, reason: label);
+      expect(text.style?.color, GlassTone.smoke.secondaryText, reason: label);
     }
 
     final Text value = tester.widget<Text>(find.text('测试UP主'));
-    expect(value.style?.color, GlassTone.frost.primaryText);
+    expect(value.style?.color, GlassTone.smoke.primaryText);
   });
 
   testWidgets('统计项仍然铺成两列网格', (WidgetTester tester) async {

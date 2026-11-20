@@ -2,26 +2,30 @@ import 'package:bilimusic/feature/player/domain/audio_stream_info.dart';
 import 'package:flutter/material.dart';
 
 class PlayerQualityBadge extends StatelessWidget {
-  const PlayerQualityBadge({super.key, required this.label});
+  const PlayerQualityBadge({super.key, required this.label, this.color});
 
   final String label;
 
+  /// 角标颜色；为空时沿用 [IconTheme] 的颜色。
+  final Color? color;
+
   @override
   Widget build(BuildContext context) {
-    final Color color =
+    final Color resolvedColor =
+        color ??
         IconTheme.of(context).color ??
         Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
       decoration: BoxDecoration(
-        border: Border.all(color: color, width: 1.4),
+        border: Border.all(color: resolvedColor, width: 1.4),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: color,
+          color: resolvedColor,
           fontSize: 11,
           fontWeight: FontWeight.w900,
           height: 1,

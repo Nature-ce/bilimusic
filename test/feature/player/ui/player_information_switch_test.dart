@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bilimusic/common/components/badged_icon_button.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/download/domain/downloaded_track.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
@@ -1185,6 +1186,28 @@ void main() {
     await tester.tap(exitButton);
     await tester.pump();
     expect(exits, 1);
+  });
+
+  testWidgets('player menu sheet uses dark glass with white text', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPlayer(
+      tester,
+      _metadata,
+      home: const PlayerPage(initialItem: _item),
+    );
+
+    await tester.tap(find.byKey(const Key('playerMenuButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassSheetPanel), findsOneWidget);
+    final BuildContext sheetContext = tester.element(find.text('定时关闭'));
+    expect(Theme.of(sheetContext).brightness, Brightness.dark);
+    expect(
+      Theme.of(sheetContext).iconTheme.color?.computeLuminance(),
+      greaterThan(0.5),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('compact dark landscape respects safe insets and large text', (

@@ -148,3 +148,53 @@ class GlassDragHandle extends StatelessWidget {
     );
   }
 }
+
+/// 玻璃面板内部用的深色主题。
+///
+/// 只换 [ThemeData.colorScheme] 是不够的：`textTheme`、`iconTheme`、`listTileTheme`
+/// 仍然是浅色主题那一份，会出现「深色玻璃 + 黑字」。这里把它们一次性换成深色。
+ThemeData glassSurfaceTheme(BuildContext context) {
+  final ThemeData base = Theme.of(context);
+  if (base.brightness == Brightness.dark) {
+    return base;
+  }
+
+  final ColorScheme darkScheme = ColorScheme.fromSeed(
+    seedColor: base.colorScheme.primary,
+    brightness: Brightness.dark,
+  );
+  final TextTheme textTheme = base.textTheme.apply(
+    bodyColor: darkScheme.onSurface,
+    displayColor: darkScheme.onSurface,
+  );
+  final TextStyle? appBarTitleStyle =
+      (base.appBarTheme.titleTextStyle ?? base.textTheme.titleLarge)?.copyWith(
+        color: darkScheme.onSurface,
+      );
+
+  return base.copyWith(
+    brightness: Brightness.dark,
+    colorScheme: darkScheme,
+    textTheme: textTheme,
+    primaryTextTheme: base.primaryTextTheme.apply(
+      bodyColor: darkScheme.onSurface,
+      displayColor: darkScheme.onSurface,
+    ),
+    iconTheme: IconThemeData(color: darkScheme.onSurface),
+    listTileTheme: base.listTileTheme.copyWith(
+      textColor: darkScheme.onSurface,
+      iconColor: darkScheme.onSurface,
+    ),
+    appBarTheme: base.appBarTheme.copyWith(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: darkScheme.onSurface,
+      titleTextStyle: appBarTitleStyle,
+      iconTheme: IconThemeData(color: darkScheme.onSurface),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+    ),
+    scaffoldBackgroundColor: Colors.transparent,
+    canvasColor: Colors.transparent,
+  );
+}

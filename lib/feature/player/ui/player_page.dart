@@ -1,4 +1,6 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/comment/domain/comment_target.dart';
 import 'package:bilimusic/feature/comment/ui/comment_page.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
@@ -214,6 +216,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                                     : () => showPlayerCollectionSheet(
                                         context: context,
                                         item: item,
+                                        glass: GlassTone.smoke,
                                       ),
                                 isFavorite: isFavorite,
                                 onFavoriteToggle: item == null
@@ -370,51 +373,59 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   Future<void> _showPlayerMenu(PlayableItem item) async {
     await showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                ListTile(
-                  key: const Key('sleepTimerMenuEntry'),
-                  leading: const Icon(Icons.timer_outlined),
-                  title: const Text('定时关闭'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(this.context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SleepTimerPage(),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  key: const Key('playbackSpeedMenuEntry'),
-                  leading: const Icon(Icons.speed_rounded),
-                  title: const Text('倍速播放'),
-                  subtitle: Text(
-                    formatPlaybackSpeed(
-                      ref.read(playerControllerProvider).speed,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (BuildContext sheetContext) {
+        return Theme(
+          data: glassSurfaceTheme(sheetContext),
+          child: GlassSheetPanel(
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    ListTile(
+                      key: const Key('sleepTimerMenuEntry'),
+                      leading: const Icon(Icons.timer_outlined),
+                      title: const Text('定时关闭'),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const SleepTimerPage(),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _showPlaybackSpeedSheet();
-                  },
+                    ListTile(
+                      key: const Key('playbackSpeedMenuEntry'),
+                      leading: const Icon(Icons.speed_rounded),
+                      title: const Text('倍速播放'),
+                      subtitle: Text(
+                        formatPlaybackSpeed(
+                          ref.read(playerControllerProvider).speed,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        _showPlaybackSpeedSheet();
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.open_in_new_rounded),
+                      title: const Text('外部应用打开'),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        _openInBrowser(item);
+                      },
+                    ),
+                  ],
                 ),
-                ListTile(
-                  leading: const Icon(Icons.open_in_new_rounded),
-                  title: const Text('外部应用打开'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _openInBrowser(item);
-                  },
-                ),
-              ],
+              ),
             ),
           ),
         );
@@ -423,41 +434,56 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   }
 
   Future<void> _showPlaybackSpeedSheet() async {
-    final ThemeData theme = Theme.of(context);
     final double currentSpeed = ref.read(playerControllerProvider).speed;
 
     await showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: ListView.separated(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            itemCount: kPlayerPlaybackSpeeds.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (BuildContext context, int index) {
-              final double speed = kPlayerPlaybackSpeeds[index];
-              final bool isSelected = speed == currentSpeed;
-              return ListTile(
-                tileColor: isSelected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                    : null,
-                title: Text(formatPlaybackSpeed(speed)),
-                trailing: isSelected
-                    ? Icon(
-                        Icons.check_rounded,
-                        color: theme.colorScheme.primary,
-                      )
-                    : null,
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await ref
-                      .read(playerControllerProvider.notifier)
-                      .setSpeed(speed);
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (BuildContext sheetContext) {
+        final ThemeData theme = glassSurfaceTheme(sheetContext);
+        return Theme(
+          data: theme,
+          child: GlassSheetPanel(
+            child: SafeArea(
+              top: false,
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                itemCount: kPlayerPlaybackSpeeds.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 4),
+                itemBuilder: (BuildContext context, int index) {
+                  final double speed = kPlayerPlaybackSpeeds[index];
+                  final bool isSelected = speed == currentSpeed;
+                  return Material(
+                    color: isSelected
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                      ),
+                      title: Text(formatPlaybackSpeed(speed)),
+                      trailing: isSelected
+                          ? Icon(
+                              Icons.check_rounded,
+                              color: theme.colorScheme.primary,
+                            )
+                          : null,
+                      onTap: () async {
+                        Navigator.of(context).pop();
+                        await ref
+                            .read(playerControllerProvider.notifier)
+                            .setSpeed(speed);
+                      },
+                    ),
+                  );
                 },
-              );
-            },
+              ),
+            ),
           ),
         );
       },

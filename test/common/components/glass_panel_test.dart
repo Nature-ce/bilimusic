@@ -71,4 +71,40 @@ void main() {
     expect(glass.clipBehavior, Clip.antiAlias);
     expect(glass.padding, EdgeInsets.zero);
   });
+
+  testWidgets('玻璃面板内部的深色主题同时换掉文字与图标颜色', (WidgetTester tester) async {
+    late ThemeData surfaceTheme;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.light(),
+        home: Scaffold(
+          body: Builder(
+            builder: (BuildContext context) {
+              surfaceTheme = glassSurfaceTheme(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(surfaceTheme.brightness, Brightness.dark);
+    expect(
+      surfaceTheme.colorScheme.onSurface.computeLuminance(),
+      greaterThan(0.5),
+    );
+    expect(
+      surfaceTheme.textTheme.bodyMedium?.color?.computeLuminance(),
+      greaterThan(0.5),
+    );
+    expect(surfaceTheme.iconTheme.color?.computeLuminance(), greaterThan(0.5));
+    expect(
+      surfaceTheme.appBarTheme.titleTextStyle?.color?.computeLuminance(),
+      greaterThan(0.5),
+    );
+    expect(
+      surfaceTheme.listTileTheme.textColor,
+      surfaceTheme.colorScheme.onSurface,
+    );
+  });
 }

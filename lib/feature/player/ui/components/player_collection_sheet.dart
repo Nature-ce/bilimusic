@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
@@ -11,19 +12,47 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 Future<bool?> showPlayerCollectionSheet({
   required BuildContext context,
   required PlayableItem item,
+  GlassTone? glass,
 }) {
   return showPlayerCollectionItemsSheet(
     context: context,
     items: <PlayableItem>[item],
+    glass: glass,
   );
 }
 
 Future<bool?> showPlayerCollectionItemsSheet({
   required BuildContext context,
   required List<PlayableItem> items,
+  GlassTone? glass,
 }) async {
   if (items.isEmpty) {
     return false;
+  }
+
+  if (glass != null) {
+    return showModalBottomSheet<bool>(
+      useRootNavigator: true,
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      builder: (BuildContext sheetContext) {
+        return Theme(
+          data: glassSurfaceTheme(sheetContext),
+          child: GlassSheetPanel(
+            tone: glass,
+            child: Flexible(
+              child: SafeArea(
+                top: false,
+                child: _PlayerCollectionSheet(items: items),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   return showModalBottomSheet<bool>(

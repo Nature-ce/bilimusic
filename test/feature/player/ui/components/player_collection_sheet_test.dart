@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_membership.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 Color _maskColor(WidgetTester tester) {
   final BuildContext context = tester.element(find.byType(ColorFiltered).first);
@@ -270,4 +272,60 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('播放页进入时弹层是烟熏玻璃 + 白字', (WidgetTester tester) async {
+    final DateTime now = DateTime(2026);
+    final FavoritesState state = FavoritesState(
+      collections: <FavoriteCollection>[
+        FavoriteCollection(
+          id: 'local:1',
+          name: '纯音乐',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [favoritesControllerProvider.overrideWithValue(state)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (BuildContext context) => TextButton(
+                onPressed: () => showPlayerCollectionSheet(
+                  context: context,
+                  item: const PlayableItem(
+                    aid: 1,
+                    bvid: 'BV1',
+                    title: '歌曲',
+                    author: '歌手',
+                    coverUrl: '',
+                  ),
+                  glass: GlassTone.smoke,
+                ),
+                child: const Text('收藏'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('收藏'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassSheetPanel), findsOneWidget);
+    final GlassContainer glass = tester.widget<GlassContainer>(
+      find.byType(GlassContainer).first,
+    );
+    expect(glass.settings?.glassColor, GlassTone.smoke.settings.glassColor);
+
+    final BuildContext sheetContext = tester.element(find.text('纯音乐'));
+    final ThemeData sheetTheme = Theme.of(sheetContext);
+    expect(sheetTheme.brightness, Brightness.dark);
+    expect(
+      tester.widget<Text>(find.text('纯音乐')).style?.color?.computeLuminance(),
+      greaterThan(0.5),
+    );
+    expect(tester.takeException(), isNull);
+  });
 }

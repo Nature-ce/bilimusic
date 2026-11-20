@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/feature/comment/domain/comment_item.dart';
@@ -9,9 +10,11 @@ import 'package:bilimusic/feature/comment/logic/comment_controller.dart';
 import 'package:bilimusic/feature/comment/ui/components/comment_card.dart';
 import 'package:bilimusic/feature/comment/ui/components/comment_composer.dart';
 import 'package:bilimusic/feature/comment/ui/comment_reply_sheet.dart';
+import 'package:bilimusic/feature/player/ui/components/player_dynamic_backdrop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 class CommentPage extends ConsumerStatefulWidget {
   const CommentPage({super.key, required this.target});
@@ -84,173 +87,202 @@ class _CommentPageState extends ConsumerState<CommentPage> {
     final CommentController controller = ref.read(
       commentControllerProvider(widget.target).notifier,
     );
-    final ThemeData theme = Theme.of(context);
+    final ThemeData baseTheme = Theme.of(context);
+    final ThemeData theme = glassSurfaceTheme(context);
     final ColorScheme colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      appBar: PlatformUtil.isDesktop ? null : AppBar(title: const Text('评论')),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: AnimatedSlide(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        offset: _composerButtonVisible ? Offset.zero : const Offset(0, 1.8),
-        child: IgnorePointer(
-          ignoring: !_composerButtonVisible,
-          child: FloatingActionButton(
-            heroTag: null,
-            tooltip: '写评论',
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+    return Theme(
+      data: theme,
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: PlayerDynamicBackdrop(
+              baseColor: baseTheme.colorScheme.primary,
+              coverUrl: widget.target.coverUrl,
             ),
-            onPressed: state.isReadOnly ? null : _openComposer,
-            child: const Icon(Icons.mode_edit_outline_rounded),
           ),
-        ),
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: controller.refresh,
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: <Widget>[
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                sliver: SliverList.list(
-                  children: <Widget>[
-                    _CommentHeader(target: widget.target),
-                    const SizedBox(height: 36),
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: PlatformUtil.isDesktop
+                ? null
+                : AppBar(
+                    title: const Text('评论'),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    scrolledUnderElevation: 0,
+                  ),
+            floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+            floatingActionButton: AnimatedSlide(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              offset: _composerButtonVisible
+                  ? Offset.zero
+                  : const Offset(0, 1.8),
+              child: IgnorePointer(
+                ignoring: !_composerButtonVisible,
+                child: FloatingActionButton(
+                  heroTag: null,
+                  tooltip: '写评论',
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  onPressed: state.isReadOnly ? null : _openComposer,
+                  child: const Icon(Icons.mode_edit_outline_rounded),
+                ),
+              ),
+            ),
+            body: SafeArea(
+              child: RefreshIndicator(
+                onRefresh: controller.refresh,
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: <Widget>[
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      sliver: SliverList.list(
+                        children: <Widget>[
+                          _CommentHeader(target: widget.target),
+                          const SizedBox(height: 36),
+                        ],
+                      ),
+                    ),
+                    if (state.isLoading &&
+                        state.items.isEmpty &&
+                        state.hotItems.isEmpty &&
+                        state.topItem == null)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 48),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      )
+                    else if (state.errorMessage != null &&
+                        state.items.isEmpty &&
+                        state.hotItems.isEmpty &&
+                        state.topItem == null)
+                      SliverStatusView(
+                        child: StatusView(
+                          icon: Icons.error_outline_rounded,
+                          iconColor: Theme.of(context).colorScheme.error,
+                          title: '评论加载失败',
+                          description: state.errorMessage!,
+                          onRetry: controller.loadInitial,
+                        ),
+                      )
+                    else ...<Widget>[
+                      if (state.topItem != null)
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverList.list(
+                            children: <Widget>[
+                              _CommentSectionTitle(title: '置顶评论'),
+                              const SizedBox(height: 8),
+                              CommentCard(
+                                item: state.topItem!,
+                                onToggleLike: () =>
+                                    controller.toggleLike(state.topItem!),
+                                onTap: () =>
+                                    _openComposer(replyTo: state.topItem),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                      if (state.hotItems.isNotEmpty) ...<Widget>[
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverList.list(
+                            children: <Widget>[
+                              _CommentSectionTitle(title: '热评'),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverList.builder(
+                            itemCount: state.hotItems.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              return _buildCommentCard(state.hotItems[index]);
+                            },
+                          ),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                      ],
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList.list(
+                          children: <Widget>[
+                            _CommentSectionHeader(
+                              title: '全部评论',
+                              state: state,
+                              controller: controller,
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        ),
+                      ),
+                      if (state.items.isEmpty)
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverToBoxAdapter(
+                            child: _CommentEmptyCard(
+                              isReadOnly: state.isReadOnly,
+                            ),
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverList.builder(
+                            itemCount: state.items.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              return _buildCommentCard(state.items[index]);
+                            },
+                          ),
+                        ),
+                      if (state.loadMoreErrorMessage != null)
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          sliver: SliverToBoxAdapter(
+                            child: _CommentLoadMoreError(
+                              message: state.loadMoreErrorMessage!,
+                              onRetry: controller.loadNextPage,
+                            ),
+                          ),
+                        ),
+                      if (state.isLoadingMore)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 16),
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        ),
+                      if (!state.isLoadingMore && state.items.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Center(
+                              child: Text(
+                                state.hasMore ? '继续上滑加载更多' : '没有更多评论了',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                    const SliverToBoxAdapter(child: SizedBox(height: 96)),
                   ],
                 ),
               ),
-              if (state.isLoading &&
-                  state.items.isEmpty &&
-                  state.hotItems.isEmpty &&
-                  state.topItem == null)
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 48),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                )
-              else if (state.errorMessage != null &&
-                  state.items.isEmpty &&
-                  state.hotItems.isEmpty &&
-                  state.topItem == null)
-                SliverStatusView(
-                  child: StatusView(
-                    icon: Icons.error_outline_rounded,
-                    iconColor: Theme.of(context).colorScheme.error,
-                    title: '评论加载失败',
-                    description: state.errorMessage!,
-                    onRetry: controller.loadInitial,
-                  ),
-                )
-              else ...<Widget>[
-                if (state.topItem != null)
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList.list(
-                      children: <Widget>[
-                        _CommentSectionTitle(title: '置顶评论'),
-                        const SizedBox(height: 8),
-                        CommentCard(
-                          item: state.topItem!,
-                          onToggleLike: () =>
-                              controller.toggleLike(state.topItem!),
-                          onTap: () => _openComposer(replyTo: state.topItem),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                if (state.hotItems.isNotEmpty) ...<Widget>[
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList.list(
-                      children: <Widget>[
-                        _CommentSectionTitle(title: '热评'),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList.builder(
-                      itemCount: state.hotItems.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return _buildCommentCard(state.hotItems[index]);
-                      },
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                ],
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList.list(
-                    children: <Widget>[
-                      _CommentSectionHeader(
-                        title: '全部评论',
-                        state: state,
-                        controller: controller,
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                  ),
-                ),
-                if (state.items.isEmpty)
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverToBoxAdapter(
-                      child: _CommentEmptyCard(isReadOnly: state.isReadOnly),
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList.builder(
-                      itemCount: state.items.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return _buildCommentCard(state.items[index]);
-                      },
-                    ),
-                  ),
-                if (state.loadMoreErrorMessage != null)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    sliver: SliverToBoxAdapter(
-                      child: _CommentLoadMoreError(
-                        message: state.loadMoreErrorMessage!,
-                        onRetry: controller.loadNextPage,
-                      ),
-                    ),
-                  ),
-                if (state.isLoadingMore)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 16),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  ),
-                if (!state.isLoadingMore && state.items.isNotEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Center(
-                        child: Text(
-                          state.hasMore ? '继续上滑加载更多' : '没有更多评论了',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-              const SliverToBoxAdapter(child: SizedBox(height: 96)),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -260,22 +292,26 @@ class _CommentPageState extends ConsumerState<CommentPage> {
       commentControllerProvider(widget.target).notifier,
     );
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: CommentCard(
-        item: item,
-        showReplyPreview: true,
-        showReplyEntry: true,
-        onToggleLike: () => controller.toggleLike(item),
-        onTap: () => _openComposer(replyTo: item),
-        onOpenReplies: item.replyCount > 0
-            ? () => showCommentReplySheet(
-                context: context,
-                target: widget.target,
-                rootItem: item,
-              )
-            : null,
+      child: GlassPanel(
+        tone: GlassTone.smoke,
+        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+        padding: const EdgeInsets.all(16),
+        child: CommentCard(
+          item: item,
+          showReplyPreview: true,
+          showReplyEntry: true,
+          onToggleLike: () => controller.toggleLike(item),
+          onTap: () => _openComposer(replyTo: item),
+          onOpenReplies: item.replyCount > 0
+              ? () => showCommentReplySheet(
+                  context: context,
+                  target: widget.target,
+                  rootItem: item,
+                )
+              : null,
+        ),
       ),
     );
   }
@@ -487,15 +523,14 @@ class _CommentEmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassPanel(
+      tone: GlassTone.smoke,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-      ),
       child: Text(
         isReadOnly ? '当前评论区为只读状态' : '还没有评论',
         textAlign: TextAlign.center,
+        style: TextStyle(color: GlassTone.smoke.primaryText),
       ),
     );
   }

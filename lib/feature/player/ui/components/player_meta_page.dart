@@ -49,7 +49,7 @@ class PlayerMetaSheet extends StatelessWidget {
     final String author = normalizeDisplayTextOrEmpty(item?.author);
 
     return GlassPanel(
-      tone: GlassTone.frost,
+      tone: GlassTone.smoke,
       shape: const LiquidRoundedSuperellipse(borderRadius: 28),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -58,7 +58,7 @@ class PlayerMetaSheet extends StatelessWidget {
           Text(
             '播放信息',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: GlassTone.frost.primaryText,
+              color: GlassTone.smoke.primaryText,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -99,7 +99,7 @@ class PlayerMetaRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : Border(bottom: BorderSide(color: GlassTone.frost.divider)),
+            : Border(bottom: BorderSide(color: GlassTone.smoke.divider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +109,7 @@ class PlayerMetaRow extends StatelessWidget {
             child: Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: GlassTone.frost.secondaryText,
+                color: GlassTone.smoke.secondaryText,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -118,7 +118,7 @@ class PlayerMetaRow extends StatelessWidget {
             child: Text(
               value,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: GlassTone.frost.primaryText,
+                color: GlassTone.smoke.primaryText,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -185,7 +185,7 @@ class PlayerStatsGrid extends StatelessWidget {
     ];
 
     return GlassPanel(
-      tone: GlassTone.frost,
+      tone: GlassTone.smoke,
       shape: const LiquidRoundedSuperellipse(borderRadius: 28),
       padding: const EdgeInsets.all(AppSpacing.md),
       child: GridView.builder(
@@ -235,7 +235,7 @@ class PlayerStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.45),
+        color: Colors.white.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -244,12 +244,12 @@ class PlayerStatCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: activeColor.withValues(alpha: 0.14),
+              color: activeColor.withValues(alpha: 0.22),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
               entry.icon,
-              color: ColorUtil.getShade(activeColor, 600),
+              color: ColorUtil.getLight(activeColor),
               size: 19,
             ),
           ),
@@ -262,7 +262,7 @@ class PlayerStatCard extends StatelessWidget {
                 Text(
                   entry.label,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: GlassTone.frost.secondaryText,
+                    color: GlassTone.smoke.secondaryText,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -272,7 +272,7 @@ class PlayerStatCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: GlassTone.frost.primaryText,
+                    color: GlassTone.smoke.primaryText,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -295,7 +295,7 @@ class PlayerDescriptionCard extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
 
     return GlassPanel(
-      tone: GlassTone.frost,
+      tone: GlassTone.smoke,
       shape: const LiquidRoundedSuperellipse(borderRadius: 28),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -304,7 +304,7 @@ class PlayerDescriptionCard extends StatelessWidget {
           Text(
             '简介',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: GlassTone.frost.primaryText,
+              color: GlassTone.smoke.primaryText,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -312,7 +312,7 @@ class PlayerDescriptionCard extends StatelessWidget {
           Text(
             description,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: GlassTone.frost.secondaryText,
+              color: GlassTone.smoke.secondaryText,
               height: 1.55,
               fontWeight: FontWeight.w500,
             ),
