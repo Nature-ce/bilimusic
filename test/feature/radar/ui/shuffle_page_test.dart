@@ -1,5 +1,3 @@
-import 'package:bilimusic/core/theme/app_theme.dart';
-import 'package:bilimusic/core/theme/theme_catalog.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/domain/matchable_track.dart';
@@ -12,7 +10,6 @@ import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
 import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:bilimusic/feature/radar/ui/components/music_radar_visual.dart';
-import 'package:bilimusic/feature/radar/ui/components/shuffle_card.dart';
 import 'package:bilimusic/feature/radar/ui/shuffle_page.dart';
 import 'package:bilimusic/feature/search/data/bili_search_repository.dart';
 import 'package:flutter/material.dart';
@@ -48,7 +45,6 @@ List<HotPlaylistTrack> _tracks() {
 
 class _LoadedFeed extends MusicRadarController {
   int scanCalls = 0;
-  final List<int> ensuredIndexes = <int>[];
 
   @override
   MusicRadarState build() =>
@@ -58,16 +54,6 @@ class _LoadedFeed extends MusicRadarController {
   Future<void> scan() async {
     scanCalls += 1;
   }
-
-  @override
-  void ensureFeedAt(int index) {
-    ensuredIndexes.add(index);
-  }
-}
-
-class _ScanningFeed extends MusicRadarController {
-  @override
-  MusicRadarState build() => const MusicRadarState(isScanning: true);
 }
 
 class _EmptyFeed extends MusicRadarController {
@@ -85,20 +71,37 @@ class _FakePlayerRepository implements BiliPlayerRepository {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-class _NullResolver extends MusicChartResolver {
-  _NullResolver()
+class _ResolvedResolver extends MusicChartResolver {
+  _ResolvedResolver({this.fail = false})
     : super(
         searchRepository: _FakeSearchRepository(),
         playerRepository: _FakePlayerRepository(),
       );
 
+  final bool fail;
+
   @override
-  Future<PlayableItem?> resolve(MatchableTrack track) async => null;
+  Future<PlayableItem?> resolve(MatchableTrack track) async {
+    if (fail) {
+      return null;
+    }
+    return PlayableItem(
+      aid: track.title.hashCode.abs(),
+      bvid: 'BV${track.title.hashCode.abs()}',
+      cid: 1,
+      title: track.title,
+      author: track.artist,
+      coverUrl: '',
+    );
+  }
 }
 
 class _FakePlayer extends PlayerController {
+  final List<String?> queuedLabels = <String?>[];
   final List<List<PlayableItem>> queued = <List<PlayableItem>>[];
-  int toggleCalls = 0;
+  int skipNextCalls = 0;
+  int skipPreviousCalls = 0;
+  List<PlayableItem> enqueued = <PlayableItem>[];
 
   @override
   PlayerState build() => const PlayerState();
@@ -112,18 +115,29 @@ class _FakePlayer extends PlayerController {
     Duration initialPosition = Duration.zero,
   }) async {
     queued.add(items);
+    queuedLabels.add(sourceLabel);
   }
 
   @override
-  Future<void> togglePlayback() async {
-    toggleCalls += 1;
+  Future<void> skipToNext() async {
+    skipNextCalls += 1;
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    skipPreviousCalls += 1;
+  }
+
+  @override
+  Future<void> enqueue(List<PlayableItem> items) async {
+    enqueued = items;
   }
 }
 
 Future<ProviderContainer> _pumpPage(
   WidgetTester tester, {
   required MusicRadarController Function() controller,
-  bool settle = true,
+  MusicChartResolver? resolver,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -133,7 +147,9 @@ Future<ProviderContainer> _pumpPage(
   final ProviderContainer container = ProviderContainer(
     overrides: [
       musicRadarControllerProvider.overrideWith(controller),
-      musicChartResolverProvider.overrideWith((Ref ref) => _NullResolver()),
+      musicChartResolverProvider.overrideWith(
+        (Ref ref) => resolver ?? _ResolvedResolver(),
+      ),
       playerControllerProvider.overrideWith(_FakePlayer.new),
     ],
   );
@@ -142,101 +158,59 @@ Future<ProviderContainer> _pumpPage(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: AppTheme.lightTheme(defaultThemeVariantId),
-        home: const ShufflePage(),
-      ),
+      child: const MaterialApp(home: ShufflePage()),
     ),
   );
-  if (settle) {
-    await tester.pumpAndSettle();
-  } else {
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-  }
+  await tester.pumpAndSettle();
   return container;
 }
 
 void main() {
-  testWidgets('renders the first card as an immersive shuffle page', (
-    WidgetTester tester,
-  ) async {
-    await _pumpPage(tester, controller: _LoadedFeed.new);
-
-    expect(find.byType(ShuffleCard), findsOneWidget);
-    expect(find.text('刷歌'), findsOneWidget);
-    expect(find.text('1 / 2'), findsOneWidget);
-    expect(find.text('刷歌歌曲一'), findsOneWidget);
-    expect(find.text('歌手甲'), findsOneWidget);
-    expect(find.textContaining('来自 网易云'), findsOneWidget);
-    expect(find.text('试试上下滑，发现更多好歌'), findsOneWidget);
-    // 第二张卡还没滑到，不应渲染出来。
-    expect(find.text('刷歌歌曲二'), findsNothing);
-  });
-
-  testWidgets('swiping up moves to the next card and asks for more tracks', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('进入刷歌会把推荐曲目装进播放队列', (WidgetTester tester) async {
     final ProviderContainer container = await _pumpPage(
       tester,
       controller: _LoadedFeed.new,
     );
 
-    await tester.drag(find.byType(PageView), const Offset(0, -600));
-    await tester.pumpAndSettle();
-
-    expect(find.text('刷歌歌曲二'), findsOneWidget);
-    expect(find.text('2 / 2'), findsOneWidget);
-
-    final _LoadedFeed feed =
-        container.read(musicRadarControllerProvider.notifier) as _LoadedFeed;
-    expect(feed.ensuredIndexes, contains(1));
+    final _FakePlayer player =
+        container.read(playerControllerProvider.notifier) as _FakePlayer;
+    expect(player.queued, hasLength(1));
+    expect(player.queuedLabels.single, '刷歌');
+    expect(player.queued.single, hasLength(2));
+    expect(
+      player.queued.single.map((PlayableItem item) => item.title),
+      <String>['刷歌歌曲一', '刷歌歌曲二'],
+    );
   });
 
-  testWidgets('换一批 asks the controller to rebuild the feed', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('队列建好后展示完整播放页', (WidgetTester tester) async {
     final ProviderContainer container = await _pumpPage(
       tester,
       controller: _LoadedFeed.new,
     );
-
-    await tester.tap(find.byTooltip('换一批'));
-    await tester.pump();
-
-    final _LoadedFeed feed =
-        container.read(musicRadarControllerProvider.notifier) as _LoadedFeed;
-    expect(feed.scanCalls, 1);
+    // 队列装好但当前没有播放项时，仍然是刷歌的待命态。
+    expect(find.text('正在为你挑歌'), findsNothing);
+    expect(container.read(playerControllerProvider).currentItem, isNull);
+    expect(find.text('暂无歌曲'), findsOneWidget);
   });
 
-  testWidgets('auto matching reports a failed match without crashing', (
-    WidgetTester tester,
-  ) async {
-    await _pumpPage(tester, controller: _LoadedFeed.new);
+  testWidgets('每首都匹配不到时给出可重试的错误态', (WidgetTester tester) async {
+    await _pumpPage(
+      tester,
+      controller: _LoadedFeed.new,
+      resolver: _ResolvedResolver(fail: true),
+    );
 
-    await tester.pump(const Duration(milliseconds: 600));
-    await tester.pump();
-
-    expect(find.text('没找到匹配的 B 站视频'), findsOneWidget);
-    expect(find.text('重试'), findsOneWidget);
+    expect(find.text('刷歌暂时没有发现'), findsOneWidget);
+    expect(find.text('推荐歌曲都还没匹配到 B 站视频，换个批次再试'), findsOneWidget);
+    expect(find.text('重新取样'), findsOneWidget);
   });
 
-  testWidgets('shows the scanning state before results arrive', (
-    WidgetTester tester,
-  ) async {
-    await _pumpPage(tester, controller: _ScanningFeed.new, settle: false);
-
-    expect(find.text('正在为你挑歌'), findsOneWidget);
-    expect(find.byType(MusicRadarVisual), findsOneWidget);
-    expect(find.byType(ShuffleCard), findsNothing);
-  });
-
-  testWidgets('shows an empty state with a rescan action', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('推荐为空时也能给出提示与重试', (WidgetTester tester) async {
     await _pumpPage(tester, controller: _EmptyFeed.new);
 
-    expect(find.text('暂无歌曲'), findsOneWidget);
-    expect(find.text('重新扫描'), findsOneWidget);
+    expect(find.text('刷歌暂时没有发现'), findsOneWidget);
+    expect(find.text('重新取样'), findsOneWidget);
+    expect(find.byType(MusicRadarVisual), findsNothing);
   });
 }

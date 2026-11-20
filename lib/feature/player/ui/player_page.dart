@@ -29,9 +29,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PlayerPage extends ConsumerStatefulWidget {
-  const PlayerPage({super.key, this.initialItem});
+  const PlayerPage({
+    super.key,
+    this.initialItem,
+    this.embedded = false,
+    this.bottomInset = 0,
+  });
 
   final PlayableItem? initialItem;
+
+  /// 嵌入到 Tab 里（例如刷歌页）时使用：不显示返回箭头、不响应下滑关闭。
+  final bool embedded;
+
+  /// 嵌入时底部需要预留的空白，避免被悬浮导航遮挡。
+  final double bottomInset;
 
   @override
   ConsumerState<PlayerPage> createState() => _PlayerPageState();
@@ -103,154 +114,178 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
         item != null && (availableParts.length > 1 || chapters.length > 1);
     final bool isFavorite = item != null ? favoritesState.isLiked(item) : false;
     final bool isLyricPageActive = _currentPage == 2;
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     final Color? coverColor = ref.watch(playerCoverColorControllerProvider);
 
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
-      return Scaffold(
-        backgroundColor: colorScheme.surface,
-        body: Stack(
-          children: <Widget>[
-            Positioned.fill(
-              child: PlayerDynamicBackdrop(baseColor: coverColor),
-            ),
-            SafeArea(
-              child: PlayerLandscapePage(
-                state: state,
-                item: item,
-                display: display,
-                activeColor: coverColor,
-                isFavorite: isFavorite,
-                onFavoriteToggle: item == null
-                    ? null
-                    : () => _toggleFavorite(item),
-                onSeek: _seekFromProgressBar,
+      return Theme(
+        data: _playerTheme(context),
+        child: Scaffold(
+          backgroundColor: _playerBackground,
+          body: Stack(
+            children: <Widget>[
+              Positioned.fill(
+                child: PlayerDynamicBackdrop(
+                  baseColor: coverColor,
+                  coverUrl: display.coverUrl,
+                ),
               ),
-            ),
-          ],
+              SafeArea(
+                child: PlayerLandscapePage(
+                  state: state,
+                  item: item,
+                  display: display,
+                  activeColor: coverColor,
+                  isFavorite: isFavorite,
+                  onFavoriteToggle: item == null
+                      ? null
+                      : () => _toggleFavorite(item),
+                  onSeek: _seekFromProgressBar,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: Stack(
-        children: <Widget>[
-          Positioned.fill(child: PlayerDynamicBackdrop(baseColor: coverColor)),
-          SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
+    return Theme(
+      data: _playerTheme(context),
+      child: Scaffold(
+        backgroundColor: _playerBackground,
+        body: Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: PlayerDynamicBackdrop(
+                baseColor: coverColor,
+                coverUrl: display.coverUrl,
+              ),
+            ),
+            SafeArea(
+              minimum: EdgeInsets.only(bottom: widget.bottomInset),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
 
-                child: Column(
-                  children: <Widget>[
-                    Listener(
-                      behavior: HitTestBehavior.translucent,
-                      onPointerDown: (PointerDownEvent event) {
-                        _topBarDragOrigin = event.position;
-                      },
-                      onPointerCancel: (PointerCancelEvent event) {
-                        _topBarDragOrigin = null;
-                      },
-                      onPointerUp: (PointerUpEvent event) {
-                        final Offset? origin = _topBarDragOrigin;
-                        _topBarDragOrigin = null;
-                        if (origin == null) {
-                          return;
-                        }
-                        if (PlayerGestureMath.pageShouldDismiss(
-                          event.position - origin,
-                        )) {
-                          Navigator.of(context).maybePop();
-                        }
-                      },
-                      child: PlayerTopBar(
-                        currentPage: _currentPage,
-                        onBack: () => Navigator.of(context).maybePop(),
-                        onOpenMenu: item == null
-                            ? null
-                            : () => _showPlayerMenu(item),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Expanded(
-                      child: PageView(
-                        key: const PageStorageKey<String>('playerPages'),
-                        controller: _pageController,
-                        onPageChanged: (int index) {
-                          setState(() {
-                            _currentPage = index;
-                          });
-                        },
-                        children: <Widget>[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: PlayerMetaPage(state: state, item: item),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: PlayerMainPage(
-                              state: state,
-                              item: item,
-                              display: display,
-                              commentCount: item?.replyCount,
-                              canOpenJumpPanel: canOpenJumpPanel,
-                              onPartTap: !canOpenJumpPanel
-                                  ? null
-                                  : () => _openJumpPanel(
-                                      context,
-                                      state,
-                                      item,
-                                      availableParts,
-                                      playerController,
-                                    ),
-                              onOpenCollectionSheet: item == null
-                                  ? null
-                                  : () => showPlayerCollectionSheet(
-                                      context: context,
-                                      item: item,
-                                    ),
-                              isFavorite: isFavorite,
-                              onFavoriteToggle: item == null
-                                  ? null
-                                  : () => _toggleFavorite(item),
-                              onToggleSource: _toggleDisplaySource,
-                              onSeek: _seekFromProgressBar,
-                              onToggleQueueMode:
-                                  playerController.toggleQueueMode,
-                              onBackward: playerController.skipToPrevious,
-                              onTogglePlayback: playerController.togglePlayback,
-                              onForward: playerController.skipToNext,
-                              onOpenQueue: () => showPlayerQueueSheet(
-                                context: context,
-                                state: state,
+                  child: Column(
+                    children: <Widget>[
+                      _buildTopBar(context, item),
+                      const SizedBox(height: 18),
+                      Expanded(
+                        child: PageView(
+                          key: const PageStorageKey<String>('playerPages'),
+                          controller: _pageController,
+                          onPageChanged: (int index) {
+                            setState(() {
+                              _currentPage = index;
+                            });
+                          },
+                          children: <Widget>[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
                               ),
-                              onOpenComments: item == null
-                                  ? null
-                                  : () => _openComments(item),
+                              child: PlayerMetaPage(state: state, item: item),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: PlayerLyricPage(
-                              state: state,
-                              item: item,
-                              isActive: isLyricPageActive,
-                              onSeek: playerController.seek,
-                              activeColor: coverColor,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: PlayerMainPage(
+                                state: state,
+                                item: item,
+                                display: display,
+                                commentCount: item?.replyCount,
+                                canOpenJumpPanel: canOpenJumpPanel,
+                                onPartTap: !canOpenJumpPanel
+                                    ? null
+                                    : () => _openJumpPanel(
+                                        context,
+                                        state,
+                                        item,
+                                        availableParts,
+                                        playerController,
+                                      ),
+                                onOpenCollectionSheet: item == null
+                                    ? null
+                                    : () => showPlayerCollectionSheet(
+                                        context: context,
+                                        item: item,
+                                      ),
+                                isFavorite: isFavorite,
+                                onFavoriteToggle: item == null
+                                    ? null
+                                    : () => _toggleFavorite(item),
+                                onToggleSource: _toggleDisplaySource,
+                                onSeek: _seekFromProgressBar,
+                                onToggleQueueMode:
+                                    playerController.toggleQueueMode,
+                                onBackward: playerController.skipToPrevious,
+                                onTogglePlayback:
+                                    playerController.togglePlayback,
+                                onForward: playerController.skipToNext,
+                                onOpenQueue: () => showPlayerQueueSheet(
+                                  context: context,
+                                  state: state,
+                                ),
+                                onOpenComments: item == null
+                                    ? null
+                                    : () => _openComments(item),
+                              ),
                             ),
-                          ),
-                        ],
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              child: PlayerLyricPage(
+                                state: state,
+                                item: item,
+                                isActive: isLyricPageActive,
+                                onSeek: playerController.seek,
+                                activeColor: coverColor,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildTopBar(BuildContext context, PlayableItem? item) {
+    final Widget bar = PlayerTopBar(
+      currentPage: _currentPage,
+      onBack: widget.embedded ? null : () => Navigator.of(context).maybePop(),
+      onOpenMenu: item == null ? null : () => _showPlayerMenu(item),
+    );
+    if (widget.embedded) {
+      return bar;
+    }
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (PointerDownEvent event) {
+        _topBarDragOrigin = event.position;
+      },
+      onPointerCancel: (PointerCancelEvent event) {
+        _topBarDragOrigin = null;
+      },
+      onPointerUp: (PointerUpEvent event) {
+        final Offset? origin = _topBarDragOrigin;
+        _topBarDragOrigin = null;
+        if (origin == null) {
+          return;
+        }
+        if (PlayerGestureMath.pageShouldDismiss(event.position - origin)) {
+          Navigator.of(context).maybePop();
+        }
+      },
+      child: bar,
     );
   }
 
@@ -429,6 +464,26 @@ PlayerState _withoutPlaybackPosition(PlayerState state) {
     return state;
   }
   return state.copyWith(position: Duration.zero);
+}
+
+/// 播放页统一深色底：与刷歌页共用同一套「深色 + 白字」视觉。
+const Color _playerBackground = Color(0xFF15100E);
+
+ThemeData _playerTheme(BuildContext context) {
+  final ThemeData theme = Theme.of(context);
+  if (theme.brightness == Brightness.dark) {
+    return theme;
+  }
+  final ColorScheme scheme = theme.colorScheme;
+  return theme.copyWith(
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: scheme.primary,
+      brightness: Brightness.dark,
+    ),
+    scaffoldBackgroundColor: _playerBackground,
+    canvasColor: _playerBackground,
+  );
 }
 
 Future<void> _openInBrowser(PlayableItem item) async {

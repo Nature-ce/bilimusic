@@ -11,7 +11,7 @@ class PlayerTopBar extends StatelessWidget {
   });
 
   final int currentPage;
-  final VoidCallback onBack;
+  final VoidCallback? onBack;
   final VoidCallback? onOpenMenu;
 
   @override
@@ -20,10 +20,13 @@ class PlayerTopBar extends StatelessWidget {
       height: 48,
       child: Row(
         children: <Widget>[
-          IconButton(
-            onPressed: onBack,
-            icon: const Icon(Icons.keyboard_arrow_down_rounded),
-          ),
+          if (onBack != null)
+            IconButton(
+              onPressed: onBack,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+            )
+          else
+            const SizedBox(width: 48),
           Expanded(
             child: Center(child: PlayerPageIndicator(currentPage: currentPage)),
           ),
