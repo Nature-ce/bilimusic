@@ -17,6 +17,7 @@ SearchResultItem _item({
   String title = '',
   String author = '',
   String duration = '00:00',
+  String playCount = '',
 }) {
   return SearchResultItem(
     aid: 1,
@@ -26,7 +27,7 @@ SearchResultItem _item({
     author: author,
     coverUrl: '',
     duration: duration,
-    playCountText: '',
+    playCountText: playCount,
     danmakuCountText: '',
     publishTimeText: '',
     tagText: '',
@@ -172,6 +173,71 @@ void main() {
         ],
       ),
       isNotNull,
+    );
+  });
+
+  test('rejects a 2-minute cut of a 3-minute song', () {
+    // 原策略会收下；新策略按时长占比直接淘汰。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '03:00'),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('rejects a candidate much longer than the song', () {
+    // 4:29 的歌匹配到 6:30 的拼接视频。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '06:30'),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('prefers the upload whose duration is closest', () {
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '04:03'),
+          _item(title: '晴天 - 周杰伦', duration: '04:27'),
+        ],
+      )?.duration,
+      '04:27',
+    );
+  });
+
+  test('prefers the more popular upload when scores tie', () {
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '04:29', playCount: '5097'),
+          _item(title: '晴天 - 周杰伦', duration: '04:29', playCount: '218.4万'),
+        ],
+      )?.playCountText,
+      '218.4万',
+    );
+  });
+
+  test('prefers the complete version over a compilation-looking title', () {
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦 合集', duration: '04:29'),
+          _item(title: '晴天 - 周杰伦 完整版', duration: '04:29'),
+        ],
+      )?.title,
+      contains('完整版'),
     );
   });
 
