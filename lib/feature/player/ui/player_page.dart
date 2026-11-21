@@ -58,6 +58,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   int _currentPage = 1;
   int _pageDirection = 1;
   double _pageDragDx = 0;
+  double _dismissDragDy = 0;
+  Offset? _dismissPointerOrigin;
+  Duration? _dismissPointerAt;
   Offset? _topBarDragOrigin;
 
   @override
@@ -165,104 +168,115 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                 coverUrl: display.coverUrl,
               ),
             ),
-            SafeArea(
-              minimum: EdgeInsets.only(bottom: widget.bottomInset),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
+            Transform.translate(
+              offset: Offset(0, _dismissDragDy),
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleDismissPointerDown,
+                onPointerMove: _handleDismissPointerMove,
+                onPointerUp: _handleDismissPointerUp,
+                onPointerCancel: _handleDismissPointerCancel,
+                child: SafeArea(
+                  minimum: EdgeInsets.only(bottom: widget.bottomInset),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
 
-                  child: Column(
-                    children: <Widget>[
-                      _buildTopBar(context, item),
-                      const SizedBox(height: 18),
-                      Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onHorizontalDragStart: _handlePageDragStart,
-                          onHorizontalDragUpdate: _handlePageDragUpdate,
-                          onHorizontalDragEnd: _handlePageSwipe,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 220),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeOutCubic,
-                            transitionBuilder: _buildPageTransition,
-                            child: KeyedSubtree(
-                              key: ValueKey<int>(_currentPage),
-                              child: switch (_currentPage) {
-                                0 => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  child: PlayerMetaPage(
-                                    state: state,
-                                    item: item,
-                                  ),
-                                ),
-                                2 => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  child: PlayerLyricPage(
-                                    state: state,
-                                    item: item,
-                                    isActive: isLyricPageActive,
-                                    onSeek: playerController.seek,
-                                    activeColor: coverColor,
-                                  ),
-                                ),
-                                _ => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  child: PlayerMainPage(
-                                    state: state,
-                                    item: item,
-                                    display: display,
-                                    commentCount: item?.replyCount,
-                                    canOpenJumpPanel: canOpenJumpPanel,
-                                    onPartTap: !canOpenJumpPanel
-                                        ? null
-                                        : () => _openJumpPanel(
-                                            context,
-                                            state,
-                                            item,
-                                            availableParts,
-                                            playerController,
-                                          ),
-                                    onOpenCollectionSheet: item == null
-                                        ? null
-                                        : () => showPlayerCollectionSheet(
-                                            context: context,
-                                            item: item,
-                                            glass: GlassTone.smoke,
-                                          ),
-                                    isFavorite: isFavorite,
-                                    onFavoriteToggle: item == null
-                                        ? null
-                                        : () => _toggleFavorite(item),
-                                    onToggleSource: _toggleDisplaySource,
-                                    onSeek: _seekFromProgressBar,
-                                    onToggleQueueMode:
-                                        playerController.toggleQueueMode,
-                                    onBackward: playerController.skipToPrevious,
-                                    onTogglePlayback:
-                                        playerController.togglePlayback,
-                                    onForward: playerController.skipToNext,
-                                    onOpenQueue: () => showPlayerQueueSheet(
-                                      context: context,
-                                      state: state,
+                      child: Column(
+                        children: <Widget>[
+                          _buildTopBar(context, item),
+                          const SizedBox(height: 18),
+                          Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onHorizontalDragStart: _handlePageDragStart,
+                              onHorizontalDragUpdate: _handlePageDragUpdate,
+                              onHorizontalDragEnd: _handlePageSwipe,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 220),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeOutCubic,
+                                transitionBuilder: _buildPageTransition,
+                                child: KeyedSubtree(
+                                  key: ValueKey<int>(_currentPage),
+                                  child: switch (_currentPage) {
+                                    0 => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: PlayerMetaPage(
+                                        state: state,
+                                        item: item,
+                                      ),
                                     ),
-                                    onOpenComments: item == null
-                                        ? null
-                                        : () => _openComments(item),
-                                  ),
+                                    2 => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                      ),
+                                      child: PlayerLyricPage(
+                                        state: state,
+                                        item: item,
+                                        isActive: isLyricPageActive,
+                                        onSeek: playerController.seek,
+                                        activeColor: coverColor,
+                                      ),
+                                    ),
+                                    _ => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: PlayerMainPage(
+                                        state: state,
+                                        item: item,
+                                        display: display,
+                                        commentCount: item?.replyCount,
+                                        canOpenJumpPanel: canOpenJumpPanel,
+                                        onPartTap: !canOpenJumpPanel
+                                            ? null
+                                            : () => _openJumpPanel(
+                                                context,
+                                                state,
+                                                item,
+                                                availableParts,
+                                                playerController,
+                                              ),
+                                        onOpenCollectionSheet: item == null
+                                            ? null
+                                            : () => showPlayerCollectionSheet(
+                                                context: context,
+                                                item: item,
+                                                glass: GlassTone.smoke,
+                                              ),
+                                        isFavorite: isFavorite,
+                                        onFavoriteToggle: item == null
+                                            ? null
+                                            : () => _toggleFavorite(item),
+                                        onToggleSource: _toggleDisplaySource,
+                                        onSeek: _seekFromProgressBar,
+                                        onToggleQueueMode:
+                                            playerController.toggleQueueMode,
+                                        onBackward:
+                                            playerController.skipToPrevious,
+                                        onTogglePlayback:
+                                            playerController.togglePlayback,
+                                        onForward: playerController.skipToNext,
+                                        onOpenQueue: () => showPlayerQueueSheet(
+                                          context: context,
+                                          state: state,
+                                        ),
+                                        onOpenComments: item == null
+                                            ? null
+                                            : () => _openComments(item),
+                                      ),
+                                    ),
+                                  },
                                 ),
-                              },
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -271,6 +285,68 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
         ),
       ),
     );
+  }
+
+  /// 主页面下滑退出播放页：拖到一定距离或甩得够快就关，否则弹回。
+  ///
+  /// 用原始指针事件而不是 GestureDetector：主页面里各种子控件（进度条、按钮、
+  /// 可滚动列表）会抢手势竞技场，竖向拖动经常轮不到父级。
+  void _handleDismissPointerDown(PointerDownEvent event) {
+    _dismissPointerOrigin = event.position;
+    _dismissPointerAt = event.timeStamp;
+  }
+
+  void _handleDismissPointerMove(PointerMoveEvent event) {
+    final Offset? origin = _dismissPointerOrigin;
+    if (origin == null || _currentPage != 1) {
+      return;
+    }
+    final double next = (event.position.dy - origin.dy).clamp(0.0, 400.0);
+    if (next == _dismissDragDy) {
+      return;
+    }
+    setState(() => _dismissDragDy = next);
+  }
+
+  void _handleDismissPointerUp(PointerUpEvent event) {
+    final Offset? origin = _dismissPointerOrigin;
+    final Duration? startedAt = _dismissPointerAt;
+    _dismissPointerOrigin = null;
+    _dismissPointerAt = null;
+    final double dragged = _dismissDragDy;
+    double speed = 0;
+    if (origin != null && startedAt != null) {
+      final int elapsedMs = (event.timeStamp - startedAt).inMilliseconds;
+      if (elapsedMs > 0) {
+        speed = (event.position.dy - origin.dy) / (elapsedMs / 1000);
+      }
+    }
+    if (_currentPage == 1 && (dragged > 140 || speed > 700)) {
+      _closePlayerPage();
+      return;
+    }
+    if (dragged != 0) {
+      setState(() => _dismissDragDy = 0);
+    }
+  }
+
+  void _handleDismissPointerCancel(PointerCancelEvent event) {
+    _dismissPointerOrigin = null;
+    _dismissPointerAt = null;
+    if (_dismissDragDy != 0) {
+      setState(() => _dismissDragDy = 0);
+    }
+  }
+
+  void _closePlayerPage() {
+    if (_dismissDragDy != 0) {
+      setState(() => _dismissDragDy = 0);
+    }
+    if (widget.embedded) {
+      widget.onExit?.call();
+      return;
+    }
+    Navigator.of(context).maybePop();
   }
 
   /// 横向滑动切页。
@@ -346,7 +422,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
           return;
         }
         if (PlayerGestureMath.pageShouldDismiss(event.position - origin)) {
-          Navigator.of(context).maybePop();
+          _closePlayerPage();
         }
       },
       child: bar,
