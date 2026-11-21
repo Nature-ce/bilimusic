@@ -14,6 +14,7 @@ abstract class HotPlaylist with _$HotPlaylist {
     required String coverUrl,
     @Default(0) int playCount,
     @Default(0) int trackCount,
+    @Default(0) int favoriteCount,
     @Default('') String creator,
     @Default('') String description,
   }) = _HotPlaylist;

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HotPlaylist {
 
- MusicChartPlatform get platform; String get id; String get name; String get coverUrl; int get playCount; int get trackCount; String get creator; String get description;
+ MusicChartPlatform get platform; String get id; String get name; String get coverUrl; int get playCount; int get trackCount; int get favoriteCount; String get creator; String get description;
 /// Create a copy of HotPlaylist
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $HotPlaylistCopyWith<HotPlaylist> get copyWith => _$HotPlaylistCopyWithImpl<HotP
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HotPlaylist&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.playCount, playCount) || other.playCount == playCount)&&(identical(other.trackCount, trackCount) || other.trackCount == trackCount)&&(identical(other.creator, creator) || other.creator == creator)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HotPlaylist&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.playCount, playCount) || other.playCount == playCount)&&(identical(other.trackCount, trackCount) || other.trackCount == trackCount)&&(identical(other.favoriteCount, favoriteCount) || other.favoriteCount == favoriteCount)&&(identical(other.creator, creator) || other.creator == creator)&&(identical(other.description, description) || other.description == description));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,platform,id,name,coverUrl,playCount,trackCount,creator,description);
+int get hashCode => Object.hash(runtimeType,platform,id,name,coverUrl,playCount,trackCount,favoriteCount,creator,description);
 
 @override
 String toString() {
-  return 'HotPlaylist(platform: $platform, id: $id, name: $name, coverUrl: $coverUrl, playCount: $playCount, trackCount: $trackCount, creator: $creator, description: $description)';
+  return 'HotPlaylist(platform: $platform, id: $id, name: $name, coverUrl: $coverUrl, playCount: $playCount, trackCount: $trackCount, favoriteCount: $favoriteCount, creator: $creator, description: $description)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $HotPlaylistCopyWith<$Res>  {
   factory $HotPlaylistCopyWith(HotPlaylist value, $Res Function(HotPlaylist) _then) = _$HotPlaylistCopyWithImpl;
 @useResult
 $Res call({
- MusicChartPlatform platform, String id, String name, String coverUrl, int playCount, int trackCount, String creator, String description
+ MusicChartPlatform platform, String id, String name, String coverUrl, int playCount, int trackCount, int favoriteCount, String creator, String description
 });
 
 
@@ -62,7 +62,7 @@ class _$HotPlaylistCopyWithImpl<$Res>
 
 /// Create a copy of HotPlaylist
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? platform = null,Object? id = null,Object? name = null,Object? coverUrl = null,Object? playCount = null,Object? trackCount = null,Object? creator = null,Object? description = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? platform = null,Object? id = null,Object? name = null,Object? coverUrl = null,Object? playCount = null,Object? trackCount = null,Object? favoriteCount = null,Object? creator = null,Object? description = null,}) {
   return _then(_self.copyWith(
 platform: null == platform ? _self.platform : platform // ignore: cast_nullable_to_non_nullable
 as MusicChartPlatform,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
@@ -70,6 +70,7 @@ as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non
 as String,coverUrl: null == coverUrl ? _self.coverUrl : coverUrl // ignore: cast_nullable_to_non_nullable
 as String,playCount: null == playCount ? _self.playCount : playCount // ignore: cast_nullable_to_non_nullable
 as int,trackCount: null == trackCount ? _self.trackCount : trackCount // ignore: cast_nullable_to_non_nullable
+as int,favoriteCount: null == favoriteCount ? _self.favoriteCount : favoriteCount // ignore: cast_nullable_to_non_nullable
 as int,creator: null == creator ? _self.creator : creator // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MusicChartPlatform platform,  String id,  String name,  String coverUrl,  int playCount,  int trackCount,  String creator,  String description)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MusicChartPlatform platform,  String id,  String name,  String coverUrl,  int playCount,  int trackCount,  int favoriteCount,  String creator,  String description)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HotPlaylist() when $default != null:
-return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCount,_that.trackCount,_that.creator,_that.description);case _:
+return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCount,_that.trackCount,_that.favoriteCount,_that.creator,_that.description);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCoun
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MusicChartPlatform platform,  String id,  String name,  String coverUrl,  int playCount,  int trackCount,  String creator,  String description)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MusicChartPlatform platform,  String id,  String name,  String coverUrl,  int playCount,  int trackCount,  int favoriteCount,  String creator,  String description)  $default,) {final _that = this;
 switch (_that) {
 case _HotPlaylist():
-return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCount,_that.trackCount,_that.creator,_that.description);case _:
+return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCount,_that.trackCount,_that.favoriteCount,_that.creator,_that.description);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCoun
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MusicChartPlatform platform,  String id,  String name,  String coverUrl,  int playCount,  int trackCount,  String creator,  String description)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MusicChartPlatform platform,  String id,  String name,  String coverUrl,  int playCount,  int trackCount,  int favoriteCount,  String creator,  String description)?  $default,) {final _that = this;
 switch (_that) {
 case _HotPlaylist() when $default != null:
-return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCount,_that.trackCount,_that.creator,_that.description);case _:
+return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCount,_that.trackCount,_that.favoriteCount,_that.creator,_that.description);case _:
   return null;
 
 }
@@ -213,7 +214,7 @@ return $default(_that.platform,_that.id,_that.name,_that.coverUrl,_that.playCoun
 
 
 class _HotPlaylist extends HotPlaylist {
-  const _HotPlaylist({required this.platform, required this.id, required this.name, required this.coverUrl, this.playCount = 0, this.trackCount = 0, this.creator = '', this.description = ''}): super._();
+  const _HotPlaylist({required this.platform, required this.id, required this.name, required this.coverUrl, this.playCount = 0, this.trackCount = 0, this.favoriteCount = 0, this.creator = '', this.description = ''}): super._();
   
 
 @override final  MusicChartPlatform platform;
@@ -222,6 +223,7 @@ class _HotPlaylist extends HotPlaylist {
 @override final  String coverUrl;
 @override@JsonKey() final  int playCount;
 @override@JsonKey() final  int trackCount;
+@override@JsonKey() final  int favoriteCount;
 @override@JsonKey() final  String creator;
 @override@JsonKey() final  String description;
 
@@ -235,16 +237,16 @@ _$HotPlaylistCopyWith<_HotPlaylist> get copyWith => __$HotPlaylistCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HotPlaylist&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.playCount, playCount) || other.playCount == playCount)&&(identical(other.trackCount, trackCount) || other.trackCount == trackCount)&&(identical(other.creator, creator) || other.creator == creator)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HotPlaylist&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.playCount, playCount) || other.playCount == playCount)&&(identical(other.trackCount, trackCount) || other.trackCount == trackCount)&&(identical(other.favoriteCount, favoriteCount) || other.favoriteCount == favoriteCount)&&(identical(other.creator, creator) || other.creator == creator)&&(identical(other.description, description) || other.description == description));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,platform,id,name,coverUrl,playCount,trackCount,creator,description);
+int get hashCode => Object.hash(runtimeType,platform,id,name,coverUrl,playCount,trackCount,favoriteCount,creator,description);
 
 @override
 String toString() {
-  return 'HotPlaylist(platform: $platform, id: $id, name: $name, coverUrl: $coverUrl, playCount: $playCount, trackCount: $trackCount, creator: $creator, description: $description)';
+  return 'HotPlaylist(platform: $platform, id: $id, name: $name, coverUrl: $coverUrl, playCount: $playCount, trackCount: $trackCount, favoriteCount: $favoriteCount, creator: $creator, description: $description)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$HotPlaylistCopyWith<$Res> implements $HotPlaylistCopyWith
   factory _$HotPlaylistCopyWith(_HotPlaylist value, $Res Function(_HotPlaylist) _then) = __$HotPlaylistCopyWithImpl;
 @override @useResult
 $Res call({
- MusicChartPlatform platform, String id, String name, String coverUrl, int playCount, int trackCount, String creator, String description
+ MusicChartPlatform platform, String id, String name, String coverUrl, int playCount, int trackCount, int favoriteCount, String creator, String description
 });
 
 
@@ -272,7 +274,7 @@ class __$HotPlaylistCopyWithImpl<$Res>
 
 /// Create a copy of HotPlaylist
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? platform = null,Object? id = null,Object? name = null,Object? coverUrl = null,Object? playCount = null,Object? trackCount = null,Object? creator = null,Object? description = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? platform = null,Object? id = null,Object? name = null,Object? coverUrl = null,Object? playCount = null,Object? trackCount = null,Object? favoriteCount = null,Object? creator = null,Object? description = null,}) {
   return _then(_HotPlaylist(
 platform: null == platform ? _self.platform : platform // ignore: cast_nullable_to_non_nullable
 as MusicChartPlatform,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
@@ -280,6 +282,7 @@ as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non
 as String,coverUrl: null == coverUrl ? _self.coverUrl : coverUrl // ignore: cast_nullable_to_non_nullable
 as String,playCount: null == playCount ? _self.playCount : playCount // ignore: cast_nullable_to_non_nullable
 as int,trackCount: null == trackCount ? _self.trackCount : trackCount // ignore: cast_nullable_to_non_nullable
+as int,favoriteCount: null == favoriteCount ? _self.favoriteCount : favoriteCount // ignore: cast_nullable_to_non_nullable
 as int,creator: null == creator ? _self.creator : creator // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,

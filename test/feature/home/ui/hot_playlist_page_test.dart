@@ -133,13 +133,29 @@ void main() {
     expect(find.byType(TrackRowTile), findsWidgets);
   });
 
-  testWidgets('shows a play-all button with the track count', (
+  testWidgets('shows favorite and play-all buttons', (
     WidgetTester tester,
   ) async {
     await _pumpPage(tester);
 
     expect(find.byKey(const Key('hotPlaylistPlayAll')), findsOneWidget);
-    expect(find.text('播放全部 2 首'), findsOneWidget);
+    expect(find.byKey(const Key('hotPlaylistFavorite')), findsOneWidget);
+    expect(find.text('全部播放'), findsOneWidget);
+    expect(find.text('收藏'), findsOneWidget);
+  });
+
+  testWidgets('favorite button toggles the playlist in favorites', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester);
+
+    await tester.tap(find.byKey(const Key('hotPlaylistFavorite')));
+    await tester.pumpAndSettle();
+    expect(find.text('已收藏'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('hotPlaylistFavorite')));
+    await tester.pumpAndSettle();
+    expect(find.text('收藏'), findsOneWidget);
   });
 
   testWidgets('play-all resolves tracks and hands them to the player', (
@@ -173,7 +189,7 @@ void main() {
     expect(playedLabel, '测试歌单');
     expect(player.modes, contains(PlayerQueueMode.sequenceOnce));
     // 播放中按钮恢复成可点状态。
-    expect(find.text('播放全部 2 首'), findsOneWidget);
+    expect(find.text('全部播放'), findsOneWidget);
   });
 
   testWidgets('play-all skips tracks without a bilibili match', (

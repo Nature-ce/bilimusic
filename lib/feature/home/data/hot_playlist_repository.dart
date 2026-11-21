@@ -389,6 +389,7 @@ class HotPlaylistRepository {
           coverUrl: _httpsImageUrl(_readString(json['coverImgUrl'])),
           playCount: _readInt(json['playCount']),
           trackCount: _readInt(json['trackCount']),
+          favoriteCount: _readInt(json['subscribedCount']),
           creator: normalizeDisplayTextOrEmpty(
             _readString(creator?['nickname']),
           ),

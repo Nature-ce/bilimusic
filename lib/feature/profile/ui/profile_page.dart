@@ -11,6 +11,8 @@ import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
+import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
+import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
 import 'package:bilimusic/feature/profile/ui/components/user_card.dart';
 import 'package:bilimusic/feature/recent/logic/recent_playback_controller.dart';
@@ -81,6 +83,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         shouldCollapse && !_showAllCollections
         ? collections.take(5).toList(growable: false)
         : collections;
+    final List<HotPlaylist> favoritePlaylists = ref.watch(
+      favoriteHotPlaylistsProvider,
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -164,11 +169,50 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ),
               ),
+            if (favoritePlaylists.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppSpacing.lg),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  '收藏的歌单',
+                  style: AppTextStyles.sectionTitle(Theme.of(context)),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ...favoritePlaylists.map((HotPlaylist playlist) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _PlaylistTile(
+                    title: playlist.name,
+                    count: playlist.trackCount,
+                    isRemote: false,
+                    badgeLabel: playlist.platform.label,
+                    coverUrl: playlist.coverUrl,
+                    onTap: () => context.push(
+                      '/home/playlist/${playlist.platform.name}/${playlist.id}',
+                      extra: playlist,
+                    ),
+                    onLongPressStart: (LongPressStartDetails details) =>
+                        _removeFavoritePlaylist(playlist),
+                    onMenuPressed: (Offset _) =>
+                        _removeFavoritePlaylist(playlist),
+                  ),
+                );
+              }),
+            ],
             const BottomPageSpacer(),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _removeFavoritePlaylist(HotPlaylist playlist) async {
+    await ref.read(favoriteHotPlaylistsProvider.notifier).toggle(playlist);
+    if (!mounted) {
+      return;
+    }
+    _showMessage('已取消收藏“${playlist.name}”');
   }
 
   Future<void> _showCreateCollectionDialog(BuildContext context) async {
@@ -877,6 +921,7 @@ class _PlaylistTile extends StatelessWidget {
     required this.onTap,
     required this.onLongPressStart,
     required this.onMenuPressed,
+    this.badgeLabel,
   });
 
   final String title;
@@ -886,6 +931,9 @@ class _PlaylistTile extends StatelessWidget {
   final VoidCallback onTap;
   final ValueChanged<LongPressStartDetails> onLongPressStart;
   final ValueChanged<Offset> onMenuPressed;
+
+  /// 标题右侧的来源角标文字；为空时只按 [isRemote] 决定是否显示 B 站角标。
+  final String? badgeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -922,9 +970,12 @@ class _PlaylistTile extends StatelessWidget {
                               ).copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
-                          if (isRemote) ...<Widget>[
+                          if (isRemote || badgeLabel != null) ...<Widget>[
                             const SizedBox(width: AppSpacing.xs + 2),
-                            _RemoteSourceBadge(colorScheme: colorScheme),
+                            _RemoteSourceBadge(
+                              colorScheme: colorScheme,
+                              label: badgeLabel ?? 'B站',
+                            ),
                           ],
                         ],
                       ),
@@ -966,9 +1017,10 @@ class _PlaylistTile extends StatelessWidget {
 }
 
 class _RemoteSourceBadge extends StatelessWidget {
-  const _RemoteSourceBadge({required this.colorScheme});
+  const _RemoteSourceBadge({required this.colorScheme, this.label = 'B站'});
 
   final ColorScheme colorScheme;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -984,7 +1036,7 @@ class _RemoteSourceBadge extends StatelessWidget {
           Icon(Icons.sync_rounded, size: 10, color: colorScheme.primary),
           const SizedBox(width: 2),
           Text(
-            'B站',
+            label,
             style: TextStyle(
               fontSize: 9,
               height: 1.3,

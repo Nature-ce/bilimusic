@@ -1,5 +1,6 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
@@ -8,6 +9,7 @@ import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_detail_state.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
+import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_detail_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
 import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
@@ -198,6 +200,10 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     );
   }
 
+  Future<void> _toggleFavorite(HotPlaylist playlist) async {
+    await ref.read(favoriteHotPlaylistsProvider.notifier).toggle(playlist);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -209,6 +215,12 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     final String title = playlist.name.trim().isEmpty ? '热门歌单' : playlist.name;
     final bool canPlayAll =
         !state.isLoading && !state.hasError && state.tracks.isNotEmpty;
+    final bool isFavorite = ref.watch(
+      favoriteHotPlaylistsProvider.select(
+        (List<HotPlaylist> playlists) =>
+            playlists.any((HotPlaylist item) => item.key == playlist.key),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -239,16 +251,18 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
               playlist: playlist,
               totalCount: state.totalCount,
             ),
-            if (canPlayAll) ...<Widget>[
-              const SizedBox(height: AppSpacing.lg),
-              _PlayAllButton(
-                isPlaying: _isPlayingAll,
-                resolved: _playAllResolved,
-                total: _playAllTotal,
-                trackCount: state.tracks.length,
-                onPressed: () => _playAllTracks(state.tracks),
-              ),
-            ],
+            const SizedBox(height: AppSpacing.lg),
+            _PlaylistActionRow(
+              isFavorite: isFavorite,
+              favoriteCount: playlist.favoriteCount,
+              canPlayAll: canPlayAll,
+              isPlayingAll: _isPlayingAll,
+              resolved: _playAllResolved,
+              total: _playAllTotal,
+              trackCount: state.tracks.length,
+              onToggleFavorite: () => _toggleFavorite(playlist),
+              onPlayAll: () => _playAllTracks(state.tracks),
+            ),
             const SizedBox(height: AppSpacing.xl),
             if (state.isLoading)
               const _HotPlaylistTracksLoading()
@@ -303,49 +317,100 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
 }
 
 /// 一键播放按钮：解析曲目时显示匹配进度。
-class _PlayAllButton extends StatelessWidget {
-  const _PlayAllButton({
-    required this.isPlaying,
+/// 歌单操作行：收藏 + 播放全部。
+class _PlaylistActionRow extends StatelessWidget {
+  const _PlaylistActionRow({
+    required this.isFavorite,
+    required this.favoriteCount,
+    required this.canPlayAll,
+    required this.isPlayingAll,
     required this.resolved,
     required this.total,
     required this.trackCount,
-    required this.onPressed,
+    required this.onToggleFavorite,
+    required this.onPlayAll,
   });
 
-  final bool isPlaying;
+  final bool isFavorite;
+  final int favoriteCount;
+  final bool canPlayAll;
+  final bool isPlayingAll;
   final int resolved;
   final int total;
   final int trackCount;
-  final VoidCallback onPressed;
+  final VoidCallback onToggleFavorite;
+  final VoidCallback onPlayAll;
 
   @override
   Widget build(BuildContext context) {
-    final String label = isPlaying
-        ? '匹配中 $resolved/$total'
-        : '播放全部 $trackCount 首';
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: FilledButton.icon(
-        key: const Key('hotPlaylistPlayAll'),
-        onPressed: isPlaying ? null : onPressed,
-        icon: isPlaying
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.play_arrow_rounded),
-        label: Text(label),
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.md,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.pill),
+    final String favoriteLabel = isFavorite
+        ? (favoriteCount > 0
+              ? '已收藏(${formatCompactCount(favoriteCount)})'
+              : '已收藏')
+        : (favoriteCount > 0
+              ? '收藏(${formatCompactCount(favoriteCount)})'
+              : '收藏');
+    final String playLabel = isPlayingAll ? '匹配中 $resolved/$total' : '全部播放';
+
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: FilledButton.tonalIcon(
+            key: const Key('hotPlaylistFavorite'),
+            onPressed: onToggleFavorite,
+            icon: Icon(
+              isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+            ),
+            label: Text(
+              favoriteLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: _pillStyle(context, isTonal: true),
           ),
         ),
-      ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: FilledButton.icon(
+            key: const Key('hotPlaylistPlayAll'),
+            onPressed: canPlayAll && !isPlayingAll ? onPlayAll : null,
+            icon: isPlayingAll
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.play_arrow_rounded),
+            label: Text(
+              playLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: _pillStyle(context, isTonal: false),
+          ),
+        ),
+      ],
+    );
+  }
+
+  ButtonStyle _pillStyle(BuildContext context, {required bool isTonal}) {
+    final OutlinedBorder shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+    );
+    const EdgeInsets padding = EdgeInsets.symmetric(
+      horizontal: AppSpacing.md,
+      vertical: AppSpacing.md,
+    );
+    if (isTonal) {
+      return FilledButton.styleFrom(padding: padding, shape: shape);
+    }
+    return FilledButton.styleFrom(
+      padding: padding,
+      shape: shape,
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
     );
   }
 }
