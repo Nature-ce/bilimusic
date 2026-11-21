@@ -269,7 +269,7 @@ class MetadataController extends _$MetadataController {
       if (!_isActiveRequest(requestGeneration, item, context)) {
         return;
       }
-      if (cached != null) {
+      if (cached != null && _isCacheRelevant(cached, item)) {
         state = MetadataState(
           stableId: stableId,
           metadata: _withChapterOffset(cached, context),
@@ -363,6 +363,26 @@ class MetadataController extends _$MetadataController {
       return metadata;
     }
     return metadata.copyWith(lyricBaseOffsetMs: context.lyricBaseOffsetMs);
+  }
+
+  /// 缓存里的歌名和视频标题完全对不上时视为无效。
+  ///
+  /// 早期匹配会直接把第一条搜索结果配上歌词（例如《直到永远》被配成
+  /// 吴奇隆的《我爱你到永远》），这类脏数据缓存下来后要能被重新识别。
+  bool _isCacheRelevant(Metadata cached, PlayableItem item) {
+    final String title = _normalizeTitle(item.title);
+    final String cachedTitle = _normalizeTitle(cached.title ?? '');
+    if (title.isEmpty || cachedTitle.isEmpty) {
+      return true;
+    }
+    return title.contains(cachedTitle) || cachedTitle.contains(title);
+  }
+
+  static String _normalizeTitle(String value) {
+    return value.toLowerCase().replaceAll(
+      RegExp(r'''[\s\-_/\\.，,、:：!！?？"'`~@#%&*+=|<>()\[\]{}（）【】「」『』《》]'''),
+      '',
+    );
   }
 
   bool _isActiveRequest(

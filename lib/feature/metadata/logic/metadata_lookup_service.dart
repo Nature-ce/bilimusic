@@ -74,8 +74,14 @@ class MetadataLookupService {
             server: preferredServer,
           );
     checkActive();
+    // 只在「标题/歌手确实出现在视频标题里」的候选里挑，避免第一条像
+    // 《我爱你到永远》这种不相干的歌直接配上歌词。
+    final List<MetingSearchItem> rankedResults = _rankCandidates(results, item);
+    final List<MetingSearchItem> candidatesToTry = rankedResults.isEmpty
+        ? results
+        : rankedResults;
     MetingSearchItem? instrumentalItem;
-    for (final MetingSearchItem result in results) {
+    for (final MetingSearchItem result in candidatesToTry) {
       checkActive();
       final MetaLyrics? rawLyrics = await _fetchLyricsOrNull(result);
       final bool instrumental = isInstrumentalLyrics(rawLyrics?.lyric);
