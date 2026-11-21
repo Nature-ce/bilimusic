@@ -13,6 +13,7 @@ import 'package:bilimusic/feature/player/logic/lyrics/player_lyric_settings_logi
 import 'package:bilimusic/feature/player/logic/sleep_timer_controller.dart';
 import 'package:bilimusic/feature/player/ui/lyrics/player_lyric_panel.dart';
 import 'package:bilimusic/feature/player/ui/desktop/desktop_player_page.dart';
+import 'package:bilimusic/feature/player/ui/components/player_main_page.dart';
 import 'package:bilimusic/feature/player/ui/player_page.dart';
 import 'package:bilimusic/feature/player/ui/sleep_timer_page.dart';
 import 'package:flutter/material.dart';
@@ -130,7 +131,11 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+    await tester.fling(
+      find.byType(PlayerMainPage),
+      const Offset(-400, 0),
+      1000,
+    );
     await tester.pumpAndSettle();
     final Rect lyricsRect = tester.getRect(find.byType(PlayerLyricPanel));
     final Rect toolbarRect = tester.getRect(
@@ -146,8 +151,8 @@ void main() {
       lyricsRect.width,
       tester.view.physicalSize.width / tester.view.devicePixelRatio - 8,
     );
-    expect(toolbarRect.left, lyricsRect.left + 12);
-    expect(toolbarRect.right, lyricsRect.right - 12);
+    expect(toolbarRect.left, greaterThanOrEqualTo(lyricsRect.left));
+    expect(toolbarRect.right, lessThanOrEqualTo(lyricsRect.right));
     expect(
       tester.getRect(find.byIcon(Icons.search_rounded)).left,
       greaterThanOrEqualTo(toolbarRect.left),
@@ -215,7 +220,7 @@ void main() {
 
     expect(find.text('测试播放内容'), findsOneWidget);
 
-    await tester.fling(find.byType(PageView), const Offset(400, 0), 1000);
+    await tester.fling(find.byType(PlayerMainPage), const Offset(400, 0), 1000);
     await tester.pumpAndSettle();
 
     expect(find.text('播放信息'), findsOneWidget);

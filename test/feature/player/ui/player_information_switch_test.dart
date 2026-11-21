@@ -612,10 +612,6 @@ void main() {
             .borderRadius,
         BorderRadius.circular(8),
       );
-      expect(
-        tester.widget<PageView>(find.byType(PageView)).controller!.page,
-        1,
-      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -1116,15 +1112,16 @@ void main() {
       expect(find.byType(PlayerTrackHeader), findsOneWidget);
       expect(find.byType(PlayerTopBar), findsOneWidget);
       expect(find.byType(PlayerDynamicBackdrop), findsOneWidget);
-      expect(
-        tester.widget<PageView>(find.byType(PageView)).key,
-        const PageStorageKey<String>('playerPages'),
-      );
+      expect(find.byType(PageView), findsNothing);
 
-      await tester.drag(find.byType(PageView), const Offset(-380, 0));
+      await tester.fling(
+        find.byType(PlayerMainPage),
+        const Offset(-300, 0),
+        1200,
+      );
       await tester.pumpAndSettle();
       expect(
-        tester.widget<PageView>(find.byType(PageView)).controller!.page,
+        tester.widget<PlayerTopBar>(find.byType(PlayerTopBar)).currentPage,
         2,
       );
       expect(find.byTooltip('手动匹配歌词'), findsOneWidget);
@@ -1148,10 +1145,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.state(find.byType(PlayerPage)), same(portraitPage));
       expect(find.byType(PlayerLandscapePage), findsNothing);
-      expect(
-        tester.widget<PageView>(find.byType(PageView)).controller!.page,
-        2,
-      );
+      expect(find.byType(PageView), findsNothing);
       expect(
         tester.widget<PlayerTopBar>(find.byType(PlayerTopBar)).currentPage,
         2,
