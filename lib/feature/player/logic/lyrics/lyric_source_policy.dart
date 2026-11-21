@@ -51,3 +51,31 @@ bool looksLikeInstrumental({String? title, String? description}) {
   }
   return false;
 }
+
+/// 歌词面板实际展示的来源：Meting 歌词、B 站字幕，或者都没有。
+enum LyricSource { meting, subtitle, none }
+
+/// 统一判定当前该用哪种歌词。
+///
+/// 面板渲染、字幕弹窗的勾选状态、工具栏按钮都走这一个函数，
+/// 避免出现「面板显示 Meting、弹窗勾着 AI 字幕」这种不一致。
+LyricSource resolveLyricSource({
+  required bool itemIsSpoken,
+  required bool hasMetingLyrics,
+  required bool subtitlesSelected,
+  required bool userSelected,
+}) {
+  final bool useSubtitles = shouldRenderSubtitleLyrics(
+    itemIsSpoken: itemIsSpoken,
+    hasMetingLyrics: hasMetingLyrics,
+    subtitlesSelected: subtitlesSelected,
+    userSelected: userSelected,
+  );
+  if (useSubtitles) {
+    return LyricSource.subtitle;
+  }
+  if (hasMetingLyrics) {
+    return LyricSource.meting;
+  }
+  return LyricSource.none;
+}

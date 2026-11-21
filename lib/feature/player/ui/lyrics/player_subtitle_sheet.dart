@@ -1,5 +1,8 @@
 import 'package:bilimusic/feature/player/domain/bili_subtitle.dart';
 import 'package:bilimusic/feature/player/domain/player_subtitle_state.dart';
+import 'package:bilimusic/feature/metadata/domain/metadata_state.dart';
+import 'package:bilimusic/feature/metadata/logic/metadata_controller.dart';
+import 'package:bilimusic/feature/player/logic/lyrics/lyric_source_policy.dart';
 import 'package:bilimusic/feature/player/logic/lyrics/player_subtitle_controller.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:flutter/material.dart';
@@ -48,6 +51,18 @@ class _PlayerSubtitleSheet extends ConsumerWidget {
     final bool isCurrent =
         currentItem?.stableId == stableId && state.stableId == stableId;
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final bool isSpoken = currentItem?.isSpoken == true;
+    final MetadataState metadataState = isSpoken
+        ? const MetadataState()
+        : ref.watch(metadataControllerProvider);
+    final LyricSource source = resolveLyricSource(
+      itemIsSpoken: isSpoken,
+      hasMetingLyrics: metadataState.hasLyrics,
+      subtitlesSelected: state.usesSubtitles,
+      userSelected: state.userSelected,
+    );
+    final bool metingSelected = isCurrent && source == LyricSource.meting;
+    final bool subtitleSelected = isCurrent && source == LyricSource.subtitle;
 
     return SafeArea(
       top: false,
@@ -69,9 +84,9 @@ class _PlayerSubtitleSheet extends ConsumerWidget {
                 child: Text('当前歌曲已变更，请重新打开字幕选择'),
               ),
             ListTile(
-              title: Text(currentItem?.isSpoken == true ? '关闭字幕' : 'Meting歌词'),
-              selected: isCurrent && !state.usesSubtitles,
-              trailing: isCurrent && !state.usesSubtitles
+              title: Text(isSpoken ? '关闭字幕' : 'Meting歌词'),
+              selected: metingSelected,
+              trailing: metingSelected
                   ? Icon(Icons.check_rounded, color: colorScheme.primary)
                   : null,
               onTap: !isCurrent
@@ -88,13 +103,13 @@ class _PlayerSubtitleSheet extends ConsumerWidget {
               ListTile(
                 title: Text(track.label),
                 subtitle: Text(track.language),
-                selected: isCurrent && state.selectedTrackId == track.id,
+                selected: subtitleSelected && state.selectedTrackId == track.id,
                 trailing: state.pendingTrackId == track.id
                     ? const SizedBox.square(
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : isCurrent && state.selectedTrackId == track.id
+                    : subtitleSelected && state.selectedTrackId == track.id
                     ? Icon(Icons.check_rounded, color: colorScheme.primary)
                     : null,
                 onTap: !isCurrent || state.pendingTrackId != null
@@ -109,6 +124,11 @@ class _PlayerSubtitleSheet extends ConsumerWidget {
                           Navigator.of(context).pop();
                         }
                       },
+              ),
+            if (isCurrent && state.tracks.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Text('该视频没有 AI 字幕，可用 Meting 歌词或手动匹配'),
               ),
             if (isCurrent && state.errorMessage != null)
               Padding(

@@ -155,10 +155,11 @@ void main() {
   );
 
   testWidgets(
-    'subtitle button is hidden without tracks and shown after discovery',
+    'subtitle button stays available without tracks and hides for stale songs',
     (tester) async {
       final fixture = await _pumpPage(tester, tracks: const []);
-      expect(find.byTooltip('AI字幕'), findsNothing);
+      // 没有 AI 字幕轨时入口也要在，方便选 Meting 歌词 / 手动匹配。
+      expect(find.byTooltip('AI字幕'), findsOneWidget);
       fixture.subtitles.setValue(fixture.value.copyWith(tracks: _tracks));
       await tester.pump();
       expect(find.byTooltip('AI字幕'), findsOneWidget);
@@ -193,7 +194,7 @@ void main() {
                 if (!spoken) '手动匹配歌词',
                 if (!spoken || selectedTrackId != null) '歌词偏移',
                 if (!spoken && selectedTrackId == null) '隐藏译文',
-                if (tracks.isNotEmpty) 'AI字幕',
+                'AI字幕',
                 '歌词外观',
               ];
               final buttons = tooltips

@@ -120,4 +120,67 @@ void main() {
       expect(looksLikeInstrumental(), isFalse);
     });
   });
+
+  group('resolveLyricSource', () {
+    test('Meting 歌词存在而字幕只是自动选中时，算 Meting', () {
+      // 这就是「面板显示 Meting、弹窗却勾着 ai-zh」的场景。
+      expect(
+        resolveLyricSource(
+          itemIsSpoken: false,
+          hasMetingLyrics: true,
+          subtitlesSelected: true,
+          userSelected: false,
+        ),
+        LyricSource.meting,
+      );
+    });
+
+    test('用户主动选了字幕轨就渲染字幕', () {
+      expect(
+        resolveLyricSource(
+          itemIsSpoken: false,
+          hasMetingLyrics: true,
+          subtitlesSelected: true,
+          userSelected: true,
+        ),
+        LyricSource.subtitle,
+      );
+    });
+
+    test('没有 Meting 歌词时用字幕', () {
+      expect(
+        resolveLyricSource(
+          itemIsSpoken: false,
+          hasMetingLyrics: false,
+          subtitlesSelected: true,
+          userSelected: false,
+        ),
+        LyricSource.subtitle,
+      );
+    });
+
+    test('口播内容总是优先字幕', () {
+      expect(
+        resolveLyricSource(
+          itemIsSpoken: true,
+          hasMetingLyrics: false,
+          subtitlesSelected: true,
+          userSelected: false,
+        ),
+        LyricSource.subtitle,
+      );
+    });
+
+    test('两边都没有时是 none', () {
+      expect(
+        resolveLyricSource(
+          itemIsSpoken: false,
+          hasMetingLyrics: false,
+          subtitlesSelected: false,
+          userSelected: false,
+        ),
+        LyricSource.none,
+      );
+    });
+  });
 }

@@ -59,7 +59,7 @@ class PlayerLyricPage extends ConsumerWidget {
     final PlayerSubtitleState subtitleState = ref.watch(
       playerSubtitleControllerProvider,
     );
-    final bool usesSubtitles = shouldRenderSubtitleLyrics(
+    final LyricSource lyricSource = resolveLyricSource(
       itemIsSpoken: isSpoken,
       hasMetingLyrics: metadataState.hasLyrics,
       subtitlesSelected:
@@ -67,8 +67,9 @@ class PlayerLyricPage extends ConsumerWidget {
           subtitleState.usesSubtitles,
       userSelected: subtitleState.userSelected,
     );
-    final bool canSelectSubtitles =
-        subtitleState.stableId == item?.stableId && subtitleState.hasTracks;
+    final bool usesSubtitles = lyricSource == LyricSource.subtitle;
+    // 入口常驻：没有 AI 字幕轨时也要能打开弹窗选 Meting 歌词 / 手动匹配。
+    final bool canSelectSubtitles = subtitleState.stableId == item?.stableId;
     final String translationLyrics =
         resolveDisplayTranslationLyrics(metadataState.metadata)?.trim() ?? '';
     final bool canToggleTranslation =
