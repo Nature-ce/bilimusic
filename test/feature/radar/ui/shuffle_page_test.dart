@@ -105,6 +105,16 @@ class _ResolvedResolver extends MusicChartResolver {
 }
 
 /// 前 [failFirst] 次解析一律失败（模拟候选都被过滤掉），之后正常返回。
+class _FakeResolverResolverProbe extends _ResolvedResolver {
+  int resolveCalls = 0;
+
+  @override
+  Future<PlayableItem?> resolve(MatchableTrack track) async {
+    resolveCalls += 1;
+    return super.resolve(track);
+  }
+}
+
 class _FlakyResolver extends _ResolvedResolver {
   _FlakyResolver({required this.failFirst});
 
@@ -332,6 +342,22 @@ void main() {
     await tester.tap(find.byTooltip('返回首页'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('建队后会在后台把预取缓存补满', (WidgetTester tester) async {
+    final _FakeResolverResolverProbe probe = _FakeResolverResolverProbe();
+    final ProviderContainer container = await _pumpPage(
+      tester,
+      controller: _LoadedFeed.new,
+      resolver: probe,
+    );
+
+    final _FakePlayer player =
+        container.read(playerControllerProvider.notifier) as _FakePlayer;
+    expect(player.queued, hasLength(1));
+    // 建队 5 首之后还会继续解析，给下一次补货做准备。
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(probe.resolveCalls, greaterThan(5));
   });
 
   group('shouldTopUpShuffleQueue', () {

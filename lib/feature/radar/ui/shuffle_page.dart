@@ -51,15 +51,26 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
   /// 每次补货的曲目数。
   static const int _batchSize = 5;
 
-  /// 剩余未播曲目不足这个数就补货（1 表示正在播最后一首时补）。
-  static const int _topUpLead = 1;
+  /// 队列里尽量保持这么多首「还没播」的歌：
+  /// 快速连点下一首也不会绕回第一首，预取的条目直接顶上。
+  static const int _bufferAhead = 5;
+
+  /// 同时并发解析几首（每首都要搜一次 B 站，串行太慢）。
+  static const int _resolveConcurrency = 3;
 
   /// 已经尝试匹配过的推荐曲目，避免重复搜索同一首失败歌。
   final Set<String> _attemptedTrackKeys = <String>{};
 
+  /// 已经解析好、还没入队的条目，用来让补货瞬间完成。
+  final List<PlayableItem> _pending = <PlayableItem>[];
+
+  Future<void>? _prefetchFuture;
   bool _isBootstrapping = false;
   bool _isToppingUp = false;
   String? _errorMessage;
+
+  /// 预取缓存的目标长度（也是一次解析的量）。
+  static const int _pendingTarget = _bufferAhead;
 
   @override
   void initState() {
@@ -105,23 +116,12 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     });
     if (force) {
       _attemptedTrackKeys.clear();
+      _pending.clear();
     }
     try {
-      List<PlayableItem> items = await _fillBatch(_batchSize);
+      final List<PlayableItem> items = await _fillBatchWithRetry(_batchSize);
       if (!mounted) {
         return;
-      }
-      if (items.isEmpty && _attemptedTrackKeys.isNotEmpty) {
-        // 现有推荐流里的候选都被试过了（例如剪辑片段被过滤掉），重新扫一批再试一次。
-        _attemptedTrackKeys.clear();
-        await ref.read(musicRadarControllerProvider.notifier).scan();
-        if (!mounted) {
-          return;
-        }
-        items = await _fillBatch(_batchSize);
-        if (!mounted) {
-          return;
-        }
       }
       if (items.isEmpty) {
         setState(() => _errorMessage = '推荐歌曲暂时都没匹配到 B 站视频，换个批次再试');
@@ -135,8 +135,8 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
             sourceLabel: autoFeedQueueSourceLabel,
           );
       _ensureSequentialQueueMode(always: true);
-      // 队列不足一批时（例如只匹配到 1 首），立刻把后面补齐。
-      unawaited(_topUpIfNeeded());
+      // 队列建好后立刻在后台预取下一批，快速切歌时补货可以瞬间完成。
+      unawaited(_ensurePrefetched());
     } on Object {
       if (mounted) {
         setState(() => _errorMessage = '刷歌启动失败，请重试');
@@ -148,18 +148,36 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     }
   }
 
+  /// 解析一批；候选都被过滤掉时清空已试集合 + 重新扫一批再试一次。
+  Future<List<PlayableItem>> _fillBatchWithRetry(int want) async {
+    List<PlayableItem> items = await _fillBatch(want);
+    if (items.isNotEmpty || _attemptedTrackKeys.isEmpty || !mounted) {
+      return items;
+    }
+    _attemptedTrackKeys.clear();
+    await ref.read(musicRadarControllerProvider.notifier).scan();
+    if (!mounted) {
+      return const <PlayableItem>[];
+    }
+    items = await _fillBatch(want);
+    return items;
+  }
+
   /// 从推荐流里持续解析出 [want] 首可播放条目。
   ///
   /// 匹配失败的曲目会计入 [_attemptedTrackKeys] 不再重试；候选不够时向
-  /// 推荐控制器要更多曲目，必要时整批重扫。
+  /// 推荐控制器要更多曲目，必要时整批重扫。解析是并发跑的（每首都要搜一次
+  /// B 站，串行太慢）。
   Future<List<PlayableItem>> _fillBatch(int want) async {
     final MusicChartResolver resolver = ref.read(musicChartResolverProvider);
     final List<PlayableItem> items = <PlayableItem>[];
-    final Set<String> pickedIds = ref
-        .read(playerControllerProvider)
-        .queue
-        .map((PlayableItem item) => item.stableId)
-        .toSet();
+    final Set<String> pickedIds = <String>{
+      ...ref
+          .read(playerControllerProvider)
+          .queue
+          .map((PlayableItem item) => item.stableId),
+      ..._pending.map((PlayableItem item) => item.stableId),
+    };
     bool rescanned = false;
 
     for (
@@ -170,7 +188,7 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       final MusicRadarController radarController = ref.read(
         musicRadarControllerProvider.notifier,
       );
-      MusicRadarState radar = ref.read(musicRadarControllerProvider);
+      final MusicRadarState radar = ref.read(musicRadarControllerProvider);
       List<HotPlaylistTrack> candidates = _freshCandidates(radar);
       if (candidates.isEmpty) {
         if (radar.tracks.isEmpty && !rescanned) {
@@ -187,25 +205,59 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
           break;
         }
       }
-      for (final HotPlaylistTrack track in candidates) {
-        if (items.length >= want || !mounted) {
-          break;
-        }
+      await _resolveCandidates(
+        resolver,
+        candidates,
+        want: want - items.length,
+        pickedIds: pickedIds,
+        sink: items,
+      );
+    }
+    return items;
+  }
+
+  /// 并发解析候选（最多 [_resolveConcurrency] 路），成功且不重复的收进 [sink]。
+  Future<void> _resolveCandidates(
+    MusicChartResolver resolver,
+    List<HotPlaylistTrack> candidates, {
+    required int want,
+    required Set<String> pickedIds,
+    required List<PlayableItem> sink,
+  }) async {
+    if (want <= 0 || candidates.isEmpty) {
+      return;
+    }
+    int next = 0;
+
+    Future<void> worker() async {
+      while (mounted && sink.length < want && next < candidates.length) {
+        final HotPlaylistTrack track = candidates[next];
+        next += 1;
         if (!_attemptedTrackKeys.add(track.key)) {
           continue;
         }
+        PlayableItem? item;
         try {
-          final PlayableItem? item = await resolver.resolve(track);
-          if (item == null || !pickedIds.add(item.stableId)) {
-            continue;
-          }
-          items.add(item);
+          item = await resolver.resolve(track);
         } on Object {
+          item = null;
+        }
+        if (item == null || sink.length >= want) {
           continue;
         }
+        if (!pickedIds.add(item.stableId)) {
+          continue;
+        }
+        sink.add(item);
       }
     }
-    return items;
+
+    final int workerCount = _resolveConcurrency < candidates.length
+        ? _resolveConcurrency
+        : candidates.length;
+    await Future.wait(<Future<void>>[
+      for (int index = 0; index < workerCount; index += 1) worker(),
+    ]);
   }
 
   List<HotPlaylistTrack> _freshCandidates(MusicRadarState radar) {
@@ -216,35 +268,97 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
         .toList(growable: false);
   }
 
-  /// 播到最后一首时补货，保证「下一首」永远有歌。
+  /// 队列前方剩余不足 [_bufferAhead] 首时补货，保证「下一首」永远有歌。
+  ///
+  /// 先拿预取缓存（立刻入队），不够再现场解析；不管这次要不要补，都会顺手把
+  /// 预取缓存补满，这样快速连点下一首也不会绕回第一首。
   Future<void> _topUpIfNeeded({bool force = false}) async {
-    if (_isToppingUp) {
-      return;
-    }
     final PlayerState player = ref.read(playerControllerProvider);
-    if (!force &&
-        !shouldTopUpShuffleQueue(
-          sourceLabel: player.queueSourceLabel,
-          queueLength: player.queue.length,
-          currentIndex: player.currentQueueIndex,
-          lead: _topUpLead,
-        )) {
-      return;
-    }
     if (!isAutoFeedQueue(player.queueSourceLabel)) {
       return;
     }
-    _isToppingUp = true;
+    final bool isShort =
+        force ||
+        shouldTopUpShuffleQueue(
+          sourceLabel: player.queueSourceLabel,
+          queueLength: player.queue.length,
+          currentIndex: player.currentQueueIndex,
+          lead: _bufferAhead,
+        );
+    if (isShort) {
+      await _appendFromPending();
+      final PlayerState refreshed = ref.read(playerControllerProvider);
+      final bool stillShort = shouldTopUpShuffleQueue(
+        sourceLabel: refreshed.queueSourceLabel,
+        queueLength: refreshed.queue.length,
+        currentIndex: refreshed.currentQueueIndex,
+        lead: _bufferAhead,
+      );
+      if (stillShort && !_isToppingUp) {
+        _isToppingUp = true;
+        try {
+          final List<PlayableItem> items = await _fillBatchWithRetry(
+            _batchSize,
+          );
+          if (mounted && items.isNotEmpty) {
+            await ref.read(playerControllerProvider.notifier).enqueue(items);
+          }
+        } on Object {
+          // 补货失败不打断当前播放，等下次切歌再试。
+        } finally {
+          _isToppingUp = false;
+        }
+      }
+    }
+    unawaited(_ensurePrefetched());
+  }
+
+  /// 把预取缓存立刻补进队列；缓存空的话先等一次预取。
+  Future<void> _appendFromPending() async {
+    if (_pending.isEmpty) {
+      await _ensurePrefetched();
+    }
+    if (_pending.isEmpty || !mounted) {
+      return;
+    }
+    final PlayerState player = ref.read(playerControllerProvider);
+    if (!isAutoFeedQueue(player.queueSourceLabel)) {
+      return;
+    }
+    final List<PlayableItem> items = List<PlayableItem>.of(_pending);
+    _pending.clear();
+    await ref.read(playerControllerProvider.notifier).enqueue(items);
+  }
+
+  /// 保证后台预取在跑（已在跑就复用它）。
+  Future<void> _ensurePrefetched() {
+    final Future<void>? running = _prefetchFuture;
+    if (running != null) {
+      return running;
+    }
+    final Future<void> future = _prefetchOnce();
+    _prefetchFuture = future;
+    return future.whenComplete(() {
+      if (identical(_prefetchFuture, future)) {
+        _prefetchFuture = null;
+      }
+    });
+  }
+
+  Future<void> _prefetchOnce() async {
+    if (!mounted || _pending.length >= _pendingTarget) {
+      return;
+    }
     try {
-      final List<PlayableItem> items = await _fillBatch(_batchSize);
+      final List<PlayableItem> items = await _fillBatch(
+        _pendingTarget - _pending.length,
+      );
       if (!mounted || items.isEmpty) {
         return;
       }
-      await ref.read(playerControllerProvider.notifier).enqueue(items);
+      _pending.addAll(items);
     } on Object {
-      // 补货失败不打断当前播放，等下次切歌再试。
-    } finally {
-      _isToppingUp = false;
+      // 预取失败无所谓，下次切歌再试。
     }
   }
 
