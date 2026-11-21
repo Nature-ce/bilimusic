@@ -416,16 +416,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
 
     HapticFeedback.lightImpact();
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final _CollectionAction? action = await showMenu<_CollectionAction>(
       context: context,
       position: position,
+      // 菜单用纯白底，不跟随主题的浅色容器色（绿色调）。
+      color: isDark ? null : Colors.white,
       items: <PopupMenuEntry<_CollectionAction>>[
         if (!collection.isSystem)
           PopupMenuItem<_CollectionAction>(
             value: _CollectionAction.rename,
             child: ListTile(
               leading: Icon(Icons.drive_file_rename_outline_rounded),
-              title: Text(collection.isRemote ? '重命名 B 站收藏夹' : '重命名'),
+              title: const Text('重命名'),
               contentPadding: EdgeInsets.zero,
             ),
           ),

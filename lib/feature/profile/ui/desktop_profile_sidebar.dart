@@ -490,7 +490,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
                   if (!collection.isSystem)
                     CommonAttachMenuItem<_CollectionAction>(
                       value: _CollectionAction.rename,
-                      label: collection.isRemote ? '重命名 B 站收藏夹' : '重命名',
+                      label: '重命名',
                       icon: const SizedBox.shrink(),
                     ),
                   if (collection.isRemote)

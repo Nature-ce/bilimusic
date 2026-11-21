@@ -51,8 +51,7 @@ void main() {
             collection.isSystem ? (desktop ? '我喜欢·0' : '我喜欢') : collection.name,
           );
           final List<String> actions = <String>[
-            if (!collection.isSystem)
-              collection.isRemote ? '重命名 B 站收藏夹' : '重命名',
+            if (!collection.isSystem) '重命名',
             if (collection.isRemote) '同步',
             if (collection.isRemote) '解除绑定',
             if (!collection.isSystem && !collection.isRemote) '上传到 B 站并同步',
