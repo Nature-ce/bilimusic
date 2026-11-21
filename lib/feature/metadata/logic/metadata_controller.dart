@@ -378,14 +378,8 @@ class MetadataController extends _$MetadataController {
       return true;
     }
     final MetaLyrics? lyrics = cached.metaLyrics;
-    if (lyrics != null && lyrics.hasRenderableMainLyric) {
-      return true;
-    }
-    final DateTime? updatedAt = cached.updatedAt;
-    if (updatedAt == null) {
-      return false;
-    }
-    return DateTime.now().difference(updatedAt).inMinutes < 10;
+    // 没有歌词的缓存一律不信任：否则匹配失败一次后就再也不会自动去搜了。
+    return lyrics != null && lyrics.hasRenderableMainLyric;
   }
 
   /// 缓存里的歌名和视频标题完全对不上时视为无效。

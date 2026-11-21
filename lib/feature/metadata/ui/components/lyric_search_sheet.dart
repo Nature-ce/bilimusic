@@ -36,6 +36,10 @@ String resolveLyricSearchKeyword({
     title: title,
     author: item?.author,
   );
+  if (candidates.length >= 2) {
+    // 标题里通常既有歌手也有歌名，拼起来搜命中率最高（如「胡夏 爱上了」）。
+    return '${candidates.first} ${candidates[1]}';
+  }
   if (candidates.isNotEmpty) {
     return candidates.first;
   }

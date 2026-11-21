@@ -197,8 +197,14 @@ class MetadataLookupService {
     required String primaryKeyword,
     bool Function()? isActive,
   }) async {
+    final List<String> titleCandidates = lyricKeywordCandidates(
+      title: item.title,
+      author: item.author,
+    );
     final List<String> keywords = <String>[
-      ...lyricKeywordCandidates(title: item.title, author: item.author),
+      if (titleCandidates.length >= 2)
+        '${titleCandidates.first} ${titleCandidates[1]}',
+      ...titleCandidates,
       primaryKeyword,
       extractSearchKeyword(item.title).trim(),
       item.title.trim(),
