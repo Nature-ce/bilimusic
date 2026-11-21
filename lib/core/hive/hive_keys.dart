@@ -24,6 +24,7 @@ class HiveKeys {
   static const String searchHistory = 'search.history';
   static const String recentPlaybackProgress = 'recent.playback_progress';
   static const String favoriteHotPlaylists = 'home.favorite_hot_playlists';
+  static const String hotPlaylistPagePrefix = 'home.hot_playlist_page.';
   static const String sleepTimerExpiresAt = 'player.sleep_timer_expires_at';
   static const String sleepTimerDuration = 'player.sleep_timer_duration_ms';
   static const String metingDefaultServer = 'meting.default_server';

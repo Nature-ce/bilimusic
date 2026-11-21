@@ -1,8 +1,13 @@
+import 'dart:io';
+import 'dart:math';
+
+import 'package:bilimusic/core/hive/hive_keys.dart';
 import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 
 HotPlaylist _playlist(MusicChartPlatform platform, String id) {
   return HotPlaylist(platform: platform, id: id, name: '歌单 $id', coverUrl: '');
@@ -147,6 +152,104 @@ const Map<String, dynamic> _kugouTracksFixture = <String, dynamic>{
 };
 
 void main() {
+  group('random start page', () {
+    late Directory dir;
+    late Box<String> box;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('hot_playlist_pages');
+      Hive.init(dir.path);
+      box = await Hive.openBox<String>('prefs');
+    });
+
+    tearDown(() async {
+      await box.close();
+      await Hive.deleteFromDisk();
+      await dir.delete(recursive: true);
+    });
+
+    HotPlaylistRepository buildRepository(List<int> offsets, Random random) {
+      return HotPlaylistRepository(
+        httpGet:
+            (
+              String url,
+              Map<String, dynamic> query,
+              Map<String, String> headers,
+            ) async {
+              if (url.contains('/api/playlist/list')) {
+                offsets.add(int.parse(query['offset'] as String));
+                return _neteaseListFixture;
+              }
+              return <String, dynamic>{'playlists': <Object?>[]};
+            },
+        pageStorage: box,
+        random: random,
+      );
+    }
+
+    String storedPage() =>
+        box.get('${HiveKeys.hotPlaylistPagePrefix}netease') ?? '';
+
+    test('first load starts from a random page and remembers it', () async {
+      final List<int> offsets = <int>[];
+      final HotPlaylistRepository repository = buildRepository(
+        offsets,
+        Random(7),
+      );
+
+      await repository.fetchPlaylists(MusicChartPlatform.netease);
+
+      expect(offsets, hasLength(1));
+      final int page = offsets.single ~/ HotPlaylistRepository.maxPlaylistCount;
+      expect(
+        page,
+        inInclusiveRange(0, HotPlaylistRepository.randomStartPageRange - 1),
+      );
+      expect(storedPage(), '$page');
+    });
+
+    test('refresh advances one page and persists it', () async {
+      final List<int> offsets = <int>[];
+      final HotPlaylistRepository repository = buildRepository(
+        offsets,
+        Random(7),
+      );
+
+      await repository.fetchPlaylists(MusicChartPlatform.netease);
+      await repository.fetchPlaylists(
+        MusicChartPlatform.netease,
+        forceRefresh: true,
+      );
+
+      expect(offsets, hasLength(2));
+      final int first = offsets.first ~/ HotPlaylistRepository.maxPlaylistCount;
+      final int second = offsets.last ~/ HotPlaylistRepository.maxPlaylistCount;
+      expect(second, first + 1);
+      expect(storedPage(), '$second');
+    });
+
+    test('a new session avoids repeating the last stored page', () async {
+      final List<int> firstOffsets = <int>[];
+      await buildRepository(
+        firstOffsets,
+        Random(7),
+      ).fetchPlaylists(MusicChartPlatform.netease);
+      final int firstPage =
+          firstOffsets.single ~/ HotPlaylistRepository.maxPlaylistCount;
+
+      final List<int> secondOffsets = <int>[];
+      await buildRepository(
+        secondOffsets,
+        Random(7),
+      ).fetchPlaylists(MusicChartPlatform.netease);
+      final int secondPage =
+          secondOffsets.single ~/ HotPlaylistRepository.maxPlaylistCount;
+
+      expect(secondPage, isNot(firstPage));
+      expect(storedPage(), '$secondPage');
+    });
+  });
+
   group('list parsers', () {
     test('netease playlists normalize cover and creator', () {
       final List<HotPlaylist> playlists =

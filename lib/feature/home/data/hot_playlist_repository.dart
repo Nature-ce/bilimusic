@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/common/util/json_util.dart';
+import 'package:bilimusic/core/hive/hive_keys.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:dio/dio.dart';
+import 'package:hive_ce/hive.dart';
 
 typedef HotPlaylistHttpGet =
     Future<Object?> Function(
@@ -32,14 +35,23 @@ typedef HotPlaylistTrackPage = ({
 
 /// 拉取网易云 / QQ音乐 / 酷狗的热门歌单与歌单曲目。
 class HotPlaylistRepository {
-  HotPlaylistRepository({Dio? dio, HotPlaylistHttpGet? httpGet})
-    : _dio = dio ?? Dio() {
+  HotPlaylistRepository({
+    Dio? dio,
+    HotPlaylistHttpGet? httpGet,
+    Box<String>? pageStorage,
+    Random? random,
+  }) : _dio = dio ?? Dio(),
+       _pageBox = pageStorage,
+       _random = random ?? Random() {
     _httpGet = httpGet ?? _defaultHttpGet;
   }
 
   static const int maxPlaylistCount = 12;
   static const int defaultTrackPageSize = 100;
   static const Duration cacheTtl = Duration(minutes: 10);
+
+  /// 每次启动随机起步的页数范围：0 ~ randomStartPageRange-1。
+  static const int randomStartPageRange = 12;
 
   static const String _neteaseListUrl =
       'https://music.163.com/api/playlist/list';
@@ -77,6 +89,8 @@ class HotPlaylistRepository {
 
   final Dio _dio;
   late final HotPlaylistHttpGet _httpGet;
+  final Box<String>? _pageBox;
+  final Random _random;
   final Map<MusicChartPlatform, _CachedPlaylists> _playlistCache =
       <MusicChartPlatform, _CachedPlaylists>{};
   final Map<MusicChartPlatform, int> _playlistPage =
@@ -89,7 +103,8 @@ class HotPlaylistRepository {
   /// 拉一页热门歌单。
   ///
   /// [forceRefresh]（下拉刷新）会翻到下一批，翻到底了再从第一批重新开始，
-  /// 这样每次刷新都能看到不一样的歌单。
+  /// 这样每次刷新都能看到不一样的歌单。每次启动则从随机一页开始，
+  /// 并把页码存进 prefs，下次刷新接着往后翻。
   Future<List<HotPlaylist>> fetchPlaylists(
     MusicChartPlatform platform, {
     bool forceRefresh = false,
@@ -101,13 +116,17 @@ class HotPlaylistRepository {
     if (!forceRefresh && cached != null && !cached.isExpired) {
       return cached.playlists;
     }
-    int page = forceRefresh ? _pageOf(platform) + 1 : _pageOf(platform);
+    int page = await _pageOf(platform);
+    if (forceRefresh) {
+      page += 1;
+    }
     List<HotPlaylist> playlists = await _fetchPlaylistPage(platform, page);
     if (playlists.isEmpty && page != 0) {
       page = 0;
       playlists = await _fetchPlaylistPage(platform, page);
     }
     _playlistPage[platform] = page;
+    await _persistPage(platform, page);
     _playlistCache[platform] = _CachedPlaylists(
       playlists: playlists,
       fetchedAt: DateTime.now(),
@@ -115,7 +134,66 @@ class HotPlaylistRepository {
     return playlists;
   }
 
-  int _pageOf(MusicChartPlatform platform) => _playlistPage[platform] ?? 0;
+  Box<String>? _pageStorage() {
+    if (_pageBox != null) {
+      return _pageBox;
+    }
+    try {
+      return Hive.box<String>(HiveBoxNames.prefs);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// 本次运行里该平台的第一页。
+  ///
+  /// 有 prefs 时随机挑一页（尽量避开上次那页）并记下来，这样每次重启都是新的
+  /// 一批歌单；没有 prefs（测试环境）就从第一页开始，保持结果确定。
+  Future<int> _pageOf(MusicChartPlatform platform) async {
+    final int? memory = _playlistPage[platform];
+    if (memory != null) {
+      return memory;
+    }
+    final Box<String>? box = _pageStorage();
+    if (box == null) {
+      _playlistPage[platform] = 0;
+      return 0;
+    }
+    final String key = '${HiveKeys.hotPlaylistPagePrefix}${platform.name}';
+    int page = 0;
+    try {
+      final int? stored = int.tryParse(box.get(key) ?? '');
+      page = _randomStartPage(exclude: stored);
+      await box.put(key, '$page');
+    } on Object {
+      page = 0;
+    }
+    _playlistPage[platform] = page;
+    return page;
+  }
+
+  int _randomStartPage({int? exclude}) {
+    final int page = _random.nextInt(randomStartPageRange);
+    if (exclude == null || page != exclude) {
+      return page;
+    }
+    return (page + 1) % randomStartPageRange;
+  }
+
+  Future<void> _persistPage(MusicChartPlatform platform, int page) async {
+    final Box<String>? box = _pageStorage();
+    if (box == null) {
+      return;
+    }
+    try {
+      await box.put(
+        '${HiveKeys.hotPlaylistPagePrefix}${platform.name}',
+        '$page',
+      );
+    } on Object {
+      // 存不进去只影响「下次接着翻」，不影响当前这一批。
+    }
+  }
 
   Future<List<HotPlaylist>> _fetchPlaylistPage(
     MusicChartPlatform platform,
