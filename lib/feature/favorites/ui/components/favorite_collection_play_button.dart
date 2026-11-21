@@ -1,5 +1,4 @@
 import 'package:bilimusic/common/components/queue_mode_icon.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:flutter/material.dart';
 
@@ -17,7 +16,8 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
   final ValueChanged<FavoriteCollectionPlayMode> onModeSelected;
   final bool enabled;
 
-  static const double _size = AppSizes.minIconTapTarget;
+  static const double _size = 32;
+  static const double _iconSize = 30;
 
   Future<void> _showModeMenu(BuildContext context) async {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -79,21 +79,16 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: _size,
       height: _size,
       child: IconButton(
         onPressed: enabled ? () => _showModeMenu(context) : null,
         tooltip: '播放',
-        iconSize: 20,
+        iconSize: _iconSize,
         padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
         constraints: const BoxConstraints.tightFor(width: _size, height: _size),
-        style: IconButton.styleFrom(
-          foregroundColor: colorScheme.primary,
-          minimumSize: const Size(_size, _size),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
         icon: const Icon(Icons.playlist_play_rounded),
       ),
     );
