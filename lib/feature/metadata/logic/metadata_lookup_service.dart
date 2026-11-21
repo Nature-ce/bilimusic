@@ -76,11 +76,15 @@ class MetadataLookupService {
           );
     checkActive();
     // 只在「标题/歌手确实出现在视频标题里」的候选里挑，避免第一条像
-    // 《我爱你到永远》这种不相干的歌直接配上歌词。
+    // 《我爱你到永远》这种不相干的歌直接配上歌词。关键词本身就是标题里的
+    // 书名号歌名时，说明这首歌确实该叫这个名字，搜不到就交给兜底流程，
+    // 不要拿别的歌顶上。
     final List<MetingSearchItem> rankedResults = _rankCandidates(results, item);
-    final List<MetingSearchItem> candidatesToTry = rankedResults.isEmpty
-        ? results
-        : rankedResults;
+    final List<MetingSearchItem> candidatesToTry = rankedResults.isNotEmpty
+        ? rankedResults
+        : _isExplicitSongTitle(keyword, item.title)
+        ? const <MetingSearchItem>[]
+        : results;
     MetingSearchItem? instrumentalItem;
     for (final MetingSearchItem result in candidatesToTry) {
       checkActive();
@@ -282,16 +286,33 @@ class MetadataLookupService {
       keywords.add((keyword: keyword, requireRelevance: requireRelevance));
     }
 
-    for (final String candidate in titleCandidates) {
+    // 只有书名号里的内容按「明确的歌名」对待，可以允许原始顺序兜底；
+    // 【】里的多是歌手/UP 主标签，拿去搜会搜到别的歌，必须靠相关性把关。
+    final List<String> explicitTitles = titleCandidates
+        .where(
+          (String candidate) => _isExplicitSongTitle(candidate, item.title),
+        )
+        .toList(growable: false);
+    for (final String candidate in explicitTitles) {
       add(candidate);
     }
-    if (titleCandidates.isNotEmpty && author.isNotEmpty) {
-      add('${titleCandidates.first} $author', requireRelevance: true);
+    for (final String candidate in titleCandidates) {
+      add(candidate, requireRelevance: !explicitTitles.contains(candidate));
+    }
+    if (explicitTitles.isNotEmpty && author.isNotEmpty) {
+      add('${explicitTitles.first} $author', requireRelevance: true);
     }
     add(primaryKeyword);
     add(extractSearchKeyword(item.title));
     add(item.title, requireRelevance: true);
     return keywords;
+  }
+
+  static bool _isExplicitSongTitle(String candidate, String title) {
+    if (candidate.isEmpty) {
+      return false;
+    }
+    return RegExp('[《「『“"]${RegExp.escape(candidate)}[》」』”"]').hasMatch(title);
   }
 
   /// 按「候选标题/歌手是否出现在视频标题里」排序，分数太低的不参与匹配。

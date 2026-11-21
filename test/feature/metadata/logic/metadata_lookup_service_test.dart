@@ -319,6 +319,83 @@ void main() {
       expect(searched, contains('爱上了 胡夏'));
       expect(searched, isNot(contains('爱上了 全新单曲')));
     });
+
+    test('UP 主不是歌手时也能选中歌手对得上的那首', () async {
+      final MetadataLookupService service = _service(
+        searchRequest:
+            ({
+              required MetingServer server,
+              required String keyword,
+              required Map<String, dynamic> option,
+            }) async {
+              return jsonEncode(<Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 'other',
+                  'name': '爱上了',
+                  'artist': <String>['本多RuRu'],
+                  'lyric_id': 'other',
+                },
+                <String, dynamic>{
+                  'id': 'huxia',
+                  'name': '爱上了',
+                  'artist': <String>['胡夏'],
+                  'lyric_id': 'huxia',
+                },
+              ]);
+            },
+        lyricRequest:
+            ({required MetingServer server, required String id}) async {
+              return jsonEncode(<String, dynamic>{
+                'lyric': '[00:00.000] $id line',
+              });
+            },
+      );
+
+      final MetadataLookupResult result = await service.lookup(
+        item: _huxiaItem().copyWith(author: '波波はい心机Boy'),
+        title: '【胡夏】全新单曲《爱上了》MV (歌词版)',
+      );
+
+      expect(result.metadata.hasLyrics, isTrue);
+      expect(result.metadata.artist, '胡夏');
+    });
+
+    test('书名号歌名搜不到歌词时不拿别的歌顶上', () async {
+      final List<String> searched = <String>[];
+      final MetadataLookupService service = _service(
+        searchRequest:
+            ({
+              required MetingServer server,
+              required String keyword,
+              required Map<String, dynamic> option,
+            }) async {
+              searched.add(keyword);
+              return jsonEncode(<Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 'unrelated',
+                  'name': '我爱上班',
+                  'artist': <String>['音符蜗牛'],
+                  'lyric_id': 'unrelated',
+                },
+              ]);
+            },
+        lyricRequest:
+            ({required MetingServer server, required String id}) async {
+              return jsonEncode(<String, dynamic>{
+                'lyric': '[00:00.000] unrelated line',
+              });
+            },
+      );
+
+      final MetadataLookupResult result = await service.lookup(
+        item: _huxiaItem().copyWith(author: '波波はい心机Boy'),
+        title: '【胡夏】全新单曲《爱上了》MV (歌词版)',
+      );
+
+      expect(result.metadata.hasLyrics, isFalse);
+      expect(result.metadata.title, isNot('我爱上班'));
+      expect(searched, contains('胡夏'));
+    });
   });
 }
 
