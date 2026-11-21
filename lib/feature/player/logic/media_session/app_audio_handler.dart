@@ -38,7 +38,10 @@ class PlayerAudioService {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.example.bilimusic.channel.audio',
         androidNotificationChannelName: 'Bilimusic Playback',
-        androidNotificationOngoing: true,
+        // 暂停时不要停掉前台服务：否则通知会消失、进程降级成缓存进程，
+        // 后台被系统回收后就只能重新打开 App 才能继续播。
+        androidStopForegroundOnPause: false,
+        androidNotificationOngoing: false,
       ),
     );
 

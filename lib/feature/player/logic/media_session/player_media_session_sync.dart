@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:bilimusic/core/power/playback_wake_lock.dart';
 import 'package:bilimusic/feature/player/domain/player_display_info.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/media_session/app_audio_handler.dart';
@@ -79,6 +80,13 @@ void playerMediaSessionSync(Ref ref) {
           (display.stableId, display.title, display.artist, display.coverUrl),
     ),
     (_, _) => publish(),
+    fireImmediately: true,
+  );
+
+  // 播放期间握住 CPU 唤醒锁，避免息屏后系统挂起进程导致音频卡住。
+  ref.listen(
+    playerControllerProvider.select((state) => state.isPlaying),
+    (_, bool isPlaying) => unawaited(PlaybackWakeLock.setHeld(isPlaying)),
     fireImmediately: true,
   );
 }
