@@ -11,6 +11,7 @@ import 'package:bilimusic/feature/player/ui/player_page.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
 import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:bilimusic/feature/radar/ui/components/music_radar_visual.dart';
+import 'package:bilimusic/router/util/shell_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -275,6 +276,15 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       if (indexChanged || queueChanged) {
         unawaited(_topUpIfNeeded());
       }
+    });
+
+    // 从别的 tab 重新切回刷歌：如果期间播放队列已经被别的歌单占掉，
+    // 就重新拉一批推荐并开播（indexedStack 下 initState 不会重跑）。
+    ref.listen<String>(shellLocationProvider, (String? previous, String next) {
+      if (previous == next || next != shuffleTabLocation) {
+        return;
+      }
+      unawaited(_ensureShuffleQueue());
     });
 
     if (player.currentItem == null) {

@@ -13,6 +13,7 @@ import 'package:bilimusic/feature/updater/logic/update_checker.dart';
 import 'package:bilimusic/router/util/mobile_branch_navigator_keys.dart';
 import 'package:bilimusic/router/util/mobile_chrome_config.dart';
 import 'package:bilimusic/router/util/player_navigation.dart';
+import 'package:bilimusic/router/util/shell_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,6 +51,27 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
   void initState() {
     super.initState();
     UpdateChecker.scheduleStartupCheck(context);
+    _reportShellLocation();
+  }
+
+  @override
+  void didUpdateWidget(covariant MobileShellScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentLocation != widget.currentLocation) {
+      _reportShellLocation();
+    }
+  }
+
+  /// 把当前一级路由同步给页面：indexedStack 下 tab 页一直挂着，
+  /// 页面靠这个信号知道自己被重新切回来了。
+  void _reportShellLocation() {
+    final String location = widget.currentLocation;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref.read(shellLocationProvider.notifier).update(location);
+    });
   }
 
   @override

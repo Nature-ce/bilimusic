@@ -11,6 +11,7 @@ import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
 import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:bilimusic/feature/radar/ui/components/music_radar_visual.dart';
 import 'package:bilimusic/feature/radar/ui/shuffle_page.dart';
+import 'package:bilimusic/router/util/shell_location.dart';
 import 'package:bilimusic/feature/search/data/bili_search_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -201,6 +202,27 @@ void main() {
       player.queued.single.map((PlayableItem item) => item.title),
       <String>['刷歌歌曲0', '刷歌歌曲1', '刷歌歌曲2', '刷歌歌曲3', '刷歌歌曲4'],
     );
+  });
+
+  testWidgets('切回刷歌标签时会重新拉起推荐队列', (WidgetTester tester) async {
+    final ProviderContainer container = await _pumpPage(
+      tester,
+      controller: _LoadedFeed.new,
+    );
+
+    final _FakePlayer player =
+        container.read(playerControllerProvider.notifier) as _FakePlayer;
+    // 首次进入刷歌已经建过一批队列（模拟用户先刷过歌）。
+    expect(player.queued, hasLength(1));
+
+    // 模拟：用户去别的 tab 放了自己的歌单，队列被占掉，然后又点回刷歌。
+    container.read(shellLocationProvider.notifier).update('/home');
+    await tester.pumpAndSettle();
+    container.read(shellLocationProvider.notifier).update('/radar');
+    await tester.pumpAndSettle();
+
+    expect(player.queued, hasLength(2));
+    expect(player.queuedLabels.last, '刷歌');
   });
 
   testWidgets('刷歌队列建立后从随机播放切回顺序播放', (WidgetTester tester) async {

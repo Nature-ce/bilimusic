@@ -6,6 +6,7 @@ import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dar
 import 'package:bilimusic/feature/profile/ui/desktop_profile_sidebar.dart';
 import 'package:bilimusic/feature/player/ui/desktop/desktop_player_bar.dart';
 import 'package:bilimusic/feature/updater/logic/update_checker.dart';
+import 'package:bilimusic/router/util/shell_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +34,27 @@ class _DesktopShellScaffoldState extends ConsumerState<DesktopShellScaffold> {
   void initState() {
     super.initState();
     UpdateChecker.scheduleStartupCheck(context);
+    _reportShellLocation();
+  }
+
+  @override
+  void didUpdateWidget(covariant DesktopShellScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentLocation != widget.currentLocation) {
+      _reportShellLocation();
+    }
+  }
+
+  /// 把当前一级路由同步给页面：indexedStack 下 tab 页一直挂着，
+  /// 页面靠这个信号知道自己被重新切回来了。
+  void _reportShellLocation() {
+    final String location = widget.currentLocation;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref.read(shellLocationProvider.notifier).update(location);
+    });
   }
 
   Widget? _buildHomeBackToTop() {
