@@ -21,9 +21,13 @@ String resolveLyricSearchKeyword({
   if (item?.isSpoken ?? false) {
     return '';
   }
-  final String metadataKeyword = _metadataSearchKeyword(metadataState, item);
-  if (metadataKeyword.isNotEmpty) {
-    return metadataKeyword;
+  // 元数据没有可用歌词时，说明那套标题/歌手是匹配失败的产物，
+  // 优先用视频标题本身去搜，避免拿错误的歌名把搜索带偏。
+  if (metadataState.hasLyrics) {
+    final String metadataKeyword = _metadataSearchKeyword(metadataState, item);
+    if (metadataKeyword.isNotEmpty) {
+      return metadataKeyword;
+    }
   }
 
   return metadataState.searchKeyword?.trim() ?? item?.title.trim() ?? '';

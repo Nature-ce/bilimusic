@@ -113,6 +113,15 @@ class MetadataLookupService {
       );
     }
 
+    final MetadataLookupResult? fallback = await _fallbackLookup(
+      item: item,
+      primaryKeyword: keyword,
+      isActive: isActive,
+    );
+    if (fallback != null) {
+      return fallback;
+    }
+
     return MetadataLookupResult(
       metadata: Metadata(stableId: item.stableId, updatedAt: DateTime.now()),
       searchKeyword: fallbackKeyword,
@@ -170,6 +179,101 @@ class MetadataLookupService {
       metaLyrics: metaLyrics,
       albumArtUrl: albumArtUrl,
       updatedAt: DateTime.now(),
+    );
+  }
+
+  /// 主关键词搜不到歌词时的兜底：换用视频标题等关键词、跨平台聚合，
+  /// 再按「标题像不像」挑候选，避免随手拿第一条（例如把 《直到永远》匹配成
+  /// 吴奇隆的《我爱你到永远》）。
+  Future<MetadataLookupResult?> _fallbackLookup({
+    required PlayableItem item,
+    required String primaryKeyword,
+    bool Function()? isActive,
+  }) async {
+    final List<String> keywords = <String>[
+      primaryKeyword,
+      extractSearchKeyword(item.title).trim(),
+      item.title.trim(),
+      '${item.title.trim()} ${item.author.trim()}'.trim(),
+    ].where((String keyword) => keyword.isNotEmpty).toSet().toList();
+    for (final String keyword in keywords) {
+      if (isActive?.call() == false) {
+        return null;
+      }
+      List<MetingSearchItem> results;
+      try {
+        results = await metingRepository.searchAll(keyword: keyword);
+      } on Object {
+        continue;
+      }
+      final List<MetingSearchItem> ranked = _rankCandidates(results, item);
+      for (final MetingSearchItem candidate in ranked) {
+        if (isActive?.call() == false) {
+          return null;
+        }
+        final MetaLyrics? rawLyrics = await _fetchLyricsOrNull(candidate);
+        if (isInstrumentalLyrics(rawLyrics?.lyric)) {
+          continue;
+        }
+        final MetaLyrics? metaLyrics = normalizeMetaLyrics(rawLyrics);
+        if (metaLyrics == null || !metaLyrics.hasRenderableMainLyric) {
+          continue;
+        }
+        return MetadataLookupResult(
+          metadata: await buildMetadata(
+            item: item,
+            searchItem: candidate,
+            metaLyrics: metaLyrics,
+            isActive: isActive,
+          ),
+          searchKeyword: keyword,
+          searchResults: results,
+        );
+      }
+    }
+    return null;
+  }
+
+  /// 按「候选标题/歌手是否出现在视频标题里」排序，分数太低的不参与匹配。
+  List<MetingSearchItem> _rankCandidates(
+    List<MetingSearchItem> results,
+    PlayableItem item,
+  ) {
+    final String title = _normalizeForMatch(item.title);
+    int scoreOf(MetingSearchItem candidate) {
+      final String candidateTitle = _normalizeForMatch(candidate.title);
+      final String candidateAuthor = _normalizeForMatch(candidate.author);
+      int score = 0;
+      if (candidateTitle.isNotEmpty && title.isNotEmpty) {
+        if (title.contains(candidateTitle)) {
+          score += 3;
+        } else if (candidateTitle.contains(title)) {
+          score += 2;
+        }
+      }
+      if (candidateAuthor.isNotEmpty &&
+          title.isNotEmpty &&
+          title.contains(candidateAuthor)) {
+        score += 2;
+      }
+      return score;
+    }
+
+    final List<MetingSearchItem> ranked = List<MetingSearchItem>.of(results)
+      ..sort(
+        (MetingSearchItem a, MetingSearchItem b) =>
+            scoreOf(b).compareTo(scoreOf(a)),
+      );
+    return ranked
+        .where((MetingSearchItem candidate) => scoreOf(candidate) > 0)
+        .take(6)
+        .toList(growable: false);
+  }
+
+  static String _normalizeForMatch(String value) {
+    return value.toLowerCase().replaceAll(
+      RegExp(r'''[\s\-_/\\.，,、:：!！?？"'`~@#%&*+=|<>()\[\]{}（）【】「」『』《》]'''),
+      '',
     );
   }
 
