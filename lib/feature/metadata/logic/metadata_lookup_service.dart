@@ -41,6 +41,7 @@ class MetadataLookupService {
     required PlayableItem item,
     required String title,
     bool normalizeKeyword = true,
+    bool aggregate = true,
     bool Function()? isActive,
   }) async {
     void checkActive() {
@@ -56,10 +57,21 @@ class MetadataLookupService {
     checkActive();
     final String? fallbackKeyword = keyword.isNotEmpty ? keyword : null;
 
-    final List<MetingSearchItem> results = await metingRepository.search(
-      keyword: keyword,
-      server: resolveServer(keyword),
-    );
+    final MetingServer preferredServer = resolveServer(keyword);
+    final List<MetingSearchItem> results = aggregate
+        ? await metingRepository.searchAll(
+            keyword: keyword,
+            servers: <MetingServer>[
+              preferredServer,
+              ...MetingRepository.lyricSearchServers.where(
+                (MetingServer server) => server != preferredServer,
+              ),
+            ],
+          )
+        : await metingRepository.search(
+            keyword: keyword,
+            server: preferredServer,
+          );
     checkActive();
     MetingSearchItem? instrumentalItem;
     for (final MetingSearchItem result in results) {

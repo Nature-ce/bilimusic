@@ -319,6 +319,7 @@ class _Lookup extends MetadataLookupService {
     required PlayableItem item,
     required String title,
     bool normalizeKeyword = true,
+    bool aggregate = true,
     bool Function()? isActive,
   }) {
     lookups.add(item);

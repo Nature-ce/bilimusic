@@ -85,6 +85,48 @@ class MetingRepository {
     }
   }
 
+  /// 歌词搜索默认查这些平台（网易云 / 酷狗 / QQ音乐）。
+  static const List<MetingServer> lyricSearchServers = <MetingServer>[
+    MetingServer.netease,
+    MetingServer.kugou,
+    MetingServer.tencent,
+  ];
+
+  /// 聚合搜索：并发查多个平台，按平台顺序合并去重。
+  Future<List<MetingSearchItem>> searchAll({
+    required String keyword,
+    List<MetingServer> servers = lyricSearchServers,
+  }) async {
+    final String trimmedKeyword = keyword.trim();
+    if (trimmedKeyword.isEmpty) {
+      return const <MetingSearchItem>[];
+    }
+    final List<List<MetingSearchItem>> perServer = await Future.wait(
+      servers.map((MetingServer server) async {
+        try {
+          return await search(keyword: trimmedKeyword, server: server);
+        } on Object {
+          return const <MetingSearchItem>[];
+        }
+      }),
+    );
+    final List<MetingSearchItem> merged = <MetingSearchItem>[];
+    final Set<String> seen = <String>{};
+    for (final List<MetingSearchItem> results in perServer) {
+      for (final MetingSearchItem item in results) {
+        final String key =
+            '${_dedupeKey(item.title)}|${_dedupeKey(item.author)}';
+        if (seen.add(key)) {
+          merged.add(item);
+        }
+      }
+    }
+    return merged;
+  }
+
+  static String _dedupeKey(String value) =>
+      value.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
   Future<Object?> fetchPlaylist({
     required String playlistId,
     MetingServer server = MetingServer.netease,

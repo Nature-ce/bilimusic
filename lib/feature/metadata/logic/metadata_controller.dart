@@ -12,7 +12,6 @@ import 'package:bilimusic/feature/meting/data/meting_repository.dart';
 import 'package:bilimusic/feature/meting/domain/meting_search_item.dart';
 import 'package:bilimusic/feature/meting/domain/meting_search_response.dart';
 import 'package:bilimusic/feature/meting/domain/meting_server.dart';
-import 'package:bilimusic/feature/meting/logic/meting_source_preference_logic.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -419,10 +418,6 @@ class MetadataController extends _$MetadataController {
         .isNotEmpty;
   }
 
-  MetingServer _resolveServer(String text) {
-    return ref.read(metingSourcePreferenceLogicProvider).resolve(text);
-  }
-
   Future<MetingSearchResponse> _searchManually({
     required String keyword,
     MetingServer? server,
@@ -433,10 +428,12 @@ class MetadataController extends _$MetadataController {
     final String trimmedKeyword = keyword.trim();
     return MetingSearchResponse(
       keyword: trimmedKeyword,
-      results: await metingRepository.search(
-        keyword: trimmedKeyword,
-        server: server ?? _resolveServer(trimmedKeyword),
-      ),
+      results: server == null
+          ? await metingRepository.searchAll(keyword: trimmedKeyword)
+          : await metingRepository.search(
+              keyword: trimmedKeyword,
+              server: server,
+            ),
     );
   }
 

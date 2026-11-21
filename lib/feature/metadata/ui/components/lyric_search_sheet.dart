@@ -89,9 +89,7 @@ class _LyricSearchSheetState extends ConsumerState<_LyricSearchSheet> {
       if (keyword.isEmpty) {
         return;
       }
-      ref
-          .read(metadataControllerProvider.notifier)
-          .searchManual(keyword, server: _selectedServer);
+      ref.read(metadataControllerProvider.notifier).searchManual(keyword);
     });
   }
 
@@ -137,30 +135,8 @@ class _LyricSearchSheetState extends ConsumerState<_LyricSearchSheet> {
                       onSubmitted: (_) => _submitSearch(),
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  DropdownMenu<MetingServer>(
-                    initialSelection: _selectedServer,
-                    label: const Text('平台'),
-                    width: 160,
-                    dropdownMenuEntries: MetingServer.values
-                        .map(
-                          (MetingServer server) =>
-                              DropdownMenuEntry<MetingServer>(
-                                value: server,
-                                label: server.label,
-                              ),
-                        )
-                        .toList(growable: false),
-                    onSelected: (MetingServer? server) {
-                      if (server == null || server == _selectedServer) {
-                        return;
-                      }
-                      setState(() {
-                        _selectedServer = server;
-                      });
-                      _submitSearch();
-                    },
-                  ),
+                  const SizedBox(width: 16),
+                  const Text('聚合搜索'),
                 ],
               ),
               const SizedBox(height: 4),

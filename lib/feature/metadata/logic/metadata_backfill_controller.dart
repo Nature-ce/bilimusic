@@ -110,6 +110,7 @@ class MetadataBackfillController extends _$MetadataBackfillController {
               .getCachedMetadataByContentId(item.contentId);
           if (!(cached?.hasContent ?? false)) {
             final MetadataLookupResult result = await lookup.lookup(
+              aggregate: false,
               item: item,
               title: _lookupTitle(item),
             );
