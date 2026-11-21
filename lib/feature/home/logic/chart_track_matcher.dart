@@ -12,6 +12,12 @@ class ChartTrackMatcher {
   static const int _closeDurationWindowSeconds = 8;
   static const int _nearDurationWindowSeconds = 20;
 
+  /// 短于这个时长的视频基本都是「剪辑片段」，不参与匹配。
+  static const int minimumClipSeconds = 60;
+
+  /// 比原曲短到这个比例以下，也算片段（例如 4 分钟的歌只搜到 1 分钟视频）。
+  static const double minimumDurationRatio = 0.6;
+
   static final RegExp _ignoredCharacters = RegExp(
     r'''[\s\-_/\\.。，,、:：!！?？"'`~@#%&*+=|<>()\[\]{}（）【】「」『』《》]''',
   );
@@ -46,6 +52,12 @@ class ChartTrackMatcher {
     required MatchableTrack track,
     required SearchResultItem item,
   }) {
+    final int candidateSeconds = parseDurationSeconds(item.duration);
+    // 剪辑片段（只有几十秒的副歌 / 试听版）即使标题歌手都对也不要。
+    if (_isShortClip(track: track, candidateSeconds: candidateSeconds)) {
+      return const _MatchScore(total: 0, isConfident: false);
+    }
+
     final String title = normalize(track.title);
     final String artist = normalize(track.artist);
     final String candidate = normalize(item.title);
@@ -53,7 +65,6 @@ class ChartTrackMatcher {
     final bool artistMatched = artist.isNotEmpty && candidate.contains(artist);
     int durationScore = 0;
     bool durationClose = false;
-    final int candidateSeconds = parseDurationSeconds(item.duration);
     if (track.durationSeconds > 0 && candidateSeconds > 0) {
       final int diff = (track.durationSeconds - candidateSeconds).abs();
       if (diff <= _closeDurationWindowSeconds) {
@@ -71,6 +82,24 @@ class ChartTrackMatcher {
         durationScore;
     final bool isConfident = titleMatched || (artistMatched && durationClose);
     return _MatchScore(total: total, isConfident: isConfident);
+  }
+
+  /// 候选视频是不是被剪过的片段：时长太短，或者比原曲短一大截。
+  ///
+  /// 时长解析不出来（0）时不做判断，保持原来的行为。
+  static bool _isShortClip({
+    required MatchableTrack track,
+    required int candidateSeconds,
+  }) {
+    if (candidateSeconds <= 0) {
+      return false;
+    }
+    if (candidateSeconds < minimumClipSeconds) {
+      return true;
+    }
+    final int trackSeconds = track.durationSeconds;
+    return trackSeconds > 0 &&
+        candidateSeconds < trackSeconds * minimumDurationRatio;
   }
 
   static String normalize(String value) {

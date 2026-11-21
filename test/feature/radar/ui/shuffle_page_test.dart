@@ -104,6 +104,23 @@ class _ResolvedResolver extends MusicChartResolver {
   }
 }
 
+/// 前 [failFirst] 次解析一律失败（模拟候选都被过滤掉），之后正常返回。
+class _FlakyResolver extends _ResolvedResolver {
+  _FlakyResolver({required this.failFirst});
+
+  final int failFirst;
+  int calls = 0;
+
+  @override
+  Future<PlayableItem?> resolve(MatchableTrack track) async {
+    calls += 1;
+    if (calls <= failFirst) {
+      return null;
+    }
+    return super.resolve(track);
+  }
+}
+
 class _FakePlayer extends PlayerController {
   final List<String?> queuedLabels = <String?>[];
   final List<List<PlayableItem>> queued = <List<PlayableItem>>[];
@@ -202,6 +219,23 @@ void main() {
       player.queued.single.map((PlayableItem item) => item.title),
       <String>['刷歌歌曲0', '刷歌歌曲1', '刷歌歌曲2', '刷歌歌曲3', '刷歌歌曲4'],
     );
+  });
+
+  testWidgets('候选都被过滤掉时会重新扫一批再试', (WidgetTester tester) async {
+    final _LoadedFeed feed = _LoadedFeed();
+    final _FlakyResolver resolver = _FlakyResolver(failFirst: 12);
+    final ProviderContainer container = await _pumpPage(
+      tester,
+      controller: () => feed,
+      resolver: resolver,
+    );
+
+    final _FakePlayer player =
+        container.read(playerControllerProvider.notifier) as _FakePlayer;
+    // 第一轮全失败，重新 scan 后第二轮凑够 5 首。
+    expect(feed.scanCalls, greaterThanOrEqualTo(1));
+    expect(player.queued, hasLength(1));
+    expect(player.queued.single, hasLength(5));
   });
 
   testWidgets('切回刷歌标签时会重新拉起推荐队列', (WidgetTester tester) async {

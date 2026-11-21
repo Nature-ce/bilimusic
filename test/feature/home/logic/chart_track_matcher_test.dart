@@ -95,6 +95,86 @@ void main() {
     );
   });
 
+  test('rejects short clips even when title and artist match', () {
+    // B 站上常见的几十秒剪辑版：标题、歌手都对，但不该进播放列表。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦 剪辑版', duration: '00:25'),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('rejects candidates far shorter than the track', () {
+    // 原曲 4:29，候选只有 1 分钟 → 明显是片段。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '01:00'),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('still accepts a slightly shorter but complete version', () {
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '04:20'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
+
+  test('unknown track duration falls back to an absolute minimum', () {
+    const MusicChartTrack unknownDuration = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '晴天',
+      artist: '周杰伦',
+      coverUrl: '',
+      durationSeconds: 0,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: unknownDuration,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '00:30'),
+        ],
+      ),
+      isNull,
+    );
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: unknownDuration,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '04:29'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
+
+  test('keeps matching when the duration is unknown', () {
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '00:00'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
+
   test('parses durations and normalizes text', () {
     expect(ChartTrackMatcher.parseDurationSeconds('04:29'), 269);
     expect(ChartTrackMatcher.parseDurationSeconds('1:02:03'), 3723);

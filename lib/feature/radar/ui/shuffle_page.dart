@@ -107,9 +107,21 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       _attemptedTrackKeys.clear();
     }
     try {
-      final List<PlayableItem> items = await _fillBatch(_batchSize);
+      List<PlayableItem> items = await _fillBatch(_batchSize);
       if (!mounted) {
         return;
+      }
+      if (items.isEmpty && _attemptedTrackKeys.isNotEmpty) {
+        // 现有推荐流里的候选都被试过了（例如剪辑片段被过滤掉），重新扫一批再试一次。
+        _attemptedTrackKeys.clear();
+        await ref.read(musicRadarControllerProvider.notifier).scan();
+        if (!mounted) {
+          return;
+        }
+        items = await _fillBatch(_batchSize);
+        if (!mounted) {
+          return;
+        }
       }
       if (items.isEmpty) {
         setState(() => _errorMessage = '推荐歌曲暂时都没匹配到 B 站视频，换个批次再试');
