@@ -48,8 +48,6 @@ class PlayerQueueManager {
     }
 
     return switch (mode) {
-      PlayerQueueMode.sequenceOnce =>
-        currentIndex + 1 < queue.length ? currentIndex + 1 : null,
       PlayerQueueMode.sequence || PlayerQueueMode.singleRepeat =>
         _wrapQueueIndex(currentIndex + 1, queue.length),
       PlayerQueueMode.shuffle => _resolveShuffleNextIndex(
@@ -69,8 +67,6 @@ class PlayerQueueManager {
     }
 
     return switch (mode) {
-      PlayerQueueMode.sequenceOnce =>
-        currentIndex > 0 ? currentIndex - 1 : null,
       PlayerQueueMode.sequence || PlayerQueueMode.singleRepeat =>
         _wrapQueueIndex(currentIndex - 1, queue.length),
       PlayerQueueMode.shuffle => _resolveShufflePreviousIndex(

@@ -14,10 +14,6 @@ void main() {
         PlayerQueueMode.shuffle,
       );
       expect(nextQueueMode(PlayerQueueMode.shuffle), PlayerQueueMode.sequence);
-      expect(
-        nextQueueMode(PlayerQueueMode.sequenceOnce),
-        PlayerQueueMode.sequence,
-      );
     });
 
     test('不允许随机时跳过随机播放', () {
@@ -27,10 +23,6 @@ void main() {
       );
       expect(
         nextQueueMode(PlayerQueueMode.singleRepeat, allowShuffle: false),
-        PlayerQueueMode.sequence,
-      );
-      expect(
-        nextQueueMode(PlayerQueueMode.sequenceOnce, allowShuffle: false),
         PlayerQueueMode.sequence,
       );
     });

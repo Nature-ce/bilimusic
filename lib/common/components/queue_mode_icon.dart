@@ -1,4 +1,3 @@
-import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -17,6 +16,5 @@ Widget queueModeIcon(PlayerQueueMode mode) {
       icon: HugeIcons.strokeRoundedShuffle,
       size: 22,
     ),
-    PlayerQueueMode.sequenceOnce => const SequencePlayIcon(size: 22),
   };
 }

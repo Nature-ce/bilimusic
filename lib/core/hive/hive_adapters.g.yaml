@@ -83,8 +83,6 @@ types:
         index: 1
       shuffle:
         index: 2
-      sequenceOnce:
-        index: 3
   PersistedPlayableItem:
     typeId: 5
     nextIndex: 22

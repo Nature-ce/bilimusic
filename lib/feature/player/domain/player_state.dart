@@ -5,7 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'player_state.freezed.dart';
 
-enum PlayerQueueMode { sequence, singleRepeat, shuffle, sequenceOnce }
+enum PlayerQueueMode { sequence, singleRepeat, shuffle }
 
 /// 点「切换播放模式」时的下一个模式。
 ///
@@ -20,7 +20,6 @@ PlayerQueueMode nextQueueMode(
     PlayerQueueMode.singleRepeat =>
       allowShuffle ? PlayerQueueMode.shuffle : PlayerQueueMode.sequence,
     PlayerQueueMode.shuffle => PlayerQueueMode.sequence,
-    PlayerQueueMode.sequenceOnce => PlayerQueueMode.sequence,
   };
 }
 

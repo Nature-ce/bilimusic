@@ -1,11 +1,12 @@
-import 'package:bilimusic/common/components/sequence_play_icon.dart';
+import 'package:bilimusic/common/components/queue_mode_icon.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:flutter/material.dart';
 
-/// 歌单的播放方式：顺序（播完即止）、随机、循环。
-enum FavoriteCollectionPlayMode { sequence, shuffle, loop }
+/// 歌单的播放方式：随机、循环。
+enum FavoriteCollectionPlayMode { shuffle, loop }
 
-/// 歌单页统一的播放按钮：点击后弹出「顺序 / 随机 / 循环」选择。
+/// 歌单页统一的播放按钮：点击后弹出「随机 / 循环」选择。
 class FavoriteCollectionPlayButton extends StatelessWidget {
   const FavoriteCollectionPlayButton({
     super.key,
@@ -21,6 +22,7 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
   Future<void> _showModeMenu(BuildContext context) async {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final ThemeData theme = Theme.of(context);
+    final IconThemeData iconTheme = IconThemeData(color: colorScheme.primary);
     final FavoriteCollectionPlayMode? mode =
         await showModalBottomSheet<FavoriteCollectionPlayMode>(
           context: context,
@@ -43,20 +45,9 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
                     ),
                   ),
                   ListTile(
-                    leading: SequencePlayIcon(
-                      size: 24,
-                      color: colorScheme.primary,
-                    ),
-                    title: const Text('顺序播放'),
-                    subtitle: const Text('按歌单顺序播放，播完即止'),
-                    onTap: () => Navigator.of(
-                      sheetContext,
-                    ).pop(FavoriteCollectionPlayMode.sequence),
-                  ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.shuffle_rounded,
-                      color: colorScheme.primary,
+                    leading: IconTheme(
+                      data: iconTheme,
+                      child: queueModeIcon(PlayerQueueMode.shuffle),
                     ),
                     title: const Text('随机播放'),
                     subtitle: const Text('打乱歌单顺序播放'),
@@ -65,9 +56,9 @@ class FavoriteCollectionPlayButton extends StatelessWidget {
                     ).pop(FavoriteCollectionPlayMode.shuffle),
                   ),
                   ListTile(
-                    leading: Icon(
-                      Icons.repeat_rounded,
-                      color: colorScheme.primary,
+                    leading: IconTheme(
+                      data: iconTheme,
+                      child: queueModeIcon(PlayerQueueMode.sequence),
                     ),
                     title: const Text('循环播放'),
                     subtitle: const Text('按歌单顺序循环播放'),

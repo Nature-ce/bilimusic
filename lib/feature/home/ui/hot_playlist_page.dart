@@ -146,7 +146,7 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
         if (!started && resolved.length >= _playAllStartSize) {
           started = true;
           await _startPlayback(resolved, sourceLabel);
-          player.setQueueMode(PlayerQueueMode.sequenceOnce);
+          player.setQueueMode(PlayerQueueMode.sequence);
           queued = resolved.length;
         } else if (started && resolved.length - queued >= _playAllBatchSize) {
           await player.enqueue(resolved.sublist(queued));
@@ -157,7 +157,7 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
       if (!started && resolved.isNotEmpty) {
         started = true;
         await _startPlayback(resolved, sourceLabel);
-        player.setQueueMode(PlayerQueueMode.sequenceOnce);
+        player.setQueueMode(PlayerQueueMode.sequence);
         queued = resolved.length;
       }
       if (started && resolved.length > queued) {

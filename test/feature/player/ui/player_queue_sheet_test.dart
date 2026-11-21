@@ -1,5 +1,4 @@
 import 'package:bilimusic/common/components/glass_panel.dart';
-import 'package:bilimusic/common/components/sequence_play_icon.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -223,7 +222,6 @@ void main() {
     (PlayerQueueMode.shuffle, HugeIcon),
     (PlayerQueueMode.sequence, HugeIcon),
     (PlayerQueueMode.singleRepeat, HugeIcon),
-    (PlayerQueueMode.sequenceOnce, SequencePlayIcon),
   ]) {
     testWidgets('队列模式 ${mode.name} 使用播放页同款图标', (WidgetTester tester) async {
       final ProviderContainer container = ProviderContainer(

@@ -566,7 +566,6 @@ class _DesktopFavoriteCollectionPageState
       sourceLabel: shuffle ? '${collection.name} · 随机' : collection.name,
     );
     ref.read(playerControllerProvider.notifier).setQueueMode(switch (mode) {
-      FavoriteCollectionPlayMode.sequence => PlayerQueueMode.sequenceOnce,
       FavoriteCollectionPlayMode.shuffle => PlayerQueueMode.shuffle,
       FavoriteCollectionPlayMode.loop => PlayerQueueMode.sequence,
     });

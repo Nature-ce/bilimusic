@@ -269,7 +269,7 @@ void main() {
     expect(player.queuedLabels.last, '刷歌');
   });
 
-  testWidgets('刷歌队列建立后从随机播放切回顺序播放', (WidgetTester tester) async {
+  testWidgets('刷歌队列建立后从随机播放切回列表循环', (WidgetTester tester) async {
     final ProviderContainer container = await _pumpPage(
       tester,
       controller: _LoadedFeed.new,

@@ -203,8 +203,6 @@ class PlayerQueueModeAdapter extends TypeAdapter<PlayerQueueMode> {
         return PlayerQueueMode.singleRepeat;
       case 2:
         return PlayerQueueMode.shuffle;
-      case 3:
-        return PlayerQueueMode.sequenceOnce;
       default:
         return PlayerQueueMode.sequence;
     }
@@ -219,8 +217,6 @@ class PlayerQueueModeAdapter extends TypeAdapter<PlayerQueueMode> {
         writer.writeByte(1);
       case PlayerQueueMode.shuffle:
         writer.writeByte(2);
-      case PlayerQueueMode.sequenceOnce:
-        writer.writeByte(3);
     }
   }
 

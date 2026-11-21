@@ -187,7 +187,7 @@ void main() {
     expect(resolver.resolveCalls, 2);
     expect(played, hasLength(2));
     expect(playedLabel, '测试歌单');
-    expect(player.modes, contains(PlayerQueueMode.sequenceOnce));
+    expect(player.modes, contains(PlayerQueueMode.sequence));
     // 播放中按钮恢复成可点状态。
     expect(find.text('全部播放'), findsOneWidget);
   });
