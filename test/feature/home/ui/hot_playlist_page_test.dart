@@ -2,6 +2,13 @@ import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
+import 'package:bilimusic/feature/home/domain/matchable_track.dart';
+import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
+import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
+import 'package:bilimusic/feature/player/domain/playable_item.dart';
+import 'package:bilimusic/feature/player/domain/player_state.dart';
+import 'package:bilimusic/feature/player/logic/player_controller.dart';
+import 'package:bilimusic/feature/search/data/bili_search_repository.dart';
 import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
 import 'package:bilimusic/feature/home/ui/hot_playlist_page.dart';
 import 'package:flutter/material.dart';
@@ -55,6 +62,9 @@ Future<void> _pumpPage(
   WidgetTester tester, {
   HotPlaylist? initialPlaylist = _playlist,
   int total = 2,
+  MusicChartResolver? resolver,
+  PlayerController? player,
+  HotPlaylistPlayAll? playAll,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -67,12 +77,16 @@ Future<void> _pumpPage(
         hotPlaylistRepositoryProvider.overrideWithValue(
           _repository(total: total),
         ),
+        if (resolver != null)
+          musicChartResolverProvider.overrideWithValue(resolver),
+        if (player != null) playerControllerProvider.overrideWith(() => player),
       ],
       child: MaterialApp(
         home: HotPlaylistPage(
           platform: MusicChartPlatform.netease,
           playlistId: '1',
           initialPlaylist: initialPlaylist,
+          playAll: playAll,
         ),
       ),
     ),
@@ -118,4 +132,164 @@ void main() {
     expect(find.text('歌曲 120'), findsOneWidget);
     expect(find.byType(TrackRowTile), findsWidgets);
   });
+
+  testWidgets('shows a play-all button with the track count', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester);
+
+    expect(find.byKey(const Key('hotPlaylistPlayAll')), findsOneWidget);
+    expect(find.text('播放全部 2 首'), findsOneWidget);
+  });
+
+  testWidgets('play-all resolves tracks and hands them to the player', (
+    WidgetTester tester,
+  ) async {
+    final _FakeResolver resolver = _FakeResolver();
+    final _PlayAllRecorder player = _PlayAllRecorder();
+    List<PlayableItem>? played;
+    String? playedLabel;
+    await _pumpPage(
+      tester,
+      resolver: resolver,
+      player: player,
+      playAll:
+          (
+            BuildContext context,
+            WidgetRef ref,
+            List<PlayableItem> items,
+            String sourceLabel,
+          ) async {
+            played = items;
+            playedLabel = sourceLabel;
+          },
+    );
+
+    await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
+    await tester.pumpAndSettle();
+
+    expect(resolver.resolveCalls, 2);
+    expect(played, hasLength(2));
+    expect(playedLabel, '测试歌单');
+    expect(player.modes, contains(PlayerQueueMode.sequenceOnce));
+    // 播放中按钮恢复成可点状态。
+    expect(find.text('播放全部 2 首'), findsOneWidget);
+  });
+
+  testWidgets('play-all skips tracks without a bilibili match', (
+    WidgetTester tester,
+  ) async {
+    final _FakeResolver resolver = _FakeResolver(failTitles: <String>{'歌曲 2'});
+    List<PlayableItem>? played;
+    await _pumpPage(
+      tester,
+      resolver: resolver,
+      player: _PlayAllRecorder(),
+      playAll:
+          (
+            BuildContext context,
+            WidgetRef ref,
+            List<PlayableItem> items,
+            String sourceLabel,
+          ) async {
+            played = items;
+          },
+    );
+
+    await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
+    await tester.pumpAndSettle();
+
+    expect(played, hasLength(1));
+    expect(played!.single.title, '晴天');
+  });
+
+  testWidgets('play-all queues the remaining tracks in batches', (
+    WidgetTester tester,
+  ) async {
+    final _PlayAllRecorder player = _PlayAllRecorder();
+    List<PlayableItem>? played;
+    await _pumpPage(
+      tester,
+      total: 12,
+      resolver: _FakeResolver(),
+      player: player,
+      playAll:
+          (
+            BuildContext context,
+            WidgetRef ref,
+            List<PlayableItem> items,
+            String sourceLabel,
+          ) async {
+            played = items;
+          },
+    );
+
+    await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
+    await tester.pumpAndSettle();
+
+    // 先拿前 5 首开播，剩下的 7 首补进队列。
+    expect(played, hasLength(5));
+    expect(player.enqueued, hasLength(2));
+    expect(player.enqueued.first, hasLength(5));
+    expect(player.enqueued.last, hasLength(2));
+    expect(
+      player.enqueued.expand((List<PlayableItem> items) => items),
+      hasLength(7),
+    );
+  });
+}
+
+class _FakeSearchRepository implements BiliSearchRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+class _FakePlayerRepository implements BiliPlayerRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+class _FakeResolver extends MusicChartResolver {
+  _FakeResolver({this.failTitles = const <String>{}})
+    : super(
+        searchRepository: _FakeSearchRepository(),
+        playerRepository: _FakePlayerRepository(),
+      );
+
+  final Set<String> failTitles;
+  int resolveCalls = 0;
+
+  @override
+  Future<PlayableItem?> resolve(MatchableTrack track) async {
+    resolveCalls += 1;
+    if (failTitles.contains(track.title)) {
+      return null;
+    }
+    return PlayableItem(
+      aid: track.title.hashCode.abs(),
+      bvid: 'BV${track.title.hashCode.abs()}',
+      cid: 1,
+      title: track.title,
+      author: track.artist,
+      coverUrl: '',
+    );
+  }
+}
+
+class _PlayAllRecorder extends PlayerController {
+  final List<PlayerQueueMode> modes = <PlayerQueueMode>[];
+  final List<List<PlayableItem>> enqueued = <List<PlayableItem>>[];
+
+  @override
+  PlayerState build() => const PlayerState();
+
+  @override
+  void setQueueMode(PlayerQueueMode mode) {
+    modes.add(mode);
+  }
+
+  @override
+  Future<void> enqueue(List<PlayableItem> items) async {
+    enqueued.add(items);
+  }
 }

@@ -12,8 +12,19 @@ import 'package:bilimusic/feature/home/logic/hot_playlist_detail_controller.dart
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
 import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
+import 'package:bilimusic/feature/player/domain/player_state.dart';
+import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// 一键播放：把歌单曲目解析成可播放条目后开播。
+typedef HotPlaylistPlayAll =
+    Future<void> Function(
+      BuildContext context,
+      WidgetRef ref,
+      List<PlayableItem> items,
+      String sourceLabel,
+    );
 
 class HotPlaylistPage extends ConsumerStatefulWidget {
   const HotPlaylistPage({
@@ -21,6 +32,7 @@ class HotPlaylistPage extends ConsumerStatefulWidget {
     required this.platform,
     required this.playlistId,
     this.initialPlaylist,
+    this.playAll,
   });
 
   final MusicChartPlatform platform;
@@ -29,12 +41,24 @@ class HotPlaylistPage extends ConsumerStatefulWidget {
   /// 从首页进入时携带，避免重复请求歌单元信息。
   final HotPlaylist? initialPlaylist;
 
+  /// 一键播放的落地方式，测试可注入以断言开播行为。
+  final HotPlaylistPlayAll? playAll;
+
   @override
   ConsumerState<HotPlaylistPage> createState() => _HotPlaylistPageState();
 }
 
 class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
+  /// 先解析够这么多首就开播，剩下的边解析边补进队列。
+  static const int _playAllStartSize = 5;
+
+  /// 播放中每攒够这么多首就往队列尾部补一批。
+  static const int _playAllBatchSize = 5;
+
   String? _resolvingTrackKey;
+  bool _isPlayingAll = false;
+  int _playAllResolved = 0;
+  int _playAllTotal = 0;
 
   HotPlaylist get _playlist =>
       widget.initialPlaylist ??
@@ -78,6 +102,102 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     }
   }
 
+  /// 一键播放整个歌单。
+  ///
+  /// 每首歌都要在 B 站里搜一次，所以先解析够 [_playAllStartSize] 首就开播，
+  /// 剩下的继续在后台解析，攒够一批就补到队列尾部。
+  Future<void> _playAllTracks(List<HotPlaylistTrack> tracks) async {
+    if (_isPlayingAll || tracks.isEmpty) {
+      return;
+    }
+    final MusicChartResolver resolver = ref.read(musicChartResolverProvider);
+    final PlayerController player = ref.read(playerControllerProvider.notifier);
+    final String sourceLabel = _playlist.name;
+    setState(() {
+      _isPlayingAll = true;
+      _playAllResolved = 0;
+      _playAllTotal = tracks.length;
+    });
+
+    final List<PlayableItem> resolved = <PlayableItem>[];
+    final Set<String> seen = <String>{};
+    int queued = 0;
+    bool started = false;
+
+    try {
+      for (final HotPlaylistTrack track in tracks) {
+        if (!mounted) {
+          break;
+        }
+        PlayableItem? item;
+        try {
+          item = await resolver.resolve(track);
+        } on Object {
+          item = null;
+        }
+        if (item != null && seen.add(item.stableId)) {
+          resolved.add(item);
+        }
+        if (mounted) {
+          setState(() => _playAllResolved += 1);
+        }
+        if (!started && resolved.length >= _playAllStartSize) {
+          started = true;
+          await _startPlayback(resolved, sourceLabel);
+          player.setQueueMode(PlayerQueueMode.sequenceOnce);
+          queued = resolved.length;
+        } else if (started && resolved.length - queued >= _playAllBatchSize) {
+          await player.enqueue(resolved.sublist(queued));
+          queued = resolved.length;
+        }
+      }
+
+      if (!started && resolved.isNotEmpty) {
+        started = true;
+        await _startPlayback(resolved, sourceLabel);
+        player.setQueueMode(PlayerQueueMode.sequenceOnce);
+        queued = resolved.length;
+      }
+      if (started && resolved.length > queued) {
+        await player.enqueue(resolved.sublist(queued));
+      } else if (!started && mounted) {
+        ToastUtil.show('这个歌单没有匹配到可播放的 B 站视频');
+      }
+    } on Object {
+      if (mounted) {
+        ToastUtil.show('一键播放失败，请稍后再试');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPlayingAll = false;
+          _playAllResolved = 0;
+          _playAllTotal = 0;
+        });
+      }
+    }
+  }
+
+  Future<void> _startPlayback(
+    List<PlayableItem> items,
+    String sourceLabel,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+    final HotPlaylistPlayAll? playAll = widget.playAll;
+    if (playAll != null) {
+      await playAll(context, ref, List<PlayableItem>.of(items), sourceLabel);
+      return;
+    }
+    await PlayerUtil.playQueueAndOpenPlayer(
+      context,
+      ref,
+      items: List<PlayableItem>.of(items),
+      sourceLabel: sourceLabel,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -87,6 +207,8 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
       hotPlaylistDetailControllerProvider(playlist),
     );
     final String title = playlist.name.trim().isEmpty ? '热门歌单' : playlist.name;
+    final bool canPlayAll =
+        !state.isLoading && !state.hasError && state.tracks.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -117,6 +239,16 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
               playlist: playlist,
               totalCount: state.totalCount,
             ),
+            if (canPlayAll) ...<Widget>[
+              const SizedBox(height: AppSpacing.lg),
+              _PlayAllButton(
+                isPlaying: _isPlayingAll,
+                resolved: _playAllResolved,
+                total: _playAllTotal,
+                trackCount: state.tracks.length,
+                onPressed: () => _playAllTracks(state.tracks),
+              ),
+            ],
             const SizedBox(height: AppSpacing.xl),
             if (state.isLoading)
               const _HotPlaylistTracksLoading()
@@ -164,6 +296,54 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 一键播放按钮：解析曲目时显示匹配进度。
+class _PlayAllButton extends StatelessWidget {
+  const _PlayAllButton({
+    required this.isPlaying,
+    required this.resolved,
+    required this.total,
+    required this.trackCount,
+    required this.onPressed,
+  });
+
+  final bool isPlaying;
+  final int resolved;
+  final int total;
+  final int trackCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final String label = isPlaying
+        ? '匹配中 $resolved/$total'
+        : '播放全部 $trackCount 首';
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: FilledButton.icon(
+        key: const Key('hotPlaylistPlayAll'),
+        onPressed: isPlaying ? null : onPressed,
+        icon: isPlaying
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.play_arrow_rounded),
+        label: Text(label),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.md,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
         ),
       ),
     );
