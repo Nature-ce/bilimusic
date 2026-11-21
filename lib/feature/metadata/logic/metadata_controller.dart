@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bilimusic/common/logger.dart';
+import 'package:bilimusic/common/domain/meta_lyrics.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/metadata/data/metadata_cache_repository.dart';
 import 'package:bilimusic/feature/metadata/data/metadata_resolver.dart';
@@ -269,7 +270,9 @@ class MetadataController extends _$MetadataController {
       if (!_isActiveRequest(requestGeneration, item, context)) {
         return;
       }
-      if (cached != null && _isCacheRelevant(cached, item)) {
+      if (cached != null &&
+          _isCacheRelevant(cached, item) &&
+          _isCacheLyricsUsable(cached)) {
         state = MetadataState(
           stableId: stableId,
           metadata: _withChapterOffset(cached, context),
@@ -363,6 +366,26 @@ class MetadataController extends _$MetadataController {
       return metadata;
     }
     return metadata.copyWith(lyricBaseOffsetMs: context.lyricBaseOffsetMs);
+  }
+
+  /// 缓存里没有可用歌词时不要直接采用：早期自动匹配失败（或匹配到错的歌）
+  /// 会把「无歌词」的结果缓存下来，导致后续再也不会自动去搜。
+  ///
+  /// 纯音乐和用户手动匹配过的记录保持有效；其它情况只信任 10 分钟内的记录，
+  /// 超过就重新走一遍「聚合搜索 + 兜底」流程。
+  bool _isCacheLyricsUsable(Metadata cached) {
+    if (cached.isInstrumental || cached.isManualMatch) {
+      return true;
+    }
+    final MetaLyrics? lyrics = cached.metaLyrics;
+    if (lyrics != null && lyrics.hasRenderableMainLyric) {
+      return true;
+    }
+    final DateTime? updatedAt = cached.updatedAt;
+    if (updatedAt == null) {
+      return false;
+    }
+    return DateTime.now().difference(updatedAt).inMinutes < 10;
   }
 
   /// 缓存里的歌名和视频标题完全对不上时视为无效。

@@ -214,7 +214,12 @@ class MetadataLookupService {
         continue;
       }
       final List<MetingSearchItem> ranked = _rankCandidates(results, item);
-      for (final MetingSearchItem candidate in ranked) {
+      // 标题相关性一个都没命中时（UP 主把歌名改得面目全非），退回搜索结果
+      // 原始顺序继续尝试，总比一首都不试强。
+      final List<MetingSearchItem> candidates = ranked.isNotEmpty
+          ? ranked
+          : results.take(6).toList(growable: false);
+      for (final MetingSearchItem candidate in candidates) {
         if (isActive?.call() == false) {
           return null;
         }
