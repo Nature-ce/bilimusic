@@ -58,6 +58,10 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
   /// 同时并发解析几首（每首都要搜一次 B 站，串行太慢）。
   static const int _resolveConcurrency = 3;
 
+  /// 触发切歌的最小竖滑距离（物理像素）与速度（像素/秒）。
+  static const double _swipeMinDistance = 90;
+  static const double _swipeMinSpeed = 700;
+
   /// 已经尝试匹配过的推荐曲目，避免重复搜索同一首失败歌。
   final Set<String> _attemptedTrackKeys = <String>{};
 
@@ -65,6 +69,8 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
   final List<PlayableItem> _pending = <PlayableItem>[];
 
   Future<void>? _prefetchFuture;
+  Offset? _swipeStart;
+  Duration? _swipeStartAt;
   bool _isBootstrapping = false;
   bool _isToppingUp = false;
   String? _errorMessage;
@@ -362,21 +368,6 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     }
   }
 
-  Future<void> _handleVerticalSwipe(DragEndDetails details) async {
-    final double velocity = details.primaryVelocity ?? 0;
-    if (velocity.abs() < 220) {
-      return;
-    }
-    final PlayerController controller = ref.read(
-      playerControllerProvider.notifier,
-    );
-    if (velocity < 0) {
-      await _skipToNextWithTopUp(controller);
-    } else {
-      await controller.skipToPrevious();
-    }
-  }
-
   /// 点「下一首」前先确认队列里还有下一首，没有就先把货补上。
   Future<void> _skipToNextWithTopUp(PlayerController controller) async {
     final PlayerState player = ref.read(playerControllerProvider);
@@ -431,15 +422,60 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       );
     }
 
-    return GestureDetector(
+    return Listener(
       behavior: HitTestBehavior.translucent,
-      onVerticalDragEnd: _handleVerticalSwipe,
+      onPointerDown: _handlePointerDown,
+      onPointerUp: _handlePointerUp,
       child: PlayerPage(
         embedded: true,
         onExit: _exitToHome,
         bottomInset: AppSpacing.xl,
       ),
     );
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    _swipeStart = event.position;
+    _swipeStartAt = event.timeStamp;
+  }
+
+  /// 用原始指针事件判断「上下滑」：
+  ///
+  /// 播放页里「播放信息」「歌词」两页是可滚动的，用 GestureDetector 抢不到手势，
+  /// 所以这里直接看指针位移和速度，快速竖向甩一下就算切歌，慢慢拖还是滚动列表。
+  void _handlePointerUp(PointerUpEvent event) {
+    final Offset? start = _swipeStart;
+    final Duration? startAt = _swipeStartAt;
+    _swipeStart = null;
+    _swipeStartAt = null;
+    if (start == null || startAt == null) {
+      return;
+    }
+    final Duration elapsed = event.timeStamp - startAt;
+    if (elapsed.inMilliseconds <= 0) {
+      return;
+    }
+    final Offset delta = event.position - start;
+    final double distance = delta.dy.abs();
+    final double speed = distance / (elapsed.inMilliseconds / 1000);
+    final bool mostlyVertical = distance > delta.dx.abs() * 1.4;
+    if (distance < _swipeMinDistance ||
+        !mostlyVertical ||
+        speed < _swipeMinSpeed) {
+      return;
+    }
+    unawaited(_skipBySwipe(toNext: delta.dy < 0));
+  }
+
+  Future<void> _skipBySwipe({required bool toNext}) async {
+    final PlayerController controller = ref.read(
+      playerControllerProvider.notifier,
+    );
+    if (toNext) {
+      await _skipToNextWithTopUp(controller);
+      return;
+    }
+    await controller.skipToPrevious();
   }
 
   void _exitToHome() {
