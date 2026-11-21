@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata_state.dart';
+import 'package:bilimusic/feature/metadata/logic/lyric_keyword_candidates.dart';
 import 'package:bilimusic/feature/metadata/logic/metadata_controller.dart';
 import 'package:bilimusic/feature/meting/data/meting_repository.dart';
 import 'package:bilimusic/feature/meting/domain/meting_search_item.dart';
@@ -30,7 +31,15 @@ String resolveLyricSearchKeyword({
     }
   }
 
-  return metadataState.searchKeyword?.trim() ?? item?.title.trim() ?? '';
+  final String title = item?.title.trim() ?? '';
+  final List<String> candidates = lyricKeywordCandidates(
+    title: title,
+    author: item?.author,
+  );
+  if (candidates.isNotEmpty) {
+    return candidates.first;
+  }
+  return metadataState.searchKeyword?.trim() ?? title;
 }
 
 String _metadataSearchKeyword(MetadataState metadataState, PlayableItem? item) {

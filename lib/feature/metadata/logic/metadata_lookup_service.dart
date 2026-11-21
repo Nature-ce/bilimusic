@@ -6,6 +6,7 @@ import 'package:bilimusic/core/net/bm_client.dart';
 import 'package:bilimusic/feature/metadata/data/metadata_resolver.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata.dart';
 import 'package:bilimusic/feature/meting/data/meting_repository.dart';
+import 'package:bilimusic/feature/metadata/logic/lyric_keyword_candidates.dart';
 import 'package:bilimusic/feature/meting/domain/meting_search_item.dart';
 import 'package:bilimusic/feature/meting/domain/meting_server.dart';
 import 'package:bilimusic/feature/meting/logic/meting_source_preference_logic.dart';
@@ -191,10 +192,10 @@ class MetadataLookupService {
     bool Function()? isActive,
   }) async {
     final List<String> keywords = <String>[
+      ...lyricKeywordCandidates(title: item.title, author: item.author),
       primaryKeyword,
       extractSearchKeyword(item.title).trim(),
       item.title.trim(),
-      '${item.title.trim()} ${item.author.trim()}'.trim(),
     ].where((String keyword) => keyword.isNotEmpty).toSet().toList();
     for (final String keyword in keywords) {
       if (isActive?.call() == false) {
