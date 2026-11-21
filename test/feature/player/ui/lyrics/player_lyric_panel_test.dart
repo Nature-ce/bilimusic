@@ -233,7 +233,7 @@ void main() {
       metadata.clearLyrics();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('当前视频没有可用歌词|字幕'), findsOneWidget);
+      expect(find.text('未找到对应的歌词'), findsOneWidget);
       metadata.failLyrics();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -817,17 +817,16 @@ void main() {
         .clearLyrics();
     await tester.pump(const Duration(seconds: 1));
     expect(controller.document, isNull);
-    expect(find.text('当前视频没有可用歌词|字幕'), findsOneWidget);
+    expect(find.text('未找到对应的歌词'), findsOneWidget);
   });
 
-  testWidgets(
-    'single part music without subtitles does not fall back to Meting',
-    (tester) async {
-      await _pumpPanel(tester, singlePart: true);
-      expect(find.byType(LyricView), findsNothing);
-      expect(find.text('未找到对应的歌词'), findsOneWidget);
-    },
-  );
+  testWidgets('single part music without subtitles shows the matched lyric', (
+    tester,
+  ) async {
+    await _pumpPanel(tester, singlePart: true);
+    expect(find.text('未找到对应的歌词'), findsNothing);
+    expect(find.byType(LyricView), findsOneWidget);
+  });
 
   testWidgets('single part instrumental music shows the instrumental status', (
     tester,

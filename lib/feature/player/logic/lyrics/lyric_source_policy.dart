@@ -1,14 +1,3 @@
-bool allowsMetingLyrics({
-  required bool singlePart,
-  required bool hasSubtitleTracks,
-  required bool manualMatch,
-}) {
-  if (!singlePart) {
-    return true;
-  }
-  return hasSubtitleTracks || manualMatch;
-}
-
 /// 决定歌词面板该渲染「正规歌词」还是「B 站字幕」。
 ///
 /// 参考 QQ音乐：正规歌词（LRC）优先，字幕只在没有歌词、口播类内容，

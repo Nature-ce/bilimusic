@@ -236,7 +236,101 @@ void main() {
       expect(service.extractSearchKeyword('《起风了》'), '起风了');
       expect(await service.resolveSearchKeyword('晴天'), '晴天');
     });
+
+    test('同一歌名时优先选歌手出现在视频标题里的那首', () async {
+      final MetadataLookupService service = _service(
+        searchRequest:
+            ({
+              required MetingServer server,
+              required String keyword,
+              required Map<String, dynamic> option,
+            }) async {
+              return jsonEncode(<Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 'other',
+                  'name': '爱上了',
+                  'artist': <String>['本多RuRu'],
+                  'lyric_id': 'other',
+                },
+                <String, dynamic>{
+                  'id': 'huxia',
+                  'name': '爱上了',
+                  'artist': <String>['胡夏'],
+                  'lyric_id': 'huxia',
+                },
+              ]);
+            },
+        lyricRequest:
+            ({required MetingServer server, required String id}) async {
+              return jsonEncode(<String, dynamic>{
+                'lyric': '[00:00.000] $id line',
+              });
+            },
+      );
+
+      final MetadataLookupResult result = await service.lookup(
+        item: _huxiaItem(),
+        title: '【胡夏】全新单曲《爱上了》MV (歌词版)',
+      );
+
+      expect(result.metadata.hasLyrics, isTrue);
+      expect(result.metadata.title, '爱上了');
+      expect(result.metadata.artist, '胡夏');
+    });
+
+    test('歌名搜不到时用「歌名 + 歌手」兜底，而不是拼凑的碎片词', () async {
+      final List<String> searched = <String>[];
+      final MetadataLookupService service = _service(
+        searchRequest:
+            ({
+              required MetingServer server,
+              required String keyword,
+              required Map<String, dynamic> option,
+            }) async {
+              searched.add(keyword);
+              if (keyword != '爱上了 胡夏') {
+                return jsonEncode(<Map<String, dynamic>>[]);
+              }
+              return jsonEncode(<Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 'huxia',
+                  'name': '爱上了',
+                  'artist': <String>['胡夏'],
+                  'lyric_id': 'huxia',
+                },
+              ]);
+            },
+        lyricRequest:
+            ({required MetingServer server, required String id}) async {
+              return jsonEncode(<String, dynamic>{
+                'lyric': '[00:00.000] lyric line',
+              });
+            },
+      );
+
+      final MetadataLookupResult result = await service.lookup(
+        item: _huxiaItem(),
+        title: '【胡夏】全新单曲《爱上了》MV (歌词版)',
+      );
+
+      expect(result.metadata.hasLyrics, isTrue);
+      expect(result.metadata.artist, '胡夏');
+      expect(result.searchKeyword, '爱上了 胡夏');
+      expect(searched, contains('爱上了 胡夏'));
+      expect(searched, isNot(contains('爱上了 全新单曲')));
+    });
   });
+}
+
+PlayableItem _huxiaItem() {
+  return const PlayableItem(
+    aid: 2,
+    bvid: 'BV11V411Y76r',
+    title: '【胡夏】全新单曲《爱上了》MV (歌词版)',
+    author: '胡夏',
+    coverUrl: 'https://img.example.com/video.jpg',
+    page: 1,
+  );
 }
 
 PlayableItem _item() {

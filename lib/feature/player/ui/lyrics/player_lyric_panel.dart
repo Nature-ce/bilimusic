@@ -175,9 +175,18 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
       }
     }
 
+    final bool manualMatch = metadataState.metadata?.isManualMatch ?? false;
+    final bool instrumental =
+        !manualMatch &&
+        ((metadataState.metadata?.isInstrumental ?? false) ||
+            looksLikeInstrumental(
+              title: item.title,
+              description: item.description,
+            ));
+
     if (!item.isSpoken &&
         !useSubtitles &&
-        !_allowsMetingLyrics(item, metadataState, subtitles)) {
+        (instrumental || !metadataState.hasLyrics)) {
       if (subtitleLoading) {
         return _PlayerLyricPanelStatus(
           key: ValueKey<String>('subtitle-loading-$itemKey'),
@@ -199,60 +208,54 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
           onAction: () => _retrySubtitles(context, itemKey),
         );
       }
-      if (metadataState.stableId == item.stableId && metadataState.isLoading) {
+      if (metadataState.stableId != item.stableId) {
         return _PlayerLyricPanelStatus(
-          key: ValueKey<String>('loading-single-part-$itemKey'),
+          key: ValueKey<String>('preparing-$itemKey'),
           variant: widget.variant,
-          title: '正在确认歌词',
-          message: '正在检查当前视频是否有可用字幕与歌词。',
+          title: '正在准备歌词',
+          message: _isDesktop ? '歌词会在当前歌曲匹配完成后显示。' : '歌词会在当前分 P 匹配完成后显示。',
+          icon: _isDesktop ? Icons.graphic_eq_rounded : Icons.lyrics_outlined,
+        );
+      }
+      if (metadataState.isLoading) {
+        return _PlayerLyricPanelStatus(
+          key: ValueKey<String>('loading-$itemKey'),
+          variant: widget.variant,
+          title: '正在查找歌词',
+          message: _isDesktop ? '正在从 Meting 匹配当前歌曲。' : '已开始聚合查询当前歌曲的歌词。',
           icon: Icons.lyrics_outlined,
           isLoading: true,
         );
       }
-      final bool instrumental =
-          (metadataState.metadata?.isInstrumental ?? false) ||
-          looksLikeInstrumental(
-            title: item.title,
-            description: item.description,
-          );
+      if (metadataState.hasError) {
+        return _PlayerLyricPanelStatus(
+          key: ValueKey<String>('error-$itemKey'),
+          variant: widget.variant,
+          title: '歌词查询失败',
+          message: metadataState.errorMessage!,
+          icon: Icons.error_outline_rounded,
+          actionLabel: '重试',
+          onAction: () =>
+              ref.read(metadataControllerProvider.notifier).retryCurrent(),
+        );
+      }
       if (instrumental) {
         return _PlayerLyricPanelStatus(
           key: ValueKey<String>('instrumental-$itemKey'),
           variant: widget.variant,
           title: '纯音乐，请欣赏',
-          message: '当前视频没有字幕，匹配到的歌曲也没有歌词。',
+          message: metadataState.hasLyrics
+              ? '这条视频按纯音乐处理，可用「手动匹配歌词」换一首带歌词的。'
+              : '当前视频没有字幕，匹配到的歌曲也没有歌词。',
           icon: Icons.music_note_outlined,
         );
       }
       return _PlayerLyricPanelStatus(
-        key: ValueKey<String>('no-subtitle-lyrics-$itemKey'),
+        key: ValueKey<String>('no-lyrics-$itemKey'),
         variant: widget.variant,
         title: '未找到对应的歌词',
         message: '可试试「手动匹配歌词」，或稍后重试。',
         icon: Icons.lyrics_outlined,
-      );
-    }
-
-    if (!item.isSpoken &&
-        !useSubtitles &&
-        metadataState.stableId != item.stableId) {
-      return _PlayerLyricPanelStatus(
-        key: ValueKey<String>('preparing-$itemKey'),
-        variant: widget.variant,
-        title: '正在准备歌词',
-        message: _isDesktop ? '歌词会在当前歌曲匹配完成后显示。' : '歌词会在当前分 P 匹配完成后显示。',
-        icon: _isDesktop ? Icons.graphic_eq_rounded : Icons.lyrics_outlined,
-      );
-    }
-
-    if (!item.isSpoken && !useSubtitles && metadataState.isLoading) {
-      return _PlayerLyricPanelStatus(
-        key: ValueKey<String>('loading-$itemKey'),
-        variant: widget.variant,
-        title: '正在查找歌词',
-        message: _isDesktop ? '正在从 Meting 匹配当前歌曲。' : '已开始从 Meting 查询当前分 P 的歌词。',
-        icon: Icons.lyrics_outlined,
-        isLoading: true,
       );
     }
 
@@ -310,38 +313,12 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
       );
     }
 
-    if (metadataState.hasError) {
-      return _PlayerLyricPanelStatus(
-        key: ValueKey<String>('error-$itemKey'),
-        variant: widget.variant,
-        title: '歌词查询失败',
-        message: metadataState.errorMessage!,
-        icon: Icons.error_outline_rounded,
-        actionLabel: '重试',
-        onAction: () =>
-            ref.read(metadataControllerProvider.notifier).retryCurrent(),
-      );
-    }
-
     return _PlayerLyricPanelStatus(
-      key: ValueKey<String>('no-lyrics-$itemKey'),
+      key: ValueKey<String>('no-subtitle-$itemKey'),
       variant: widget.variant,
       title: '当前视频没有可用歌词|字幕',
       message: '可稍后重试或切换播放内容。',
       icon: Icons.lyrics_outlined,
-    );
-  }
-
-  bool _allowsMetingLyrics(
-    PlayableItem item,
-    MetadataState metadataState,
-    PlayerSubtitleState subtitles,
-  ) {
-    return allowsMetingLyrics(
-      singlePart: widget.state.isSinglePart,
-      hasSubtitleTracks:
-          subtitles.stableId == item.stableId && subtitles.hasTracks,
-      manualMatch: metadataState.metadata?.isManualMatch ?? false,
     );
   }
 

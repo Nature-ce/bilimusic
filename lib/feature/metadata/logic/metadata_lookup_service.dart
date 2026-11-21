@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:bilimusic/common/domain/meta_lyrics.dart';
@@ -123,6 +124,7 @@ class MetadataLookupService {
     final MetadataLookupResult? fallback = await _fallbackLookup(
       item: item,
       primaryKeyword: keyword,
+      searchedKeywords: <String>{keyword},
       isActive: isActive,
     );
     if (fallback != null) {
@@ -195,24 +197,20 @@ class MetadataLookupService {
   Future<MetadataLookupResult?> _fallbackLookup({
     required PlayableItem item,
     required String primaryKeyword,
+    Set<String> searchedKeywords = const <String>{},
     bool Function()? isActive,
   }) async {
-    final List<String> titleCandidates = lyricKeywordCandidates(
-      title: item.title,
-      author: item.author,
-    );
-    final List<String> keywords = <String>[
-      if (titleCandidates.length >= 2)
-        '${titleCandidates.first} ${titleCandidates[1]}',
-      ...titleCandidates,
-      primaryKeyword,
-      extractSearchKeyword(item.title).trim(),
-      item.title.trim(),
-    ].where((String keyword) => keyword.isNotEmpty).toSet().toList();
-    for (final String keyword in keywords) {
+    final List<({String keyword, bool requireRelevance})> keywords =
+        _fallbackKeywords(
+          item: item,
+          primaryKeyword: primaryKeyword,
+          searchedKeywords: searchedKeywords,
+        );
+    for (final ({String keyword, bool requireRelevance}) entry in keywords) {
       if (isActive?.call() == false) {
         return null;
       }
+      final String keyword = entry.keyword;
       List<MetingSearchItem> results;
       try {
         results = await metingRepository.searchAll(keyword: keyword);
@@ -220,10 +218,13 @@ class MetadataLookupService {
         continue;
       }
       final List<MetingSearchItem> ranked = _rankCandidates(results, item);
-      // 标题相关性一个都没命中时（UP 主把歌名改得面目全非），退回搜索结果
-      // 原始顺序继续尝试，总比一首都不试强。
+      // 标题相关性一个都没命中时（UP 主把歌名改得面目全非），单独的歌名词还能
+      // 退回搜索结果原始顺序继续尝试，总比一首都不试强；而拼出来的组合词、整条
+      // 标题必须靠相关性把关，否则容易把别的歌的歌词配上去。
       final List<MetingSearchItem> candidates = ranked.isNotEmpty
           ? ranked
+          : entry.requireRelevance
+          ? const <MetingSearchItem>[]
           : results.take(6).toList(growable: false);
       for (final MetingSearchItem candidate in candidates) {
         if (isActive?.call() == false) {
@@ -250,6 +251,47 @@ class MetadataLookupService {
       }
     }
     return null;
+  }
+
+  /// 兜底关键词按「可信度从高到低」排：先从标题里抠出来的歌名，再用
+  /// 「歌名 + 歌手」组合消歧，最后才用整条标题。
+  List<({String keyword, bool requireRelevance})> _fallbackKeywords({
+    required PlayableItem item,
+    required String primaryKeyword,
+    Set<String> searchedKeywords = const <String>{},
+  }) {
+    final List<String> titleCandidates = lyricKeywordCandidates(
+      title: item.title,
+      author: item.author,
+    );
+    final String author = item.author.trim();
+    final List<({String keyword, bool requireRelevance})> keywords =
+        <({String keyword, bool requireRelevance})>[];
+    void add(String value, {bool requireRelevance = false}) {
+      final String keyword = value.trim();
+      if (keyword.isEmpty || searchedKeywords.contains(keyword)) {
+        return;
+      }
+      final bool exists = keywords.any(
+        (({String keyword, bool requireRelevance}) entry) =>
+            entry.keyword == keyword,
+      );
+      if (exists) {
+        return;
+      }
+      keywords.add((keyword: keyword, requireRelevance: requireRelevance));
+    }
+
+    for (final String candidate in titleCandidates) {
+      add(candidate);
+    }
+    if (titleCandidates.isNotEmpty && author.isNotEmpty) {
+      add('${titleCandidates.first} $author', requireRelevance: true);
+    }
+    add(primaryKeyword);
+    add(extractSearchKeyword(item.title));
+    add(item.title, requireRelevance: true);
+    return keywords;
   }
 
   /// 按「候选标题/歌手是否出现在视频标题里」排序，分数太低的不参与匹配。
@@ -313,24 +355,63 @@ class MetadataLookupService {
 
     final String fallbackKeyword = extractSearchKeyword(rawTitle).trim();
     final BmClient? client = bmClient;
-    if (client == null) {
+    if (client == null || _aiKeywordInCooldown) {
       return fallbackKeyword;
     }
     try {
-      final Response<String> response = await client.post<String>(
-        '/ai',
-        data: <String, dynamic>{'message': rawTitle},
-        options: Options(responseType: ResponseType.plain),
-      );
+      final Response<String> response = await client
+          .post<String>(
+            '/ai',
+            data: <String, dynamic>{'message': rawTitle},
+            options: Options(
+              responseType: ResponseType.plain,
+              connectTimeout: aiKeywordTimeout,
+              receiveTimeout: aiKeywordTimeout,
+              sendTimeout: aiKeywordTimeout,
+            ),
+          )
+          .timeout(aiKeywordTimeout);
       final Object? decoded = jsonDecode(response.data ?? '{}');
       if (decoded is String && decoded.isNotEmpty) {
+        _aiKeywordCooldownUntil = null;
         return decoded;
       }
+    } on TimeoutException catch (error) {
+      _startAiKeywordCooldown();
+      _logger.d('BM 识别超时，回退正则：$error');
+    } on DioException catch (error) {
+      if (_isConnectivityError(error)) {
+        _startAiKeywordCooldown();
+      }
+      _logger.d('BM 识别失败，回退正则：$error');
     } on Object catch (error) {
       _logger.d('BM 识别失败，回退正则：$error');
     }
 
     return fallbackKeyword;
+  }
+
+  static const Duration aiKeywordTimeout = Duration(seconds: 4);
+
+  static DateTime? _aiKeywordCooldownUntil;
+
+  static bool get _aiKeywordInCooldown {
+    final DateTime? until = _aiKeywordCooldownUntil;
+    return until != null && DateTime.now().isBefore(until);
+  }
+
+  static void _startAiKeywordCooldown() {
+    _aiKeywordCooldownUntil = DateTime.now().add(const Duration(minutes: 10));
+  }
+
+  static bool _isConnectivityError(DioException error) {
+    return switch (error.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.connectionError => true,
+      _ => false,
+    };
   }
 
   String extractSearchKeyword(String value) {
