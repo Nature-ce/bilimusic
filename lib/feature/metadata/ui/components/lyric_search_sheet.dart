@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata_state.dart';
 import 'package:bilimusic/feature/metadata/logic/lyric_keyword_candidates.dart';
@@ -67,12 +68,8 @@ Future<void> showManualLyricSearchSheet({
   required BuildContext context,
   required String initialKeyword,
 }) async {
-  await showModalBottomSheet<void>(
+  await showGlassSheet<void>(
     context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-    ),
     builder: (BuildContext context) {
       return _LyricSearchSheet(initialKeyword: initialKeyword);
     },

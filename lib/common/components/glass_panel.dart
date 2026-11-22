@@ -145,6 +145,36 @@ class GlassSheetPanel extends StatelessWidget {
   }
 }
 
+/// 播放页底部弹层统一入口：深色玻璃壳（和播放列表一致）+ 深色主题。
+Future<T?> showGlassSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool isScrollControlled = true,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: isScrollControlled,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    barrierColor: Colors.black.withValues(alpha: 0.3),
+    builder: (BuildContext sheetContext) {
+      final ThemeData sheetTheme = glassSurfaceTheme(sheetContext);
+      return Theme(
+        data: sheetTheme,
+        // 弹层会从调用方那里继承 DefaultTextStyle（播放页那份仍是黑字），
+        // 只有再套一层 Material 才会用新的深色 textTheme 重新铺开。
+        child: Material(
+          type: MaterialType.transparency,
+          child: GlassSheetPanel(
+            tone: GlassTone.smoke,
+            child: builder(sheetContext),
+          ),
+        ),
+      );
+    },
+  );
+}
+
 class GlassDragHandle extends StatelessWidget {
   const GlassDragHandle({super.key, this.tone = GlassTone.smoke});
 
@@ -172,16 +202,18 @@ class GlassDragHandle extends StatelessWidget {
 ///
 /// 只换 [ThemeData.colorScheme] 是不够的：`textTheme`、`iconTheme`、`listTileTheme`
 /// 仍然是浅色主题那一份，会出现「深色玻璃 + 黑字」。这里把它们一次性换成深色。
+///
+/// 注意不能因为 `brightness` 已经是 dark 就直接返回：[player_page] 那种「只换
+/// colorScheme、textTheme 还是浅色」的主题同样是 dark 亮度，但文字是黑的，
+/// 在深色玻璃上会糊成一片。
 ThemeData glassSurfaceTheme(BuildContext context) {
   final ThemeData base = Theme.of(context);
-  if (base.brightness == Brightness.dark) {
-    return base;
-  }
-
-  final ColorScheme darkScheme = ColorScheme.fromSeed(
-    seedColor: base.colorScheme.primary,
-    brightness: Brightness.dark,
-  );
+  final ColorScheme darkScheme = base.colorScheme.brightness == Brightness.dark
+      ? base.colorScheme
+      : ColorScheme.fromSeed(
+          seedColor: base.colorScheme.primary,
+          brightness: Brightness.dark,
+        );
   final TextTheme textTheme = base.textTheme.apply(
     bodyColor: darkScheme.onSurface,
     displayColor: darkScheme.onSurface,
@@ -195,6 +227,10 @@ ThemeData glassSurfaceTheme(BuildContext context) {
     brightness: Brightness.dark,
     colorScheme: darkScheme,
     textTheme: textTheme,
+    hintColor: darkScheme.onSurfaceVariant,
+    inputDecorationTheme: base.inputDecorationTheme.copyWith(
+      fillColor: Colors.transparent,
+    ),
     primaryTextTheme: base.primaryTextTheme.apply(
       bodyColor: darkScheme.onSurface,
       displayColor: darkScheme.onSurface,

@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata_state.dart';
 import 'package:bilimusic/feature/metadata/logic/metadata_controller.dart';
 import 'package:bilimusic/feature/player/domain/player_subtitle_state.dart';
@@ -8,13 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> showLyricOffsetSheet(BuildContext context) async {
-  await showModalBottomSheet<void>(
+  await showGlassSheet<void>(
     context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-    ),
     builder: (BuildContext context) {
-      return const _LyricOffsetSheet();
+      return const SafeArea(top: false, child: _LyricOffsetSheet());
     },
   );
 }
@@ -59,6 +57,13 @@ class _LyricOffsetSheet extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text('歌词偏移', style: theme.textTheme.titleLarge),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
           child: Row(

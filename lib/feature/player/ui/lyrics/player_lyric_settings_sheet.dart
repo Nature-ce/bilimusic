@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/feature/player/domain/player_lyric_settings.dart';
 import 'package:bilimusic/feature/player/logic/lyrics/player_lyric_settings_logic.dart';
@@ -21,16 +22,16 @@ Future<void> showPlayerLyricSettings(
       ),
     );
   } else {
-    await showModalBottomSheet<void>(
+    await showGlassSheet<void>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (BuildContext context) => Padding(
+      builder: (BuildContext sheetContext) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
+          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
         ),
-        child: FractionallySizedBox(heightFactor: 0.9, child: panel),
+        child: SizedBox(
+          height: MediaQuery.sizeOf(sheetContext).height * 0.86,
+          child: panel,
+        ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/player/domain/bili_subtitle.dart';
 import 'package:bilimusic/feature/player/domain/player_subtitle_state.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata_state.dart';
@@ -21,12 +22,8 @@ Future<void> showPlayerSubtitleSheet(BuildContext context) async {
       container.read(playerSubtitleControllerProvider).stableId != stableId) {
     return;
   }
-  await showModalBottomSheet<void>(
+  await showGlassSheet<void>(
     context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-    ),
     builder: (BuildContext context) => _PlayerSubtitleSheet(stableId: stableId),
   );
 }
