@@ -53,7 +53,7 @@ void main() {
     expect(tapped, HomeSection.playlists);
   });
 
-  testWidgets('active tab is bigger and bold, inactive one is muted', (
+  testWidgets('selected tab is a filled primary pill with white text', (
     WidgetTester tester,
   ) async {
     await _pumpSwitch(
@@ -69,23 +69,24 @@ void main() {
     ).colorScheme;
 
     expect(active.style?.fontWeight, FontWeight.w800);
-    expect(active.style?.color, colorScheme.onSurface);
-    expect(inactive.style?.fontWeight, FontWeight.w600);
+    expect(active.style?.color, colorScheme.onPrimary);
+    expect(inactive.style?.fontWeight, FontWeight.w700);
     expect(inactive.style?.color, colorScheme.onSurfaceVariant);
-    expect(active.style!.fontSize, greaterThan(inactive.style!.fontSize!));
-  });
 
-  testWidgets('selected tab shows an underline indicator', (
-    WidgetTester tester,
-  ) async {
-    await _pumpSwitch(tester, selected: HomeSection.charts, onSelected: (_) {});
-
-    final Iterable<AnimatedContainer> bars = tester
-        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer));
-    expect(bars.length, 2);
-    final List<double> widthFactors = bars.map((AnimatedContainer bar) {
-      return bar.constraints?.maxWidth ?? 0;
+    final List<AnimatedContainer> pills = tester
+        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+        .toList();
+    expect(pills, hasLength(2));
+    final List<Color?> colors = pills.map((AnimatedContainer pill) {
+      return (pill.decoration as BoxDecoration?)?.color;
     }).toList();
-    expect(widthFactors.where((double width) => width > 0).length, 1);
+    expect(
+      colors.where((Color? color) => color == colorScheme.primary),
+      hasLength(1),
+    );
+    expect(
+      colors.where((Color? color) => color == Colors.transparent),
+      hasLength(1),
+    );
   });
 }
