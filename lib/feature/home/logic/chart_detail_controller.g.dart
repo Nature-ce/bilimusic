@@ -51,7 +51,7 @@ final class ChartDetailControllerProvider
 }
 
 String _$chartDetailControllerHash() =>
-    r'8dabb91c919a415262e1ebd6d6e8ec5fd7c67fdc';
+    r'78a6228a06f567c05f23fe2c9201f8d5b1cdc908';
 
 final class ChartDetailControllerFamily extends $Family
     with

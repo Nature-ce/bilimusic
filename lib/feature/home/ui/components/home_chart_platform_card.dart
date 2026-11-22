@@ -56,7 +56,16 @@ class HomeChartPlatformCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                _CoverFan(entry: entry),
+                Stack(
+                  children: <Widget>[
+                    _CoverFan(entry: entry),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: _PlatformBadge(platform: entry.chart.platform),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: <Widget>[
@@ -92,9 +101,24 @@ class HomeChartPlatformCard extends StatelessWidget {
                 else if (entry.hasError)
                   _CardError(onRetry: onPlay)
                 else
-                  for (final MusicChartTrack track in entry.topTracks)
-                    _TopRow(track: track, onTap: () => onTrackTap(track)),
-                _PlatformBadge(platform: entry.chart.platform),
+                  for (
+                    int index = 0;
+                    index < entry.topTracks.length;
+                    index += 1
+                  ) ...<Widget>[
+                    if (index > 0)
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.3,
+                        ),
+                      ),
+                    _TopRow(
+                      track: entry.topTracks[index],
+                      onTap: () => onTrackTap(entry.topTracks[index]),
+                    ),
+                  ],
                 const SizedBox(height: AppSpacing.sm),
                 Divider(
                   height: 1,
@@ -149,7 +173,7 @@ class _CoverFan extends StatelessWidget {
     ];
 
     return Container(
-      height: 76,
+      height: 86,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -169,6 +193,7 @@ class _CoverFan extends StatelessWidget {
                 final double count = covers.length.toDouble();
                 final double fanWidth = size + (count - 1) * (size - overlap);
                 final double left = (constraints.maxWidth - fanWidth) / 2;
+                const double middleSize = 58;
                 return Stack(
                   clipBehavior: Clip.none,
                   children: <Widget>[
@@ -176,18 +201,34 @@ class _CoverFan extends StatelessWidget {
                       Positioned(
                         left: left + index * (size - overlap),
                         top: covers.length == 1
-                            ? (76 - size) / 2
-                            : (index == 1 ? 8 : 14),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                            border: Border.all(color: borderColor, width: 2),
-                          ),
-                          child: CommonCachedImage(
-                            imageUrl: covers[index],
-                            width: size,
-                            height: size,
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ? (86 - size) / 2
+                            : (index == 1 ? 10 : 16),
+                        child: Transform.rotate(
+                          angle: covers.length == 1
+                              ? 0
+                              : (index == 0
+                                    ? -0.1
+                                    : index == 1
+                                    ? 0
+                                    : 0.1),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: borderColor, width: 3),
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: CommonCachedImage(
+                              imageUrl: covers[index],
+                              width: index == 1 ? middleSize : size,
+                              height: index == 1 ? middleSize : size,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -235,25 +276,18 @@ class _PlatformBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.xs),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.6,
-            ),
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-          ),
-          child: Text(
-            platform.label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Text(
+        platform.label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontSize: 10,
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
