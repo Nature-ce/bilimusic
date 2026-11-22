@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'package:bilimusic/common/components/status_view.dart';
 import 'dart:typed_data';
 
+import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/components/url_text_input.dart';
 import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
-import 'package:bilimusic/common/components/url_text_input.dart';
 import 'package:bilimusic/core/theme/theme_logic.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/logic/playback/player_audio_quality_preference_logic.dart';
@@ -15,6 +15,7 @@ import 'package:bilimusic/feature/setting/domain/webdav_config.dart';
 import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/setting/logic/app_transfer_controller.dart';
 import 'package:bilimusic/feature/setting/logic/webdav_logic.dart';
+import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,199 +56,143 @@ class _AppTransferPageState extends ConsumerState<AppTransferPage> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final bool webDavEditable =
+        !_isSavingWebDav &&
+        !_isTestingWebDav &&
+        !_isUploadingWebDav &&
+        !_isImportingWebDav;
 
     return Scaffold(
       appBar: AppBar(title: const Text('数据导入导出')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[
-          ExpansionTile(
-            title: const Text('WebDAV 配置'),
-            children: [
-              Container(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        '用于收藏的远程导入导出，云端内容与当前登录账号无关。',
-                        style: theme.textTheme.bodyMedium,
+          SettingsGroup(
+            title: 'WebDAV 配置',
+            footer: SettingsButtonRow(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              children: <Widget>[
+                SettingsSecondaryButton(
+                  label: '测试连接',
+                  onPressed: _isTestingWebDav ? null : _handleTestWebDav,
+                  busy: _isTestingWebDav,
+                ),
+                SettingsPrimaryButton(
+                  label: '保存配置',
+                  onPressed: _isSavingWebDav ? null : _handleSaveWebDav,
+                  busy: _isSavingWebDav,
+                ),
+              ],
+            ),
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    UrlTextInput(
+                      labelText: '服务器地址',
+                      hintText: 'dav.example.com/dav',
+                      value: _webDavBaseUrlValue,
+                      enabled: webDavEditable,
+                      onChanged: (String value) {
+                        _webDavBaseUrlValue = value;
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _webDavUsernameController,
+                      enabled: webDavEditable,
+                      decoration: const InputDecoration(labelText: '用户名'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _webDavPasswordController,
+                      enabled: webDavEditable,
+                      decoration: const InputDecoration(labelText: '密码'),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '用于收藏的远程导入导出，云端内容与当前登录账号无关。',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 16),
-                      UrlTextInput(
-                        labelText: '服务器地址',
-                        hintText: 'dav.example.com/dav',
-                        value: _webDavBaseUrlValue,
-                        enabled:
-                            !_isSavingWebDav &&
-                            !_isTestingWebDav &&
-                            !_isUploadingWebDav &&
-                            !_isImportingWebDav,
-                        onChanged: (String value) {
-                          _webDavBaseUrlValue = value;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _webDavUsernameController,
-                        decoration: const InputDecoration(labelText: '用户名'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _webDavPasswordController,
-                        decoration: const InputDecoration(labelText: '密码'),
-                        obscureText: true,
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: <Widget>[
-                          FilledButton.icon(
-                            onPressed: _isSavingWebDav
-                                ? null
-                                : _handleSaveWebDav,
-                            icon: _isSavingWebDav
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.save_rounded),
-                            label: Text(_isSavingWebDav ? '保存中...' : '保存配置'),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: _isTestingWebDav
-                                ? null
-                                : _handleTestWebDav,
-                            icon: _isTestingWebDav
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.wifi_tethering_rounded),
-                            label: Text(_isTestingWebDav ? '测试中...' : '测试连接'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('导出数据', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    '导出范围包括收藏、主题、播放器与歌词服务设置，可导出为本地 JSON 或上传到 WebDAV。',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: <Widget>[
-                      FilledButton.icon(
-                        onPressed: _isExporting ? null : _handleExportPressed,
-                        icon: _isExporting
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.download_rounded),
-                        label: Text(_isExporting ? '导出中...' : '导出为 JSON'),
-                      ),
-                      FilledButton.icon(
-                        onPressed: _isUploadingWebDav
-                            ? null
-                            : _handleUploadToWebDav,
-                        icon: _isUploadingWebDav
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.cloud_upload_rounded),
-                        label: Text(_isUploadingWebDav ? '导出中...' : '远程导出'),
-                      ),
-                    ],
-                  ),
-                ],
+          SettingsGroup(
+            title: '导出',
+            children: <Widget>[
+              SettingsTile(
+                icon: Icons.description_outlined,
+                tint: SettingsTint.green,
+                title: '导出为 JSON',
+                subtitle: '歌单、收藏、设置一起打包',
+                onTap: _isExporting ? null : _handleExportPressed,
+                enabled: !_isExporting,
+                trailing: _isExporting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
               ),
-            ),
+              SettingsTile(
+                icon: Icons.cloud_upload_outlined,
+                tint: SettingsTint.blue,
+                title: '上传到 WebDAV',
+                subtitle: '先导出再上传，云端留一份备份',
+                onTap: _isUploadingWebDav ? null : _handleUploadToWebDav,
+                enabled: !_isUploadingWebDav,
+                trailing: _isUploadingWebDav
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('导入数据', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    '支持按歌单导入收藏。新备份可选择是否同时导入应用设置。',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: <Widget>[
-                      FilledButton.icon(
-                        onPressed: _isImporting ? null : _handleImportPressed,
-                        icon: _isImporting
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.upload_file_rounded),
-                        label: Text(_isImporting ? '处理中...' : '选择文件导入'),
-                      ),
-                      FilledButton.icon(
-                        onPressed: _isImportingWebDav
-                            ? null
-                            : _handleRemoteImportPressed,
-                        icon: _isImportingWebDav
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.cloud_download_rounded),
-                        label: Text(_isImportingWebDav ? '处理中...' : '远程导入'),
-                      ),
-                    ],
-                  ),
-                ],
+          SettingsGroup(
+            title: '导入',
+            children: <Widget>[
+              SettingsTile(
+                icon: Icons.file_open_outlined,
+                tint: SettingsTint.amber,
+                title: '选择文件导入',
+                subtitle: '先预览勾选，再写入',
+                onTap: _isImporting ? null : _handleImportPressed,
+                enabled: !_isImporting,
+                trailing: _isImporting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
               ),
-            ),
+              SettingsTile(
+                icon: Icons.cloud_download_outlined,
+                tint: SettingsTint.violet,
+                title: '从 WebDAV 导入',
+                subtitle: '从云端备份恢复',
+                onTap: _isImportingWebDav ? null : _handleRemoteImportPressed,
+                enabled: !_isImportingWebDav,
+                trailing: _isImportingWebDav
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+              ),
+            ],
           ),
         ],
       ),

@@ -1,12 +1,8 @@
-import 'package:bilimusic/common/util/color_util.dart';
 import 'package:bilimusic/common/util/format_util.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/cache/cache_util.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/foundation.dart';
+import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 class CacheSettingsPage extends StatefulWidget {
   const CacheSettingsPage({super.key});
@@ -15,8 +11,7 @@ class CacheSettingsPage extends StatefulWidget {
   State<CacheSettingsPage> createState() => _CacheSettingsPageState();
 }
 
-class _CacheSettingsPageState extends State<CacheSettingsPage>
-    with SingleTickerProviderStateMixin {
+class _CacheSettingsPageState extends State<CacheSettingsPage> {
   int _imageCacheBytes = 0;
   int _audioCacheBytes = 0;
   int _lyricsCacheBytes = 0;
@@ -27,19 +22,11 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
   bool _metadataSelected = true;
   bool _isLoading = true;
   bool _isClearing = false;
-  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
     _loadCacheSizes();
-    _controller = AnimationController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   int get _totalCacheBytes =>
@@ -66,6 +53,9 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
   }
 
   bool get _hasSelectedCache => _selectedCacheBytes > 0;
+
+  bool get _allSelected =>
+      _imageSelected && _audioSelected && _lyricsSelected && _metadataSelected;
 
   Future<void> _loadCacheSizes() async {
     final List<int> sizes = await Future.wait<int>(<Future<int>>[
@@ -125,10 +115,6 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
       await Future.wait<void>(tasks);
       await _loadCacheSizes();
 
-      if (mounted && _totalCacheBytes <= 0) {
-        _controller.forward(from: 0.0);
-      }
-
       if (!mounted) {
         return;
       }
@@ -141,6 +127,20 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
         });
       }
     }
+  }
+
+  void _toggleAllSelected() {
+    if (_isLoading || _isClearing) {
+      return;
+    }
+
+    final bool nextSelected = !_allSelected;
+    setState(() {
+      _imageSelected = nextSelected;
+      _audioSelected = nextSelected;
+      _lyricsSelected = nextSelected;
+      _metadataSelected = nextSelected;
+    });
   }
 
   void _toggleImageSelected() {
@@ -170,282 +170,83 @@ class _CacheSettingsPageState extends State<CacheSettingsPage>
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    final Color imageSectionColor = ColorUtil.getAnalogous(
-      colorScheme.primary,
-    )[4];
-    final Color audioSectionColor = ColorUtil.getShade(
-      colorScheme.primary,
-      400,
-    );
-    final Color lyricsSectionColor = ColorUtil.getShade(
-      colorScheme.primary,
-      500,
-    );
-    final Color metadataSectionColor = ColorUtil.getShade(
-      colorScheme.primary,
-      700,
-    );
+    final bool interactive = !_isLoading && !_isClearing;
 
     return Scaffold(
       appBar: AppBar(title: const Text('缓存管理')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  SizedBox(
-                    height: 240,
-                    child: Center(
-                      child: SizedBox.square(
-                        dimension: 240,
-                        child: _totalCacheBytes > 0
-                            ? PieChart(
-                                PieChartData(
-                                  sectionsSpace: 2,
-                                  centerSpaceRadius: 50,
-                                  sections: [
-                                    PieChartSectionData(
-                                      title: _imageCacheBytes > 0
-                                          ? '图片 ${(_imageCacheBytes / _totalCacheBytes * 100).toStringAsFixed(0)}%'
-                                          : null,
-                                      value: _imageSelected
-                                          ? (_imageCacheBytes /
-                                                    _totalCacheBytes *
-                                                    100)
-                                                .toDouble()
-                                          : 0,
-                                      titleStyle: TextStyle(
-                                        color: onColorFor(imageSectionColor),
-                                      ),
-                                      color: imageSectionColor,
-                                      radius: 45,
-                                    ),
-                                    PieChartSectionData(
-                                      title: _audioCacheBytes > 0
-                                          ? '音频 ${(_audioCacheBytes / _totalCacheBytes * 100).toStringAsFixed(0)}%'
-                                          : null,
-                                      value: _audioSelected
-                                          ? (_audioCacheBytes /
-                                                    _totalCacheBytes *
-                                                    100)
-                                                .toDouble()
-                                          : 0,
-                                      color: audioSectionColor,
-                                      titleStyle: TextStyle(
-                                        color: onColorFor(audioSectionColor),
-                                      ),
-                                      radius: 45,
-                                    ),
-                                    PieChartSectionData(
-                                      title: _lyricsCacheBytes > 0
-                                          ? '歌词 ${(_lyricsCacheBytes / _totalCacheBytes * 100).toStringAsFixed(0)}%'
-                                          : null,
-                                      value: _lyricsSelected
-                                          ? (_lyricsCacheBytes /
-                                                    _totalCacheBytes *
-                                                    100)
-                                                .toDouble()
-                                          : 0,
-                                      color: lyricsSectionColor,
-                                      titleStyle: TextStyle(
-                                        color: onColorFor(lyricsSectionColor),
-                                      ),
-                                      radius: 45,
-                                    ),
-                                    PieChartSectionData(
-                                      title: _metadataCacheBytes > 0
-                                          ? '元信息 ${(_metadataCacheBytes / _totalCacheBytes * 100).toStringAsFixed(0)}%'
-                                          : null,
-                                      value: _metadataSelected
-                                          ? (_metadataCacheBytes /
-                                                    _totalCacheBytes *
-                                                    100)
-                                                .toDouble()
-                                          : 0,
-                                      color: metadataSectionColor,
-                                      titleStyle: TextStyle(
-                                        color: onColorFor(metadataSectionColor),
-                                      ),
-                                      radius: 45,
-                                    ),
-                                  ],
-                                ),
-                                duration: const Duration(milliseconds: 800),
-                                curve: Curves.easeInOut,
-                              )
-                            : Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Positioned(
-                                    top: -80,
-                                    child: Lottie.asset(
-                                      'assets/lottie/Done.json',
-                                      width: 360,
-                                      height: 240,
-                                      fit: BoxFit.fitWidth,
-                                      controller: _controller,
-                                      repeat: false,
-                                      onLoaded: (composition) {
-                                        _controller
-                                          ..duration = composition.duration
-                                          ..forward(); // 加载完立即播放一次
-                                      },
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 24,
-                                    child: Text(
-                                      '缓存已清理',
-                                      style: TextStyle(
-                                        color:
-                                            theme.textTheme.bodyMedium?.color ??
-                                            colorScheme.onSurface,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    margin: EdgeInsets.zero,
-                    child: Column(
-                      children: <Widget>[
-                        _CacheCategoryTile(
-                          icon: Icons.image_outlined,
-                          title: '图片',
-                          valueLabel: formatBytes(_imageCacheBytes),
-                          selected: _imageSelected,
-                          enabled: !_isLoading && !_isClearing,
-                          onTap: _toggleImageSelected,
-                        ),
-                        const Divider(height: 1),
-                        _CacheCategoryTile(
-                          icon: Icons.audiotrack_outlined,
-                          title: '音频',
-                          valueLabel: formatBytes(_audioCacheBytes),
-                          selected: _audioSelected,
-                          enabled: !_isLoading && !_isClearing,
-                          onTap: _toggleAudioSelected,
-                        ),
-                        const Divider(height: 1),
-                        _CacheCategoryTile(
-                          icon: Icons.lyrics_outlined,
-                          title: '歌词',
-                          valueLabel: formatBytes(_lyricsCacheBytes),
-                          selected: _lyricsSelected,
-                          enabled: !_isLoading && !_isClearing,
-                          onTap: _toggleLyricsSelected,
-                        ),
-                        const Divider(height: 1),
-                        _CacheCategoryTile(
-                          icon: Icons.info_outline,
-                          title: '元信息',
-                          valueLabel: formatBytes(_metadataCacheBytes),
-                          selected: _metadataSelected,
-                          enabled: !_isLoading && !_isClearing,
-                          onTap: _toggleMetadataSelected,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _hasSelectedCache && !_isLoading && !_isClearing
-                        ? _toggleAndClearSelected
-                        : null,
-                    child: _isClearing
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text('清空所选缓存 ${formatBytes(_selectedCacheBytes)}'),
-                  ),
-                  if (kDebugMode)
-                    Column(
-                      children: [
-                        Row(
-                          children: [
-                            // Play backward
-                            IconButton(
-                              icon: const Icon(Icons.arrow_left),
-                              onPressed: () {
-                                _controller.reverse();
-                              },
-                            ),
-                            // Pause
-                            IconButton(
-                              icon: const Icon(Icons.pause),
-                              onPressed: () {
-                                _controller.stop();
-                              },
-                            ),
-                            // Play forward
-                            IconButton(
-                              icon: const Icon(Icons.arrow_right),
-                              onPressed: () {
-                                _controller.forward();
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                ],
+          SettingsHighlightCard(
+            title: '共占用',
+            titleTrailing: InkWell(
+              onTap: _toggleAllSelected,
+              child: Text(
+                _allSelected ? '取消全选' : '全选',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ),
+            value: formatBytes(_totalCacheBytes),
+            footnote: '可随时清理，不影响收藏与歌单',
           ),
+          SettingsGroup(
+            title: '分类',
+            children: <Widget>[
+              SettingsCheckTile(
+                title: '图片缓存',
+                icon: Icons.image_outlined,
+                tint: SettingsTint.blue,
+                value: formatBytes(_imageCacheBytes),
+                selected: _imageSelected,
+                enabled: interactive,
+                onTap: _toggleImageSelected,
+              ),
+              SettingsCheckTile(
+                title: '音频缓存',
+                icon: Icons.audiotrack_outlined,
+                tint: SettingsTint.green,
+                value: formatBytes(_audioCacheBytes),
+                selected: _audioSelected,
+                enabled: interactive,
+                onTap: _toggleAudioSelected,
+              ),
+              SettingsCheckTile(
+                title: '歌词缓存',
+                icon: Icons.lyrics_outlined,
+                tint: SettingsTint.amber,
+                value: formatBytes(_lyricsCacheBytes),
+                selected: _lyricsSelected,
+                enabled: interactive,
+                onTap: _toggleLyricsSelected,
+              ),
+              SettingsCheckTile(
+                title: '元信息缓存',
+                icon: Icons.info_outline_rounded,
+                tint: SettingsTint.violet,
+                value: formatBytes(_metadataCacheBytes),
+                selected: _metadataSelected,
+                enabled: interactive,
+                onTap: _toggleMetadataSelected,
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: SettingsPrimaryButton(
+              label: '清空所选缓存 · ${formatBytes(_selectedCacheBytes)}',
+              onPressed: _hasSelectedCache && interactive
+                  ? _toggleAndClearSelected
+                  : null,
+              busy: _isClearing,
+            ),
+          ),
+          const SettingsInfoNote(text: '清理后不会删除收藏与歌单；音频会在下次播放时重新缓存，歌词会重新匹配。'),
         ],
       ),
-    );
-  }
-}
-
-class _CacheCategoryTile extends StatelessWidget {
-  const _CacheCategoryTile({
-    required this.icon,
-    required this.title,
-    required this.valueLabel,
-    required this.selected,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String valueLabel;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      enabled: enabled,
-      leading: Icon(icon),
-      title: Text(title),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(valueLabel, style: theme.textTheme.bodyMedium),
-          const SizedBox(width: 12),
-          Checkbox(value: selected, onChanged: enabled ? (_) => onTap() : null),
-        ],
-      ),
-      onTap: enabled ? onTap : null,
     );
   }
 }

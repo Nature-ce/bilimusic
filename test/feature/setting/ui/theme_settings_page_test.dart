@@ -1,4 +1,6 @@
 import 'package:bilimusic/core/settings/app_settings_store.dart';
+import 'package:bilimusic/core/theme/theme_logic.dart';
+import 'package:bilimusic/core/theme/theme_ui_model.dart';
 import 'package:bilimusic/feature/setting/ui/theme_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +34,39 @@ void main() {
     expect(find.text('进度条'), findsOneWidget);
     expect(find.text('章节分隔样式'), findsOneWidget);
     expect(find.text('当前：竖线'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('theme mode and color selections update the theme state', (
+    WidgetTester tester,
+  ) async {
+    final _FakeSettingsStore store = _FakeSettingsStore();
+    final ProviderContainer container = ProviderContainer(
+      overrides: [appSettingsStoreProvider.overrideWithValue(store)],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: ThemeSettingsPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('深色'));
+    await tester.pumpAndSettle();
+
+    final ThemeUiModel afterMode = container.read(themeLogicProvider);
+    expect(afterMode.themeMode, ThemeMode.dark);
+    expect(store.values['themeMode'], 'dark');
+
+    await tester.tap(find.text('海盐蓝'));
+    await tester.pumpAndSettle();
+
+    final ThemeUiModel afterVariant = container.read(themeLogicProvider);
+    expect(afterVariant.themeVariantId, 'skyBlue');
+    expect(store.values['themeVariant'], 'skyBlue');
     expect(tester.takeException(), isNull);
   });
 }

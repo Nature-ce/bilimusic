@@ -2,6 +2,7 @@ import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/feature/setting/domain/hotkey_action.dart';
 import 'package:bilimusic/feature/setting/domain/hotkey_binding.dart';
 import 'package:bilimusic/feature/setting/logic/hotkey_settings_logic.dart';
+import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -9,10 +10,25 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 class HotkeySettingsPage extends ConsumerWidget {
   const HotkeySettingsPage({super.key});
 
+  static const List<HotkeyAction> _playbackActions = <HotkeyAction>[
+    HotkeyAction.playPause,
+    HotkeyAction.previousTrack,
+    HotkeyAction.nextTrack,
+  ];
+
+  static const List<HotkeyAction> _windowActions = <HotkeyAction>[
+    HotkeyAction.toggleDesktop,
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
     final List<HotkeyBinding> bindings = ref.watch(hotkeySettingsLogicProvider);
+
+    HotkeyBinding bindingOf(HotkeyAction action) {
+      return bindings.firstWhere(
+        (HotkeyBinding binding) => binding.action == action,
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -30,64 +46,88 @@ class HotkeySettingsPage extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[
-          Text(
-            '全局快捷键可在此修改；前台播放/暂停固定为空格键（仅窗口聚焦时响应）。若组合键已被系统或其他应用占用，请更换后保存。',
-            style: theme.textTheme.bodySmall,
+          const SettingsInfoNote(
+            text: '桌面端全局快捷键；点某一行后按下新的组合键即可修改，保存后生效。若组合键已被系统或其他应用占用，请更换后再保存。',
           ),
-          const SizedBox(height: 12),
-          for (final HotkeyAction action in HotkeyAction.values)
-            if (action != HotkeyAction.foregroundPlayPause)
-              _HotkeyTile(
-                binding: bindings.firstWhere(
-                  (HotkeyBinding binding) => binding.action == action,
-                ),
+          SettingsGroup(
+            title: '播放控制',
+            children: <Widget>[
+              for (final HotkeyAction action in _playbackActions)
+                _HotkeyRow(binding: bindingOf(action)),
+            ],
+          ),
+          SettingsGroup(
+            title: '界面',
+            children: <Widget>[
+              for (final HotkeyAction action in _windowActions)
+                _HotkeyRow(binding: bindingOf(action)),
+            ],
+          ),
+          SettingsGroup(
+            title: '前台固定',
+            children: <Widget>[
+              SettingsTile(
+                icon: Icons.keyboard_rounded,
+                tint: SettingsTint.blue,
+                title: HotkeyAction.foregroundPlayPause.title,
+                subtitle: '窗口聚焦时固定为空格，不可修改',
+                showChevron: false,
+                trailing: const SettingsKeycap(keys: <String>['Space']),
               ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _HotkeyTile extends ConsumerWidget {
-  const _HotkeyTile({required this.binding});
+class _HotkeyRow extends ConsumerWidget {
+  const _HotkeyRow({required this.binding});
 
   final HotkeyBinding binding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
     final HotKey? hotKey = binding.toHotKey();
+    final bool enabled = binding.enabled && hotKey != null;
+    final String scopeLabel = binding.scope == HotKeyScope.inapp ? '前台' : '全局';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(binding.action.title),
-        subtitle: Text(
-          binding.action.description,
-          style: theme.textTheme.bodySmall,
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (binding.enabled && hotKey != null) ...<Widget>[
-              Text(
-                binding.scope == HotKeyScope.inapp ? '前台' : '全局',
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(width: 8),
-              HotKeyVirtualView(hotKey: hotKey),
-            ] else
-              Text('未启用', style: theme.textTheme.bodySmall),
-            const SizedBox(width: 12),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
-        onTap: () => _showHotkeySheet(context, ref, binding),
-      ),
+    return SettingsTile(
+      icon: _actionIcon(binding.action),
+      tint: _actionTint(binding.action),
+      title: binding.action.title,
+      subtitle: enabled
+          ? '${binding.action.description} · $scopeLabel'
+          : binding.action.description,
+      showChevron: false,
+      trailing: enabled
+          ? HotKeyVirtualView(hotKey: hotKey)
+          : const SettingsKeycap(keys: <String>[]),
+      onTap: () => _showHotkeySheet(context, ref, binding),
     );
+  }
+
+  IconData _actionIcon(HotkeyAction action) {
+    return switch (action) {
+      HotkeyAction.playPause => Icons.play_circle_outline_rounded,
+      HotkeyAction.foregroundPlayPause => Icons.keyboard_rounded,
+      HotkeyAction.previousTrack => Icons.skip_previous_rounded,
+      HotkeyAction.nextTrack => Icons.skip_next_rounded,
+      HotkeyAction.toggleDesktop => Icons.window_outlined,
+    };
+  }
+
+  SettingsTint _actionTint(HotkeyAction action) {
+    return switch (action) {
+      HotkeyAction.playPause => SettingsTint.green,
+      HotkeyAction.foregroundPlayPause => SettingsTint.blue,
+      HotkeyAction.previousTrack => SettingsTint.blue,
+      HotkeyAction.nextTrack => SettingsTint.blue,
+      HotkeyAction.toggleDesktop => SettingsTint.violet,
+    };
   }
 }
 

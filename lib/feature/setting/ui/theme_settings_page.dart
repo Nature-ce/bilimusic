@@ -5,6 +5,7 @@ import 'package:bilimusic/core/theme/theme_ui_model.dart';
 import 'package:bilimusic/feature/player/domain/player_chapter_marker_style.dart';
 import 'package:bilimusic/feature/player/logic/display/player_chapter_marker_style_logic.dart';
 import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
+import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +15,6 @@ class ThemeSettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
     final ThemeUiModel themeState = ref.watch(themeLogicProvider);
     final bool useGlassBar = ref.watch(appearanceSettingLogicProvider);
     final PlayerChapterMarkerStyle markerStyle = ref.watch(
@@ -24,138 +24,101 @@ class ThemeSettingsPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('外观设置')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[
-          PlatformUtil.isMobile
-              ? SwitchListTile.adaptive(
-                  title: const Text('启用玻璃导航栏/播放栏'),
+          if (PlatformUtil.isMobile)
+            SettingsGroup(
+              title: '材质',
+              children: <Widget>[
+                SettingsSwitchTile(
+                  icon: Icons.blur_on_rounded,
+                  tint: SettingsTint.violet,
+                  title: '玻璃导航栏 / 播放栏',
+                  subtitle: '关闭后使用纯色底，低端机更流畅',
                   value: useGlassBar,
                   onChanged: (bool value) async {
                     await ref
                         .read(appearanceSettingLogicProvider.notifier)
                         .setUseGlassBar(value);
                   },
-                )
-              : Container(),
-          Text('主题模式', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: RadioGroup(
-              onChanged: (ThemeMode? value) {
-                if (value == null) {
-                  return;
-                }
-                ref.read(themeLogicProvider.notifier).setThemeMode(value);
-              },
-              groupValue: themeState.themeMode,
-              child: Column(
-                children: ThemeMode.values
-                    .map((ThemeMode mode) {
-                      return RadioListTile<ThemeMode>(
-                        value: mode,
-                        title: Text(_themeModeLabel(mode)),
-                        subtitle: Text(_themeModeDescription(mode)),
-                      );
-                    })
+                ),
+              ],
+            ),
+          SettingsGroup(
+            title: '主题模式',
+            children: <Widget>[
+              for (final ThemeMode mode in ThemeMode.values)
+                SettingsRadioTile(
+                  icon: _themeModeIcon(mode),
+                  tint: SettingsTint.green,
+                  title: _themeModeLabel(mode),
+                  subtitle: _themeModeDescription(mode),
+                  selected: themeState.themeMode == mode,
+                  onTap: () {
+                    ref.read(themeLogicProvider.notifier).setThemeMode(mode);
+                  },
+                ),
+            ],
+          ),
+          SettingsGroup(
+            title: '主题颜色',
+            children: <Widget>[
+              SettingsSwatchPicker(
+                options: themeCatalog
+                    .map(
+                      (ThemeDefinition definition) => SettingsSwatchOption(
+                        id: definition.id,
+                        label: definition.label,
+                        color: definition.primaryColor ?? definition.seedColor,
+                      ),
+                    )
                     .toList(growable: false),
+                selectedId: themeState.themeVariantId,
+                onSelected: (String id) {
+                  ref.read(themeLogicProvider.notifier).setThemeVariant(id);
+                },
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Text('主题颜色', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: RadioGroup(
-              onChanged: (String? value) {
-                if (value == null) {
-                  return;
-                }
-                ref.read(themeLogicProvider.notifier).setThemeVariant(value);
-              },
-              groupValue: themeState.themeVariantId,
-              child: Column(
-                children: themeCatalog
-                    .map((ThemeDefinition definition) {
-                      return RadioListTile<String>(
-                        value: definition.id,
-                        title: Text(definition.label),
-                        subtitle: Text(definition.description),
-                        secondary: _ThemePreviewDot(
-                          color: definition.seedColor,
-                        ),
-                      );
-                    })
-                    .toList(growable: false),
+          SettingsGroup(
+            title: '进度条',
+            children: <Widget>[
+              SettingsTile(
+                icon: Icons.linear_scale_rounded,
+                tint: SettingsTint.amber,
+                title: '章节分隔样式',
+                subtitle: '当前：${markerStyle.label}',
+                onTap: () => context.push('/settings/progress'),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Text('进度条', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              leading: const Icon(Icons.linear_scale_rounded),
-              title: const Text('章节分隔样式'),
-              subtitle: Text('当前：${markerStyle.label}'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/settings/progress'),
-            ),
-          ),
+          SettingsInfoNote(text: '深色模式与主题颜色会立即生效；玻璃材质在部分低端设备上可能影响滚动流畅度，可随时关闭。'),
         ],
       ),
     );
+  }
+
+  IconData _themeModeIcon(ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.system => Icons.brightness_auto_outlined,
+      ThemeMode.light => Icons.light_mode_outlined,
+      ThemeMode.dark => Icons.dark_mode_outlined,
+    };
   }
 
   String _themeModeLabel(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.system:
-        return '跟随系统';
-      case ThemeMode.light:
-        return '浅色';
-      case ThemeMode.dark:
-        return '深色';
-    }
+    return switch (mode) {
+      ThemeMode.system => '跟随系统',
+      ThemeMode.light => '浅色',
+      ThemeMode.dark => '深色',
+    };
   }
 
   String _themeModeDescription(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.system:
-        return '根据系统当前的明暗模式自动切换';
-      case ThemeMode.light:
-        return '始终使用浅色外观';
-      case ThemeMode.dark:
-        return '始终使用深色外观';
-    }
-  }
-}
-
-class _ThemePreviewDot extends StatelessWidget {
-  const _ThemePreviewDot({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 18,
-      height: 18,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: color.withValues(alpha: 0.35),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-    );
+    return switch (mode) {
+      ThemeMode.system => '随系统深浅色自动切换',
+      ThemeMode.light => '始终使用浅色外观',
+      ThemeMode.dark => '始终使用深色外观',
+    };
   }
 }

@@ -4,10 +4,9 @@ import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/core/cache/cache_util.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/auth/data/bili_auth_repository.dart';
 import 'package:bilimusic/feature/auth/logic/bili_auth_controller.dart';
+import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -117,8 +116,6 @@ class _SettingPageState extends ConsumerState<SettingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     final BiliSession? session = ref.watch(biliSessionControllerProvider);
     final bool isLoggedIn = session?.isLoggedIn ?? false;
     final String accountName = isLoggedIn
@@ -128,15 +125,15 @@ class _SettingPageState extends ConsumerState<SettingPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[
-          _SettingsGroup(
+          SettingsGroup(
             title: '账号与同步',
             children: <Widget>[
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.account_circle_outlined,
-                iconColor: const Color(0xFF256A4C),
-                label: 'B 站账号',
+                tint: SettingsTint.green,
+                title: 'B 站账号',
                 subtitle: isLoggedIn
                     ? 'mid: ${session?.mid ?? '-'}'
                     : '登录后可同步收藏与歌单',
@@ -144,58 +141,58 @@ class _SettingPageState extends ConsumerState<SettingPage> {
                 onTap: isLoggedIn ? null : () => context.push('/auth'),
               ),
               if (isLoggedIn)
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.swap_horiz_rounded,
-                  iconColor: const Color(0xFF2F5FB8),
-                  label: '切换账号',
+                  tint: SettingsTint.blue,
+                  title: '切换账号',
                   subtitle: '退出当前账号并使用新账号登录',
                   onTap: _handleSwitchAccount,
                 ),
               if (isLoggedIn)
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.logout_rounded,
-                  iconColor: colorScheme.error,
-                  label: '退出登录',
+                  tint: SettingsTint.red,
+                  title: '退出登录',
                   subtitle: '清除本地登录状态',
                   danger: true,
                   onTap: _handleLogoutPressed,
                 ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.import_export_rounded,
-                iconColor: const Color(0xFFB4671F),
-                label: '数据导入导出',
+                tint: SettingsTint.amber,
+                title: '数据导入导出',
                 subtitle: '导出或导入收藏与应用设置',
                 onTap: () => context.push('/settings/app-transfer'),
               ),
             ],
           ),
-          _SettingsGroup(
+          SettingsGroup(
             title: '播放',
             children: <Widget>[
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.multitrack_audio_outlined,
-                iconColor: const Color(0xFF256A4C),
-                label: '播放器设置',
+                tint: SettingsTint.green,
+                title: '播放器设置',
                 subtitle: '后台播放与音频策略',
                 onTap: () => context.push('/settings/player'),
               ),
               if (PlatformUtil.isDesktop)
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.keyboard_command_key_rounded,
-                  iconColor: const Color(0xFF6B45A6),
-                  label: '快捷键',
+                  tint: SettingsTint.violet,
+                  title: '快捷键',
                   subtitle: '全局播放控制与窗口显示隐藏',
                   onTap: () => context.push('/settings/hotkeys'),
                 ),
             ],
           ),
-          _SettingsGroup(
+          SettingsGroup(
             title: '外观与存储',
             children: <Widget>[
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.palette_outlined,
-                iconColor: const Color(0xFF6B45A6),
-                label: '外观设置',
+                tint: SettingsTint.violet,
+                title: '外观设置',
                 subtitle: '主题模式与主题颜色',
                 onTap: () => context.push('/settings/theme'),
               ),
@@ -203,10 +200,10 @@ class _SettingPageState extends ConsumerState<SettingPage> {
                 future: _cacheSizeFuture,
                 builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
                   final int size = snapshot.data ?? 0;
-                  return _SettingsTile(
+                  return SettingsTile(
                     icon: Icons.pie_chart_outline,
-                    iconColor: const Color(0xFFB4671F),
-                    label: '缓存管理',
+                    tint: SettingsTint.amber,
+                    title: '缓存管理',
                     subtitle: '图片、音频、歌词与元信息',
                     value: size > 0 ? formatBytes(size) : null,
                     onTap: () async {
@@ -221,167 +218,19 @@ class _SettingPageState extends ConsumerState<SettingPage> {
               ),
             ],
           ),
-          _SettingsGroup(
+          SettingsGroup(
             title: '关于',
             children: <Widget>[
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.info_outline_rounded,
-                iconColor: const Color(0xFFB33A26),
-                label: '版本与更新',
+                tint: SettingsTint.red,
+                title: '版本与更新',
                 subtitle: '检查更新 / 问题反馈 / 开源许可',
                 onTap: () => context.push('/settings/about'),
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 设置页分组卡片：白底圆角 + 组名 + 内嵌若干行。
-class _SettingsGroup extends StatelessWidget {
-  const _SettingsGroup({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 6),
-            child: Text(
-              title,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ),
-          Material(
-            color: appCardSurfaceColor(context),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: <Widget>[
-                for (int index = 0; index < children.length; index += 1) ...[
-                  if (index > 0)
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      indent: 56,
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.35,
-                      ),
-                    ),
-                  children[index],
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.label,
-    required this.iconColor,
-    this.subtitle,
-    this.value,
-    this.onTap,
-    this.danger = false,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String? subtitle;
-  final String? value;
-  final VoidCallback? onTap;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    final Color labelColor = danger ? colorScheme.error : colorScheme.onSurface;
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm + 2,
-        ),
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-              ),
-              child: Icon(icon, size: 17, color: iconColor),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: labelColor,
-                    ),
-                  ),
-                  if ((subtitle ?? '').isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if ((value ?? '').isNotEmpty) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                value!,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-            const SizedBox(width: AppSpacing.xs),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-            ),
-          ],
-        ),
       ),
     );
   }
