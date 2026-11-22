@@ -3,9 +3,7 @@ import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_state.dart';
-import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
-import 'package:bilimusic/feature/home/ui/components/home_chips.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_card.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_feature_card.dart';
 import 'package:flutter/material.dart';
@@ -28,16 +26,6 @@ class HotPlaylistSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          HomePlatformBar(
-            platforms: MusicChartPlatform.playlistPlatforms,
-            selected: state.platform,
-            onSelected: (MusicChartPlatform platform) {
-              ref
-                  .read(hotPlaylistControllerProvider.notifier)
-                  .selectPlatform(platform);
-            },
-          ),
-          const SizedBox(height: AppSpacing.lg),
           if (state.playlists.isNotEmpty) ...<Widget>[
             _FeatureRow(
               playlists: state.playlists,

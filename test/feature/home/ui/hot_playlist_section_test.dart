@@ -2,6 +2,7 @@ import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
+import 'package:bilimusic/feature/home/ui/components/home_chips.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,9 +85,7 @@ void main() {
     expect(find.text('编辑甄选'), findsOneWidget);
     expect(find.text('热门歌单'), findsOneWidget);
     expect(find.text('换一批'), findsOneWidget);
-    expect(find.text('网易云'), findsWidgets);
-    expect(find.text('QQ音乐'), findsOneWidget);
-    expect(find.text('酷狗'), findsOneWidget);
+    expect(find.byType(HomePlatformBar), findsNothing);
   });
 
   testWidgets('tapping a card reports the playlist', (

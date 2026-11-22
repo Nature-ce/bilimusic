@@ -41,35 +41,57 @@ class HotPlaylistController extends _$HotPlaylistController {
 
   Future<void> _load({bool forceRefresh = false}) async {
     final int requestId = ++_requestId;
-    final MusicChartPlatform platform = state.platform;
     if (!state.isLoading) {
       state = state.copyWith(isLoading: true, errorMessage: null);
     }
-    try {
-      final List<HotPlaylist> playlists = await ref
-          .read(hotPlaylistRepositoryProvider)
-          .fetchPlaylists(platform, forceRefresh: forceRefresh);
-      if (!ref.mounted ||
-          requestId != _requestId ||
-          state.platform != platform) {
-        return;
+    final List<List<HotPlaylist>> groups = <List<HotPlaylist>>[];
+    Object? firstError;
+    for (final MusicChartPlatform platform
+        in MusicChartPlatform.playlistPlatforms) {
+      try {
+        groups.add(
+          await ref
+              .read(hotPlaylistRepositoryProvider)
+              .fetchPlaylists(platform, forceRefresh: forceRefresh),
+        );
+      } on Object catch (error) {
+        firstError ??= error;
       }
-      state = state.copyWith(
-        playlists: playlists,
-        isLoading: false,
-        errorMessage: null,
-      );
-    } on Object catch (error) {
-      if (!ref.mounted ||
-          requestId != _requestId ||
-          state.platform != platform) {
-        return;
-      }
+    }
+    if (!ref.mounted || requestId != _requestId) {
+      return;
+    }
+    final List<HotPlaylist> playlists = _interleave(groups);
+    if (playlists.isEmpty && firstError != null) {
       state = state.copyWith(
         playlists: const <HotPlaylist>[],
         isLoading: false,
-        errorMessage: error.toString(),
+        errorMessage: firstError.toString(),
       );
+      return;
     }
+    state = state.copyWith(
+      playlists: playlists,
+      isLoading: false,
+      errorMessage: null,
+    );
+  }
+
+  /// 三个平台各自按热度排好后再交错，避免整段同平台。
+  static List<HotPlaylist> _interleave(List<List<HotPlaylist>> groups) {
+    final List<HotPlaylist> merged = <HotPlaylist>[];
+    final int longest = groups.fold<int>(
+      0,
+      (int value, List<HotPlaylist> group) =>
+          group.length > value ? group.length : value,
+    );
+    for (int index = 0; index < longest; index += 1) {
+      for (final List<HotPlaylist> group in groups) {
+        if (index < group.length) {
+          merged.add(group[index]);
+        }
+      }
+    }
+    return merged;
   }
 }
