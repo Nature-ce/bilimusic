@@ -4,22 +4,26 @@ import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/logger.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
-import 'package:bilimusic/feature/favorites/logic/favorite_entry_search.dart';
 import 'package:bilimusic/feature/favorites/domain/remote_collection_sync_state.dart';
-import 'package:bilimusic/feature/favorites/logic/remote_collection_sync_controller.dart';
+import 'package:bilimusic/feature/favorites/logic/favorite_entry_search.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
-import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_items_list.dart';
+import 'package:bilimusic/feature/favorites/logic/remote_collection_sync_controller.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_button.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_search_field.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorites_metadata_toolbar_buttons.dart';
 import 'package:bilimusic/feature/favorites/ui/components/remote_collection_sync_status_bar.dart';
+import 'package:bilimusic/feature/home/ui/components/collection_detail_header.dart';
+import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -41,16 +45,26 @@ class FavoriteCollectionPage extends ConsumerStatefulWidget {
       _FavoriteCollectionPageState();
 }
 
-class _FavoriteCollectionPageState
-    extends ConsumerState<FavoriteCollectionPage> {
+class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  late final TabController _tabController = TabController(
+    length: 2,
+    vsync: this,
+  );
+
   String _searchQuery = '';
-  Set<String> _selectedItemIds = <String>{};
+  bool _searchActive = false;
   bool _selectionMode = false;
+  Set<String> _selectedItemIds = <String>{};
+  bool _likeAllBusy = false;
+  int _tabIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _tabController.addListener(_handleTabChanged);
     _scheduleSync();
   }
 
@@ -59,10 +73,32 @@ class _FavoriteCollectionPageState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.collectionId != widget.collectionId) {
       _resetSearchState();
-      _selectedItemIds = <String>{};
       _selectionMode = false;
+      _selectedItemIds = <String>{};
+      _tabIndex = 0;
+      _tabController.index = 0;
       _scheduleSync();
     }
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabChanged);
+    _tabController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _resetSearchState();
+    });
+    super.deactivate();
   }
 
   RemoteCollectionSyncState get _syncState =>
@@ -102,12 +138,537 @@ class _FavoriteCollectionPageState
     return false;
   }
 
+  Future<void> _refresh(FavoriteCollection collection) async {
+    if (collection.isRemote) {
+      await _forceSync();
+      return;
+    }
+    await ref.read(favoritesControllerProvider.notifier).reload();
+  }
+
+  void _handleTabChanged() {
+    final int index = _tabController.index;
+    if (index == _tabIndex) {
+      return;
+    }
+    setState(() {
+      _tabIndex = index;
+      if (index == 0) {
+        return;
+      }
+      _searchController.clear();
+      _searchQuery = '';
+      _searchActive = false;
+      _selectionMode = false;
+      _selectedItemIds = <String>{};
+    });
+  }
+
+  void _openSearch() {
+    if (_searchActive) {
+      return;
+    }
+    setState(() => _searchActive = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _searchFocusNode.requestFocus();
+    });
+  }
+
+  void _closeSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchActive = false;
+      _searchQuery = '';
+    });
+  }
+
+  void _openSelectionMode() {
+    if (_selectionMode) {
+      return;
+    }
+    setState(() {
+      _selectionMode = true;
+      _selectedItemIds = <String>{};
+    });
+  }
+
+  void _exitSelectionMode() {
+    if (!_selectionMode) {
+      return;
+    }
+    setState(() {
+      _selectionMode = false;
+      _selectedItemIds = <String>{};
+    });
+  }
+
+  void _updateSearchQuery(String value) {
+    setState(() => _searchQuery = value);
+  }
+
+  void _clearSearchQuery() {
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+  }
+
+  void _resetSearchState() {
+    if (!_searchActive &&
+        _searchQuery.isEmpty &&
+        _searchController.text.isEmpty) {
+      return;
+    }
+
+    _searchController.clear();
+    setState(() {
+      _searchActive = false;
+      _searchQuery = '';
+    });
+  }
+
+  void _toggleSelectedItem(String itemId) {
+    setState(() {
+      final Set<String> next = Set<String>.of(_selectedItemIds);
+      if (!next.remove(itemId)) {
+        next.add(itemId);
+      }
+      _selectedItemIds = next;
+    });
+  }
+
+  List<FavoriteEntry> _selectedItems(List<FavoriteEntry> items) {
+    return items
+        .where((FavoriteEntry item) => _selectedItemIds.contains(item.itemId))
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final FavoritesState state = ref.watch(favoritesControllerProvider);
+    final FavoriteCollection? collection = _findCollection(state);
+    if (collection == null) {
+      return _buildMissingCollectionPage();
+    }
+
+    final FavoriteCollection resolvedCollection = collection;
+    final List<FavoriteEntry> items = state.itemsForCollection(
+      resolvedCollection.id,
+    );
+    final List<FavoriteEntry> visibleItems = filterFavoriteEntries(
+      items,
+      _searchQuery,
+    );
+    final List<PlayableItem> queueItems = visibleItems
+        .map(
+          (FavoriteEntry item) =>
+              item.toPlayableItem(collection: resolvedCollection),
+        )
+        .toList(growable: false);
+    final bool showLikedTabs = resolvedCollection.isLikedCollection;
+    final Widget songsBody = _buildSongsBody(
+      collection: resolvedCollection,
+      items: items,
+      visibleItems: visibleItems,
+      queueItems: queueItems,
+      likedItemIds: state.likedItemIds,
+    );
+
+    return PopScope(
+      canPop: !_searchActive && !_selectionMode,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        if (_selectionMode) {
+          _exitSelectionMode();
+          return;
+        }
+        _closeSearch();
+      },
+      child: Scaffold(
+        appBar: _buildAppBar(
+          collection: resolvedCollection,
+          items: items,
+          visibleItems: visibleItems,
+          queueItems: queueItems,
+          showLikedTabs: showLikedTabs,
+        ),
+        body: showLikedTabs
+            ? TabBarView(
+                controller: _tabController,
+                children: <Widget>[songsBody, const FavoriteUpList()],
+              )
+            : songsBody,
+      ),
+    );
+  }
+
+  FavoriteCollection? _findCollection(FavoritesState state) {
+    for (final FavoriteCollection collection in state.collections) {
+      if (collection.id == widget.collectionId) {
+        return collection;
+      }
+    }
+    return null;
+  }
+
+  PreferredSizeWidget _buildAppBar({
+    required FavoriteCollection collection,
+    required List<FavoriteEntry> items,
+    required List<FavoriteEntry> visibleItems,
+    required List<PlayableItem> queueItems,
+    required bool showLikedTabs,
+  }) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    if (_searchActive) {
+      return AppBar(
+        titleSpacing: 0,
+        title: FavoriteCollectionSearchField(
+          controller: _searchController,
+          focusNode: _searchFocusNode,
+          query: _searchQuery,
+          onChanged: _updateSearchQuery,
+          onClear: _clearSearchQuery,
+        ),
+        actions: <Widget>[
+          IconButton(
+            tooltip: '取消搜索',
+            onPressed: _closeSearch,
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      );
+    }
+
+    if (_selectionMode) {
+      final bool hasSelection = _selectedItemIds.isNotEmpty;
+      return AppBar(
+        leading: IconButton(
+          tooltip: '退出多选',
+          onPressed: _exitSelectionMode,
+          icon: const Icon(Icons.close_rounded),
+        ),
+        title: Text('已选 ${_selectedItemIds.length} 项'),
+        actions: <Widget>[
+          IconButton(
+            tooltip: '添加到歌单',
+            onPressed: hasSelection
+                ? () => unawaited(_addSelectedItems(collection, visibleItems))
+                : null,
+            icon: const Icon(Icons.playlist_add_rounded),
+          ),
+          IconButton(
+            tooltip: '批量下载',
+            onPressed: hasSelection
+                ? () => unawaited(
+                    _downloadSelectedItems(collection, visibleItems),
+                  )
+                : null,
+            icon: const Icon(Icons.download_outlined),
+          ),
+          IconButton(
+            tooltip: '删除',
+            onPressed: hasSelection
+                ? () => unawaited(
+                    _deleteSelectedItems(
+                      collection: collection,
+                      items: visibleItems,
+                    ),
+                  )
+                : null,
+            color: colorScheme.error,
+            icon: const Icon(Icons.delete_outline_rounded),
+          ),
+        ],
+      );
+    }
+
+    return AppBar(
+      title: Text(
+        collection.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      actions: <Widget>[
+        if (_tabIndex == 0) ...<Widget>[
+          IconButton(
+            tooltip: '搜索',
+            onPressed: _openSearch,
+            icon: const Icon(Icons.search_rounded),
+          ),
+          IconButton(
+            tooltip: '多选',
+            onPressed: items.isEmpty ? null : _openSelectionMode,
+            icon: const Icon(Icons.checklist_rounded),
+          ),
+          if (!collection.isSpoken) MetadataBackfillButton(items: queueItems),
+        ],
+      ],
+      bottom: showLikedTabs
+          ? TabBar(
+              controller: _tabController,
+              tabs: const <Widget>[
+                Tab(text: '歌曲'),
+                Tab(text: 'UP主'),
+              ],
+            )
+          : null,
+    );
+  }
+
+  Widget _buildSongsBody({
+    required FavoriteCollection collection,
+    required List<FavoriteEntry> items,
+    required List<FavoriteEntry> visibleItems,
+    required List<PlayableItem> queueItems,
+    required Set<String> likedItemIds,
+  }) {
+    final ThemeData theme = Theme.of(context);
+    final bool allLiked =
+        items.isNotEmpty &&
+        items.every((FavoriteEntry item) => likedItemIds.contains(item.itemId));
+
+    return Column(
+      children: <Widget>[
+        RemoteCollectionSyncStatusBar(status: _syncState.status),
+        Expanded(
+          child: NotificationListener<ScrollNotification>(
+            onNotification: _onScrollNotification,
+            child: RefreshIndicator(
+              onRefresh: () => _refresh(collection),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                children: <Widget>[
+                  CollectionDetailHeader(
+                    coverUrl: _resolveCoverUrl(collection, items),
+                    chipLabel: collection.isRemote ? 'B站 · 收藏夹' : '本地 · 歌单',
+                    title: collection.name,
+                    meta: _buildMetaLabel(collection, items.length),
+                    subMeta: collection.isRemote ? '已与 B 站同步' : '仅保存在本机',
+                    coverFallbackIcon: collection.isLikedCollection
+                        ? Icons.favorite_rounded
+                        : Icons.queue_music_rounded,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  CollectionActionRow(
+                    playAllKey: const Key('favoriteCollectionPlayAll'),
+                    canPlayAll: queueItems.isNotEmpty,
+                    onPlayAll: () =>
+                        unawaited(_playCollection(collection, queueItems)),
+                    favoriteKey: const Key('favoriteCollectionFavorite'),
+                    isFavorite: allLiked,
+                    onToggleFavorite: () => unawaited(
+                      _toggleCollectionLiked(
+                        collection: collection,
+                        items: items,
+                      ),
+                    ),
+                    refreshKey: const Key('favoriteCollectionRefresh'),
+                    onRefresh: () => unawaited(_refresh(collection)),
+                    playAllLabel: '播放全部',
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Row(
+                    children: <Widget>[
+                      Text(
+                        '歌曲',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (visibleItems.isNotEmpty)
+                        Text(
+                          '共 ${visibleItems.length} 首',
+                          style: AppTextStyles.meta(theme, fontSize: 11.5),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  ..._buildTrackSection(
+                    collection: collection,
+                    items: items,
+                    visibleItems: visibleItems,
+                    queueItems: queueItems,
+                  ),
+                  _buildRemoteLoadMoreFooter(collection.isRemote),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildTrackSection({
+    required FavoriteCollection collection,
+    required List<FavoriteEntry> items,
+    required List<FavoriteEntry> visibleItems,
+    required List<PlayableItem> queueItems,
+  }) {
+    if (items.isEmpty) {
+      if (_syncState.isSyncing) {
+        return const <Widget>[_FavoriteTracksLoading()];
+      }
+      if (_syncState.hasFailed) {
+        return <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+            child: StatusView(
+              icon: Icons.wifi_off_rounded,
+              iconColor: Theme.of(context).colorScheme.error,
+              title: '网络歌单同步失败',
+              description: '请检查网络后重试。',
+              isRetrying: _syncState.isSyncing,
+              onRetry: _forceSync,
+            ),
+          ),
+        ];
+      }
+      return <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+          child: StatusView(
+            icon: collection.isLikedCollection
+                ? Icons.favorite_border_rounded
+                : Icons.folder_open_rounded,
+            iconColor: Theme.of(context).colorScheme.primary,
+            title: '这个歌单还是空的',
+            description: '先去搜索页或者播放器点亮爱心，喜欢的内容会出现在这里。',
+          ),
+        ),
+      ];
+    }
+
+    if (visibleItems.isEmpty) {
+      return <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+          child: StatusView(
+            icon: Icons.search_off_rounded,
+            title: '没有结果？前往在线搜索试试',
+            actions: <Widget>[
+              TextButton.icon(
+                onPressed: () => context.go('/search'),
+                label: const Text('搜索'),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    return <Widget>[
+      for (int index = 0; index < visibleItems.length; index += 1)
+        _buildTrackRow(
+          collection: collection,
+          queueItems: queueItems,
+          item: visibleItems[index],
+          index: index,
+        ),
+    ];
+  }
+
+  Widget _buildTrackRow({
+    required FavoriteCollection collection,
+    required List<PlayableItem> queueItems,
+    required FavoriteEntry item,
+    required int index,
+  }) {
+    final bool selected = _selectedItemIds.contains(item.itemId);
+    final Widget tile = TrackRowTile(
+      rank: index + 1,
+      title: normalizeDisplayText(item.title),
+      artist: buildFavoriteTileSubtitle(item),
+      coverUrl: item.coverUrl,
+      durationText: item.durationText ?? '',
+      onTap: () {
+        if (_selectionMode) {
+          _toggleSelectedItem(item.itemId);
+          return;
+        }
+        unawaited(
+          _playCollectionItem(
+            collection: collection,
+            queueItems: queueItems,
+            item: item,
+            index: index,
+          ),
+        );
+      },
+    );
+
+    if (!_selectionMode) {
+      return GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        onLongPress: () =>
+            unawaited(_showItemActionSheet(collection: collection, item: item)),
+        child: tile,
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: selected
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        children: <Widget>[
+          Checkbox(
+            value: selected,
+            visualDensity: VisualDensity.compact,
+            onChanged: (bool? value) => _toggleSelectedItem(item.itemId),
+          ),
+          Expanded(child: tile),
+        ],
+      ),
+    );
+  }
+
+  String _resolveCoverUrl(
+    FavoriteCollection collection,
+    List<FavoriteEntry> items,
+  ) {
+    final String cover = collection.coverUrl?.trim() ?? '';
+    if (cover.isNotEmpty) {
+      return cover;
+    }
+    for (final FavoriteEntry item in items) {
+      if (item.coverUrl.trim().isNotEmpty) {
+        return item.coverUrl;
+      }
+    }
+    return '';
+  }
+
+  String _buildMetaLabel(FavoriteCollection collection, int count) {
+    final String countLabel = '共 $count 首';
+    final String? updatedLabel = _relativeUpdatedLabel(collection.updatedAt);
+    if (updatedLabel == null) {
+      return countLabel;
+    }
+    return '$countLabel · $updatedLabel';
+  }
+
+  Widget _buildMissingCollectionPage() {
+    return Scaffold(
+      appBar: AppBar(title: const Text('歌单')),
+      body: const StatusView(icon: Icons.folder_off_outlined, title: '歌单不存在'),
+    );
+  }
+
   Widget _buildRemoteLoadMoreFooter(bool isRemote) {
     if (!isRemote || !_syncState.hasMoreRemotePages) {
       return const BottomPageSpacer();
     }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Center(
         child: _syncState.isLoadingMore
             ? const SizedBox(
@@ -123,64 +684,146 @@ class _FavoriteCollectionPageState
     );
   }
 
-  @override
-  void deactivate() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _resetSearchState();
+  Future<void> _playCollection(
+    FavoriteCollection collection,
+    List<PlayableItem> queueItems,
+  ) async {
+    if (queueItems.isEmpty) {
+      return;
+    }
+    final FavoriteCollectionPlayMode? mode =
+        await showFavoriteCollectionPlayModeSheet(context);
+    if (mode == null || !mounted) {
+      return;
+    }
+    final bool shuffle = mode == FavoriteCollectionPlayMode.shuffle;
+    final List<PlayableItem> items = shuffle
+        ? (List<PlayableItem>.of(queueItems)..shuffle())
+        : queueItems;
+    await PlayerUtil.playQueueAndOpenPlayer(
+      context,
+      ref,
+      items: items,
+      sourceLabel: shuffle ? '${collection.name} · 随机' : collection.name,
+    );
+    if (!mounted) {
+      return;
+    }
+    ref.read(playerControllerProvider.notifier).setQueueMode(switch (mode) {
+      FavoriteCollectionPlayMode.shuffle => PlayerQueueMode.shuffle,
+      FavoriteCollectionPlayMode.loop => PlayerQueueMode.sequence,
     });
-    super.deactivate();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _playCollectionItem({
+    required FavoriteCollection collection,
+    required List<PlayableItem> queueItems,
+    required FavoriteEntry item,
+    required int index,
+  }) async {
+    final PlayableItem playableItem = item.toPlayableItem(
+      collection: collection,
+    );
+    final int stableIndex = queueItems.indexWhere(
+      (PlayableItem candidate) =>
+          candidate.stableId == playableItem.stableId ||
+          candidate.stableId == item.itemId,
+    );
+    final int targetIndex = stableIndex >= 0 ? stableIndex : index;
+    if (queueItems.isEmpty ||
+        targetIndex < 0 ||
+        targetIndex >= queueItems.length) {
+      return;
+    }
+    FavoriteCollectionPage._logger.d(
+      '[FavoriteDebug] tapPlay | collection=${collection.name}, '
+      'index=$targetIndex, queueLength=${queueItems.length}, '
+      'itemStableId=${queueItems[targetIndex].stableId}, '
+      'itemTitle=${queueItems[targetIndex].title}',
+    );
+    if (!mounted) {
+      return;
+    }
+    await PlayerUtil.playQueueAndOpenPlayer(
+      context,
+      ref,
+      items: queueItems,
+      startIndex: targetIndex,
+      sourceLabel: collection.name,
+    );
   }
 
-  void _updateSearchQuery(String value) {
-    setState(() {
-      _searchQuery = value;
-    });
-  }
-
-  void _clearSearchQuery() {
-    _searchController.clear();
-    setState(() {
-      _searchQuery = '';
-    });
-  }
-
-  void _resetSearchState() {
-    if (_searchQuery.isEmpty && _searchController.text.isEmpty) {
+  Future<void> _toggleCollectionLiked({
+    required FavoriteCollection collection,
+    required List<FavoriteEntry> items,
+  }) async {
+    if (_likeAllBusy || items.isEmpty) {
+      return;
+    }
+    final Set<String> likedItemIds = ref
+        .read(favoritesControllerProvider)
+        .likedItemIds;
+    final bool allLiked = items.every(
+      (FavoriteEntry item) => likedItemIds.contains(item.itemId),
+    );
+    final String message = allLiked
+        ? '将从「我喜欢」移出 ${items.length} 首'
+        : '将把 ${items.length} 首全部加入「我喜欢」';
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(allLiked ? '取消喜欢整张歌单' : '喜欢整张歌单'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) {
       return;
     }
 
-    _searchController.clear();
-    setState(() {
-      _searchQuery = '';
-    });
-  }
-
-  void _setSelectionMode(bool enabled) {
-    setState(() {
-      _selectionMode = enabled;
-      if (!enabled) {
-        _selectedItemIds = <String>{};
+    setState(() => _likeAllBusy = true);
+    int changedCount = 0;
+    try {
+      final FavoritesController controller = ref.read(
+        favoritesControllerProvider.notifier,
+      );
+      for (final FavoriteEntry item in items) {
+        final bool liked = ref
+            .read(favoritesControllerProvider)
+            .likedItemIds
+            .contains(item.itemId);
+        if (liked != allLiked) {
+          continue;
+        }
+        final bool nowLiked = await controller.toggleLiked(
+          item.toPlayableItem(collection: collection),
+        );
+        if (nowLiked != allLiked) {
+          changedCount += 1;
+        }
       }
-    });
-  }
-
-  void _setSelectedItemIds(Set<String> itemIds) {
-    setState(() => _selectedItemIds = itemIds);
-  }
-
-  List<FavoriteEntry> _selectedItems(List<FavoriteEntry> items) {
-    return items
-        .where((FavoriteEntry item) => _selectedItemIds.contains(item.itemId))
-        .toList(growable: false);
+    } finally {
+      if (mounted) {
+        setState(() => _likeAllBusy = false);
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    ToastUtil.show(
+      allLiked ? '已从「我喜欢」移出 $changedCount 首' : '已把 $changedCount 首加入「我喜欢」',
+    );
   }
 
   Future<void> _downloadSelectedItems(
@@ -208,7 +851,7 @@ class _FavoriteCollectionPageState
     if (!mounted) {
       return;
     }
-    _setSelectionMode(false);
+    _exitSelectionMode();
     ToastUtil.show(queuedCount == 0 ? '已下载或正在下载' : '已加入下载队列 $queuedCount 首');
   }
 
@@ -230,7 +873,7 @@ class _FavoriteCollectionPageState
       items: selectedItems,
     );
     if (added == true && mounted) {
-      _setSelectionMode(false);
+      _exitSelectionMode();
     }
   }
 
@@ -245,7 +888,7 @@ class _FavoriteCollectionPageState
 
     final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('删除收藏'),
           content: Text(
@@ -253,11 +896,11 @@ class _FavoriteCollectionPageState
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('删除'),
             ),
           ],
@@ -284,7 +927,7 @@ class _FavoriteCollectionPageState
     if (!mounted) {
       return;
     }
-    _setSelectionMode(false);
+    _exitSelectionMode();
     ToastUtil.show(
       removedCount == selectedItems.length
           ? '已移除 $removedCount 项'
@@ -292,362 +935,7 @@ class _FavoriteCollectionPageState
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final FavoritesState state = ref.watch(favoritesControllerProvider);
-    final FavoriteCollection? collection = _findCollection(state);
-    if (collection == null) {
-      return _buildMissingCollectionPage();
-    }
-
-    final FavoriteCollection resolvedCollection = collection;
-    final List<FavoriteEntry> items = state.itemsForCollection(
-      resolvedCollection.id,
-    );
-    final List<FavoriteEntry> visibleItems = filterFavoriteEntries(
-      items,
-      _searchQuery,
-    );
-    final List<PlayableItem> queueItems = visibleItems
-        .map(
-          (FavoriteEntry item) =>
-              item.toPlayableItem(collection: resolvedCollection),
-        )
-        .toList(growable: false);
-    return _buildPage(
-      collection: resolvedCollection,
-      items: items,
-      visibleItems: visibleItems,
-      queueItems: queueItems,
-    );
-  }
-
-  FavoriteCollection? _findCollection(FavoritesState state) {
-    for (final FavoriteCollection collection in state.collections) {
-      if (collection.id == widget.collectionId) {
-        return collection;
-      }
-    }
-    return null;
-  }
-
-  Widget _buildMissingCollectionPage() {
-    return Scaffold(
-      appBar: AppBar(title: const Text('歌单')),
-      body: const StatusView(icon: Icons.folder_off_outlined, title: '歌单不存在'),
-    );
-  }
-
-  Widget _buildPage({
-    required FavoriteCollection collection,
-    required List<FavoriteEntry> items,
-    required List<FavoriteEntry> visibleItems,
-    required List<PlayableItem> queueItems,
-  }) {
-    final bool showLikedTabs = collection.isLikedCollection;
-
-    return DefaultTabController(
-      length: showLikedTabs ? 2 : 1,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Flexible(
-                child: Text(
-                  collection.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-
-          bottom: showLikedTabs
-              ? const TabBar(
-                  tabs: <Widget>[
-                    Tab(text: '歌曲'),
-                    Tab(text: 'UP主'),
-                  ],
-                )
-              : null,
-        ),
-        body: showLikedTabs
-            ? TabBarView(
-                children: <Widget>[
-                  _buildSongsBody(collection, items, visibleItems, queueItems),
-                  const FavoriteUpList(),
-                ],
-              )
-            : _buildSongsBody(collection, items, visibleItems, queueItems),
-      ),
-    );
-  }
-
-  Widget _buildSongsBody(
-    FavoriteCollection collection,
-    List<FavoriteEntry> items,
-    List<FavoriteEntry> visibleItems,
-    List<PlayableItem> queueItems,
-  ) {
-    return Column(
-      children: <Widget>[
-        RemoteCollectionSyncStatusBar(status: _syncState.status),
-        Expanded(
-          child: _buildCollectionItemsContent(
-            collection,
-            items,
-            visibleItems,
-            queueItems,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCollectionItemsContent(
-    FavoriteCollection collection,
-    List<FavoriteEntry> items,
-    List<FavoriteEntry> visibleItems,
-    List<PlayableItem> queueItems,
-  ) {
-    if (items.isEmpty && _syncState.hasFailed) {
-      return StatusView(
-        icon: Icons.wifi_off_rounded,
-        iconColor: Theme.of(context).colorScheme.error,
-        title: '网络歌单同步失败',
-        description: '请检查网络后重试。',
-        isRetrying: _syncState.isSyncing,
-        onRetry: _forceSync,
-      );
-    }
-    if (items.isEmpty) {
-      return _buildEmptyCollectionState(
-        collection,
-        Theme.of(context).colorScheme.primary,
-      );
-    }
-    return Column(
-      children: <Widget>[
-        _buildItemsToolbar(collection, visibleItems, queueItems),
-        Expanded(
-          child: visibleItems.isEmpty
-              ? _buildSearchEmptyState(context, collection.isRemote)
-              : _buildItemsList(collection, visibleItems, queueItems),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildItemsToolbar(
-    FavoriteCollection collection,
-    List<FavoriteEntry> visibleItems,
-    List<PlayableItem> queueItems,
-  ) {
-    if (_selectionMode) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-        child: _FavoriteBatchActionBar(
-          selectedCount: _selectedItemIds.length,
-          onAdd: () => _addSelectedItems(collection, visibleItems),
-          onDownload: () => _downloadSelectedItems(collection, visibleItems),
-          onDelete: () =>
-              _deleteSelectedItems(collection: collection, items: visibleItems),
-          onExit: () => _setSelectionMode(false),
-        ),
-      );
-    }
-
-    final bool isSpoken = collection.isSpoken;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: FavoriteCollectionSearchField(
-              controller: _searchController,
-              query: _searchQuery,
-              onChanged: _updateSearchQuery,
-              onClear: _clearSearchQuery,
-            ),
-          ),
-          if (!isSpoken) ...<Widget>[
-            const SizedBox(width: 6),
-            MetadataBackfillButton(items: queueItems),
-          ],
-          if (queueItems.isNotEmpty) ...<Widget>[
-            const SizedBox(width: 4),
-            FavoriteCollectionPlayButton(
-              enabled: queueItems.isNotEmpty,
-              onModeSelected: (FavoriteCollectionPlayMode mode) =>
-                  _playCollection(context, ref, collection, queueItems, mode),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _playCollection(
-    BuildContext context,
-    WidgetRef ref,
-    FavoriteCollection collection,
-    List<PlayableItem> queueItems,
-    FavoriteCollectionPlayMode mode,
-  ) async {
-    final bool shuffle = mode == FavoriteCollectionPlayMode.shuffle;
-    final List<PlayableItem> items = shuffle
-        ? (List<PlayableItem>.of(queueItems)..shuffle())
-        : queueItems;
-    await PlayerUtil.playQueueAndOpenPlayer(
-      context,
-      ref,
-      items: items,
-      sourceLabel: shuffle ? '${collection.name} · 随机' : collection.name,
-    );
-    ref.read(playerControllerProvider.notifier).setQueueMode(switch (mode) {
-      FavoriteCollectionPlayMode.shuffle => PlayerQueueMode.shuffle,
-      FavoriteCollectionPlayMode.loop => PlayerQueueMode.sequence,
-    });
-  }
-
-  Widget _buildItemsList(
-    FavoriteCollection collection,
-    List<FavoriteEntry> visibleItems,
-    List<PlayableItem> queueItems,
-  ) {
-    return FavoriteCollectionItemsList(
-      items: visibleItems,
-      footer: _buildRemoteLoadMoreFooter(collection.isRemote),
-      onNotification: _onScrollNotification,
-      selectedItemIds: _selectedItemIds,
-      selectionMode: _selectionMode,
-      onSelectionModeChanged: _setSelectionMode,
-      onSelectionChanged: _setSelectedItemIds,
-      onRefresh: collection.isRemote ? _forceSync : null,
-      onTapItem: (int itemIndex, FavoriteEntry item) async {
-        await _playCollectionItem(
-          context,
-          ref,
-          collection: collection,
-          queueItems: queueItems,
-          item: item,
-          index: itemIndex,
-        );
-      },
-      onPlayItem: (int itemIndex, FavoriteEntry item) async {
-        await _playCollectionItem(
-          context,
-          ref,
-          collection: collection,
-          queueItems: queueItems,
-          item: item,
-          index: itemIndex,
-        );
-      },
-      onMoreItem: (int itemIndex, FavoriteEntry item) async {
-        await _showItemActionSheet(
-          context,
-          ref,
-          collection: collection,
-          item: item,
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyCollectionState(
-    FavoriteCollection collection,
-    Color primary,
-  ) {
-    final Widget list = CustomScrollView(
-      physics: collection.isRemote
-          ? const AlwaysScrollableScrollPhysics()
-          : null,
-      slivers: <Widget>[
-        SliverStatusView(
-          child: StatusView(
-            icon: collection.isLikedCollection
-                ? Icons.favorite_border_rounded
-                : Icons.folder_open_rounded,
-            iconColor: primary,
-            title: '这个歌单还是空的',
-            description: '先去搜索页或者播放器点亮爱心，喜欢的内容会出现在这里。',
-          ),
-        ),
-      ],
-    );
-    return collection.isRemote
-        ? RefreshIndicator(onRefresh: _forceSync, child: list)
-        : list;
-  }
-
-  Widget _buildSearchEmptyState(BuildContext context, bool isRemote) {
-    final Widget list = CustomScrollView(
-      physics: isRemote ? const AlwaysScrollableScrollPhysics() : null,
-      slivers: <Widget>[
-        SliverStatusView(
-          child: StatusView(
-            icon: Icons.search_off_rounded,
-            title: '没有结果？前往在线搜索试试',
-            actions: <Widget>[
-              TextButton.icon(
-                onPressed: () => context.go('/search'),
-                label: const Text('搜索'),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-    return isRemote
-        ? RefreshIndicator(onRefresh: _forceSync, child: list)
-        : list;
-  }
-
-  Future<void> _playCollectionItem(
-    BuildContext context,
-    WidgetRef ref, {
-    required FavoriteCollection collection,
-    required List<PlayableItem> queueItems,
-    required FavoriteEntry item,
-    required int index,
-  }) async {
-    final PlayableItem playableItem = item.toPlayableItem(
-      collection: collection,
-    );
-    final int stableIndex = queueItems.indexWhere(
-      (PlayableItem candidate) =>
-          candidate.stableId == playableItem.stableId ||
-          candidate.stableId == item.itemId,
-    );
-    if (stableIndex >= 0) {
-      index = stableIndex;
-    }
-    if (queueItems.isEmpty || index < 0 || index >= queueItems.length) {
-      return;
-    }
-    FavoriteCollectionPage._logger.d(
-      '[FavoriteDebug] tapPlay | collection=${collection.name}, '
-      'index=$index, queueLength=${queueItems.length}, '
-      'itemStableId=${queueItems[index].stableId}, '
-      'itemTitle=${queueItems[index].title}',
-    );
-    if (!context.mounted) {
-      return;
-    }
-    await PlayerUtil.playQueueAndOpenPlayer(
-      context,
-      ref,
-      items: queueItems,
-      startIndex: index,
-      sourceLabel: collection.name,
-    );
-  }
-
-  Future<void> _showItemActionSheet(
-    BuildContext context,
-    WidgetRef ref, {
+  Future<void> _showItemActionSheet({
     required FavoriteCollection collection,
     required FavoriteEntry item,
   }) async {
@@ -715,7 +1003,7 @@ class _FavoriteCollectionPageState
                             collectionId: collection.id,
                             itemId: item.itemId,
                           );
-                      if (!context.mounted) {
+                      if (!mounted) {
                         return;
                       }
                       ToastUtil.show(
@@ -742,7 +1030,7 @@ class _FavoriteCollectionPageState
                       final bool queued = await ref
                           .read(downloadControllerProvider.notifier)
                           .download(playableItem);
-                      if (!context.mounted) {
+                      if (!mounted) {
                         return;
                       }
                       ToastUtil.show(queued ? '已加入下载队列' : '已下载或正在下载');
@@ -753,7 +1041,7 @@ class _FavoriteCollectionPageState
                     title: '查看UP主',
                     onTap: () {
                       Navigator.of(sheetContext).pop();
-                      _openOwnerPage(context, item);
+                      _openOwnerPage(item);
                     },
                   ),
                   _FavoriteActionTile(
@@ -761,7 +1049,7 @@ class _FavoriteCollectionPageState
                     title: '统计',
                     onTap: () {
                       Navigator.of(sheetContext).pop();
-                      if (context.mounted) {
+                      if (mounted) {
                         context.push('/statistics/song', extra: playableItem);
                       }
                     },
@@ -774,7 +1062,7 @@ class _FavoriteCollectionPageState
                       await ref
                           .read(playerControllerProvider.notifier)
                           .playNext(playableItem);
-                      if (!context.mounted) {
+                      if (!mounted) {
                         return;
                       }
                       ToastUtil.show('已加入下一首');
@@ -785,11 +1073,7 @@ class _FavoriteCollectionPageState
                     title: '添加全部分P',
                     onTap: () async {
                       Navigator.of(sheetContext).pop();
-                      await _enqueueAllParts(
-                        context,
-                        ref,
-                        playableItem: playableItem,
-                      );
+                      await _enqueueAllParts(playableItem: playableItem);
                     },
                   ),
                   _FavoriteActionTile(
@@ -809,29 +1093,25 @@ class _FavoriteCollectionPageState
     );
   }
 
-  Future<void> _enqueueAllParts(
-    BuildContext context,
-    WidgetRef ref, {
-    required PlayableItem playableItem,
-  }) async {
+  Future<void> _enqueueAllParts({required PlayableItem playableItem}) async {
     try {
       final int addedCount = await PlayerUtil.enqueueAllParts(
         ref,
         playableItem,
       );
-      if (!context.mounted) {
+      if (!mounted) {
         return;
       }
       ToastUtil.show(addedCount > 0 ? '已加入 $addedCount 个分P' : '全部分P已在播放队列中');
     } on Object catch (error) {
-      if (!context.mounted) {
+      if (!mounted) {
         return;
       }
       ToastUtil.show('操作失败: $error');
     }
   }
 
-  void _openOwnerPage(BuildContext context, FavoriteEntry item) {
+  void _openOwnerPage(FavoriteEntry item) {
     final int? ownerMid = item.ownerMid;
     if (ownerMid == null || ownerMid <= 0) {
       ToastUtil.show('暂无UP主信息');
@@ -841,57 +1121,69 @@ class _FavoriteCollectionPageState
   }
 }
 
-class _FavoriteBatchActionBar extends StatelessWidget {
-  const _FavoriteBatchActionBar({
-    required this.selectedCount,
-    required this.onAdd,
-    required this.onDownload,
-    required this.onDelete,
-    required this.onExit,
-  });
-
-  final int selectedCount;
-  final VoidCallback onAdd;
-  final VoidCallback onDownload;
-  final VoidCallback onDelete;
-  final VoidCallback onExit;
+class _FavoriteTracksLoading extends StatelessWidget {
+  const _FavoriteTracksLoading();
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final bool hasSelection = selectedCount > 0;
-
-    return Row(
-      children: <Widget>[
-        Text(
-          '已选 $selectedCount 项',
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const Spacer(),
-        IconButton(
-          tooltip: '添加到歌单',
-          onPressed: hasSelection ? onAdd : null,
-          icon: const Icon(Icons.playlist_add_rounded),
-        ),
-        IconButton(
-          tooltip: '批量下载',
-          onPressed: hasSelection ? onDownload : null,
-          icon: const Icon(Icons.download_outlined),
-        ),
-        IconButton(
-          tooltip: '删除',
-          onPressed: hasSelection ? onDelete : null,
-          color: colorScheme.error,
-          icon: const Icon(Icons.delete_outline_rounded),
-        ),
-        IconButton(
-          tooltip: '退出批量操作',
-          onPressed: onExit,
-          icon: const Icon(Icons.close_rounded),
-        ),
-      ],
+    final Color placeholderColor = appSkeletonColor(context);
+    return Column(
+      children: List<Widget>.generate(6, (int index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs + 2),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xs,
+              vertical: AppSpacing.sm - 2,
+            ),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: placeholderColor,
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Container(
+                  width: AppSizes.listCover,
+                  height: AppSizes.listCover,
+                  decoration: BoxDecoration(
+                    color: placeholderColor,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Container(
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: placeholderColor,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Container(
+                        width: 120,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: placeholderColor.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 }
@@ -916,4 +1208,34 @@ class _FavoriteActionTile extends StatelessWidget {
       onTap: onTap,
     );
   }
+}
+
+String? _relativeUpdatedLabel(DateTime? updatedAt) {
+  if (updatedAt == null) {
+    return null;
+  }
+  final DateTime now = DateTime.now();
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final DateTime updatedDay = DateTime(
+    updatedAt.year,
+    updatedAt.month,
+    updatedAt.day,
+  );
+  final int days = today.difference(updatedDay).inDays;
+  if (days <= 0) {
+    return '今天更新';
+  }
+  if (days == 1) {
+    return '昨天更新';
+  }
+  if (days < 7) {
+    return '$days 天前更新';
+  }
+  if (days < 30) {
+    return '${days ~/ 7} 周前更新';
+  }
+  if (days < 365) {
+    return '${days ~/ 30} 个月前更新';
+  }
+  return '${days ~/ 365} 年前更新';
 }
