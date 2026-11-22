@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bilimusic/feature/search/data/bili_search_repository.dart';
 import 'package:bilimusic/feature/search/data/search_history_store.dart';
+import 'package:bilimusic/feature/search/domain/hot_search_item.dart';
 import 'package:bilimusic/feature/search/domain/search_page_result.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 import 'package:bilimusic/feature/search/domain/search_state.dart';
@@ -371,6 +372,9 @@ class _FakeBiliSearchRepository implements BiliSearchRepository {
   final Map<String, SearchPageResult> searchResultsByKeyword;
   final Map<String, SearchUserPageResult> userResultsByKeyword;
   final Map<String, List<String>> suggestionsByTerm;
+
+  @override
+  Future<List<HotSearchItem>> fetchHotSearch() async => const <HotSearchItem>[];
   final List<_SearchRequest> searchRequests = <_SearchRequest>[];
   final List<String> userSearchRequests = <String>[];
   final List<String> suggestionRequests = <String>[];

@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
-import 'package:bilimusic/common/util/color_util.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/search/ui/components/highlight_text.dart';
+import 'package:bilimusic/feature/search/ui/components/hot_search_section.dart';
 import 'package:flutter/material.dart';
 
 class SearchInputBar extends StatelessWidget {
@@ -9,7 +10,7 @@ class SearchInputBar extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.query,
-    required this.onBack,
+    required this.onCancel,
     required this.onChanged,
     required this.onSubmitted,
     required this.onClear,
@@ -18,66 +19,103 @@ class SearchInputBar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String query;
-  final VoidCallback onBack;
+  final VoidCallback onCancel;
   final ValueChanged<String> onChanged;
   final VoidCallback onSubmitted;
   final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final bool hasFocus = focusNode.hasFocus;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
       child: Row(
         children: <Widget>[
-          IconButton(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
           Expanded(
             child: Container(
-              height: 40,
+              height: 42,
+              padding: const EdgeInsets.only(left: 14, right: 4),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLowest,
+                color: appCardSurfaceColor(context),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: colorScheme.outlineVariant),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: colorScheme.shadow.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(
+                    alpha: hasFocus ? 0.72 : 0.42,
                   ),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.search_rounded,
+                    size: 19,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      cursorColor: colorScheme.primary,
+                      textInputAction: TextInputAction.search,
+                      onChanged: onChanged,
+                      onSubmitted: (_) => onSubmitted(),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '搜索歌曲、歌手或视频',
+                        hintStyle: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.85,
+                          ),
+                        ),
+                        filled: false,
+                        isDense: true,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                      ),
+                    ),
+                  ),
+                  if (query.isNotEmpty)
+                    InkResponse(
+                      onTap: onClear,
+                      radius: 16,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5),
+                        child: Icon(
+                          Icons.cancel_rounded,
+                          size: 17,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.7,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                textInputAction: TextInputAction.search,
-                onChanged: onChanged,
-                onSubmitted: (_) => onSubmitted(),
-                decoration: InputDecoration(
-                  hintText: '搜索歌曲、歌手或视频',
-                  hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: onClear,
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 2,
-                  ),
+            ),
+          ),
+          const SizedBox(width: 2),
+          InkWell(
+            onTap: onCancel,
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              child: Text(
+                '取消',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -112,18 +150,34 @@ class SearchIdleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasHistory = recentKeywords.isNotEmpty;
+
     return Stack(
       children: <Widget>[
         CustomScrollView(
           slivers: <Widget>[
-            if (!isDesktop &&
-                !isShowingSuggestions &&
-                recentKeywords.isNotEmpty)
-              SearchHistorySliver(
-                isDesktop: isDesktop,
-                recentKeywords: recentKeywords,
-                onClearHistory: onClearHistory,
-                onSelectKeyword: onSelectKeyword,
+            if (!isShowingSuggestions && hasHistory)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 6, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: SearchHistorySection(
+                    recentKeywords: recentKeywords,
+                    onClearHistory: onClearHistory,
+                    onSelectKeyword: onSelectKeyword,
+                  ),
+                ),
+              ),
+            if (!isShowingSuggestions)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  isDesktop ? 20 : (hasHistory ? 22 : 8),
+                  16,
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: HotSearchSection(onSelectKeyword: onSelectKeyword),
+                ),
               ),
             const SliverToBoxAdapter(child: BottomPageSpacer()),
           ],
@@ -142,16 +196,14 @@ class SearchIdleView extends StatelessWidget {
   }
 }
 
-class SearchHistorySliver extends StatelessWidget {
-  const SearchHistorySliver({
+class SearchHistorySection extends StatelessWidget {
+  const SearchHistorySection({
     super.key,
-    required this.isDesktop,
     required this.recentKeywords,
     required this.onClearHistory,
     required this.onSelectKeyword,
   });
 
-  final bool isDesktop;
   final List<String> recentKeywords;
   final VoidCallback onClearHistory;
   final ValueChanged<String> onSelectKeyword;
@@ -161,44 +213,83 @@ class SearchHistorySliver extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
 
-    return SliverPadding(
-      padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 0, 16, 0),
-      sliver: SliverList.list(
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Text(
-                '搜索历史',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Text(
+              '搜索历史',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const Spacer(),
+            InkWell(
+              onTap: onClearHistory,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Text(
+                  '清空',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.primary,
+                  ),
                 ),
               ),
-              const Spacer(),
-              TextButton(onPressed: onClearHistory, child: const Text('清空')),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: recentKeywords.map((String keyword) {
+            return _SearchHistoryChip(
+              keyword: keyword,
+              onTap: () => onSelectKeyword(keyword),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchHistoryChip extends StatelessWidget {
+  const _SearchHistoryChip({required this.keyword, required this.onTap});
+
+  final String keyword;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: appSurfaceContainerColor(context, alpha: 0.5),
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          child: Text(
+            keyword,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onSurface,
+            ),
           ),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: recentKeywords.map((String item) {
-              return ActionChip(
-                side: BorderSide.none,
-                labelPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                label: Text(item),
-                backgroundColor: ColorUtil.getShade(
-                  theme.primaryColor,
-                  100,
-                ).withValues(alpha: 0.1),
-                labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w500,
-                ),
-                onPressed: () => onSelectKeyword(item),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-        ],
+        ),
       ),
     );
   }

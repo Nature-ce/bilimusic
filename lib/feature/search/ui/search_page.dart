@@ -67,19 +67,24 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     await controller.submitSearch(value);
   }
 
-  void _handleBack(String from, {required bool shouldCloseSuggestions}) {
-    if (shouldCloseSuggestions) {
-      _focusNode.unfocus();
+  void _handleCancel(
+    String fallbackLocation, {
+    required bool shouldCloseSuggestions,
+  }) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (!shouldCloseSuggestions && context.canPop()) {
+      context.pop();
       return;
     }
 
-    context.go(from);
+    context.go(fallbackLocation);
   }
 
   @override
   Widget build(BuildContext context) {
     final GoRouterState routerState = GoRouterState.of(context);
-    final String from = routerState.uri.queryParameters['from'] ?? '/home';
+    final String fallbackLocation =
+        routerState.uri.queryParameters['from'] ?? '/home';
     final SearchState state = ref.watch(searchPageControllerProvider);
     final SearchPageController controller = ref.read(
       searchPageControllerProvider.notifier,
@@ -110,8 +115,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   controller: _controller,
                   focusNode: _focusNode,
                   query: state.query,
-                  onBack: () => _handleBack(
-                    from,
+                  onCancel: () => _handleCancel(
+                    fallbackLocation,
                     shouldCloseSuggestions: shouldCloseSuggestions,
                   ),
                   onChanged: controller.updateQuery,
