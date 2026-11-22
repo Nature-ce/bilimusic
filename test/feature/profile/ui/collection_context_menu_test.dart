@@ -48,7 +48,7 @@ void main() {
             loggedIn: collection.isRemote,
           );
           final Finder collectionTile = find.text(
-            collection.isSystem ? (desktop ? '我喜欢·0' : '我喜欢') : collection.name,
+            collection.isSystem ? (desktop ? '我喜欢·0' : '喜欢') : collection.name,
           );
           final List<String> actions = <String>[
             if (!collection.isSystem) '重命名',

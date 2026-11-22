@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bilimusic/common/logger.dart';
 import 'package:bilimusic/feature/player/domain/player_event.dart';
 import 'package:bilimusic/feature/player/logic/player_event_hub.dart';
+import 'package:bilimusic/feature/statistics/data/daily_listening_repository.dart';
 import 'package:bilimusic/feature/statistics/data/statistics_local_repository.dart';
 import 'package:bilimusic/feature/statistics/domain/playback_tracking_state.dart';
 import 'package:bilimusic/feature/statistics/domain/song_statistics.dart';
@@ -13,23 +14,30 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'statistics_tracker.g.dart';
 
 @Riverpod(keepAlive: true)
+DailyListeningRepository dailyListeningRepository(Ref ref) {
+  return DailyListeningRepository(Hive.box<Map>(dailyListeningBoxName));
+}
+
+@Riverpod(keepAlive: true)
 StatisticsTracker statisticsTracker(Ref ref) {
   final StatisticsTracker tracker = StatisticsTracker(
     ref.read(playerEventHubProvider).events,
     StatisticsLocalRepository(Hive.box<Map>(songStatisticsBoxName)),
+    dailyRepository: ref.read(dailyListeningRepositoryProvider),
   );
   ref.onDispose(tracker.dispose);
   return tracker;
 }
 
 class StatisticsTracker with WidgetsBindingObserver {
-  StatisticsTracker(this._events, this._repository) {
+  StatisticsTracker(this._events, this._repository, {this.dailyRepository}) {
     _subscription = _events.listen(_onEvent);
     WidgetsBinding.instance.addObserver(this);
   }
 
   final Stream<PlayerEvent> _events;
   final StatisticsLocalRepository _repository;
+  final DailyListeningRepository? dailyRepository;
   final AppLogger _logger = AppLogger('Statistics');
   late final StreamSubscription<PlayerEvent> _subscription;
   Future<void> _eventQueue = Future<void>.value();
@@ -76,6 +84,7 @@ class StatisticsTracker with WidgetsBindingObserver {
         _logger.d('tracking identity upgraded to $stableId');
         return;
       }
+      final bool isNewTrack = stableId != _tracking.stableId;
       await _commit(resetAttempt: true);
       _tracking = PlaybackTrackingState(
         stableId: stableId,
@@ -86,6 +95,9 @@ class StatisticsTracker with WidgetsBindingObserver {
         lastPositionMs: event.position.inMilliseconds,
         isPlaying: event.isPlaying,
       );
+      if (isNewTrack) {
+        _countDailySong();
+      }
       _logger.d('tracking song $stableId');
       return;
     }
@@ -99,6 +111,7 @@ class StatisticsTracker with WidgetsBindingObserver {
           playedMs: _tracking.playedMs + delta,
           attemptPlayedMs: _tracking.attemptPlayedMs + delta,
         );
+        _countDailyListening(delta);
       } else if (delta > 3000 || delta < 0) {
         _logger.d('ignored seek jump for $stableId: ${delta}ms');
       }
@@ -134,6 +147,32 @@ class StatisticsTracker with WidgetsBindingObserver {
   Future<void> flush() => _enqueue(() async {
     await _commit();
   }, errorMessage: 'lifecycle flush failed');
+
+  void _countDailySong() {
+    final DailyListeningRepository? repository = dailyRepository;
+    if (repository == null) {
+      return;
+    }
+    unawaited(
+      _enqueue(
+        () => repository.addSong(DateTime.now()),
+        errorMessage: 'daily song tracking failed',
+      ),
+    );
+  }
+
+  void _countDailyListening(int deltaMs) {
+    final DailyListeningRepository? repository = dailyRepository;
+    if (repository == null || deltaMs <= 0) {
+      return;
+    }
+    unawaited(
+      _enqueue(
+        () => repository.addListenedMs(DateTime.now(), deltaMs),
+        errorMessage: 'daily listening tracking failed',
+      ),
+    );
+  }
 
   SongStatistics? read(String stableId) {
     final SongStatistics? exact = _repository.read(stableId);

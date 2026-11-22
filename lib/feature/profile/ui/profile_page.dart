@@ -1,20 +1,28 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
-import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/login_required.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
+import 'package:bilimusic/feature/profile/ui/components/followed_ups_card.dart';
+import 'package:bilimusic/feature/profile/ui/components/profile_local_entry.dart';
+import 'package:bilimusic/feature/profile/ui/components/profile_playlist_card.dart';
+import 'package:bilimusic/feature/profile/ui/components/profile_stats_card.dart';
+import 'package:bilimusic/feature/profile/ui/components/profile_version_footer.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
 import 'package:bilimusic/feature/profile/ui/components/user_card.dart';
+import 'package:bilimusic/feature/profile/ui/components/weekly_listening_card.dart';
 import 'package:bilimusic/feature/recent/logic/recent_playback_controller.dart';
+import 'package:bilimusic/feature/statistics/domain/daily_listening.dart';
+import 'package:bilimusic/feature/statistics/logic/weekly_listening.dart';
+import 'package:bilimusic/feature/up/domain/favorite_up.dart';
+import 'package:bilimusic/feature/up/logic/favorite_up_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,6 +93,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final List<HotPlaylist> favoritePlaylists = ref.watch(
       favoriteHotPlaylistsProvider,
     );
+    final WeeklyListeningSummary weeklyListening = _weeklyListeningSummary();
+    final List<FavoriteUp> followedUps = _followedUps();
 
     return Scaffold(
       body: SafeArea(
@@ -93,10 +103,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           children: <Widget>[
             UserCard(onSettingsPressed: () => context.push('/settings')),
-            const SizedBox(height: AppSpacing.lg),
-            _ProfileQuickActions(
+            const SizedBox(height: 14),
+            ProfileStatsCard(
               likedCount: likedCount,
-              playlistCount: favoritesState.collections.length,
+              playlistCount: collections.length,
               recentCount: recentCount,
               downloadCount: downloadCount,
               onLikedTap: () => context.push(
@@ -110,56 +120,63 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               onRecentTap: () => context.push('/profile/recent'),
               onDownloadTap: () => context.push('/profile/downloads'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+            WeeklyListeningCard(
+              summary: weeklyListening,
+              onReportTap: () => context.push('/profile/recent'),
+            ),
+            const SizedBox(height: 14),
+            ProfileLocalEntry(
+              trackCount: downloadCount,
+              onTap: () => context.push('/profile/downloads'),
+            ),
+            const SizedBox(height: 14),
             _ProfileSectionHeader(onAddPressed: _handleAddPressed),
-            if (visibleCollections.isNotEmpty) const SizedBox(height: 14),
+            if (visibleCollections.isNotEmpty) const SizedBox(height: 12),
             if (visibleCollections.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) {
-                    const double gap = AppSpacing.sm + 2;
-                    final double itemWidth = (constraints.maxWidth - gap) / 2;
-                    return Wrap(
-                      spacing: gap,
-                      runSpacing: gap,
-                      children: <Widget>[
-                        for (final FavoriteCollection collection
-                            in visibleCollections)
-                          SizedBox(
-                            width: itemWidth,
-                            child: _PlaylistTile(
-                              title: collection.name,
-                              count: favoritesState.itemCountForCollection(
-                                collection.id,
-                              ),
-                              isRemote: collection.isRemote,
-                              coverUrl: favoritesState
-                                  .itemsForCollection(collection.id)
-                                  .firstOrNull
-                                  ?.coverUrl,
-                              onTap: () => context.push(
-                                '/profile/favorites/${collection.id}',
-                              ),
-                              onLongPressStart:
-                                  (LongPressStartDetails details) {
-                                    _showCollectionActionMenu(
-                                      globalPosition: details.globalPosition,
-                                      collection: collection,
-                                    );
-                                  },
-                              onMenuPressed: (Offset globalPosition) {
-                                _showCollectionActionMenu(
-                                  globalPosition: globalPosition,
-                                  collection: collection,
-                                );
-                              },
+              LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  const double gap = 12;
+                  final double itemWidth = (constraints.maxWidth - gap) / 2;
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: <Widget>[
+                      for (final FavoriteCollection collection
+                          in visibleCollections)
+                        SizedBox(
+                          width: itemWidth,
+                          child: ProfilePlaylistCard(
+                            title: collection.name,
+                            trackCount: favoritesState.itemCountForCollection(
+                              collection.id,
                             ),
+                            coverUrl: favoritesState
+                                .itemsForCollection(collection.id)
+                                .firstOrNull
+                                ?.coverUrl,
+                            isRemote: collection.isRemote,
+                            updatedAt: collection.updatedAt,
+                            onTap: () => context.push(
+                              '/profile/favorites/${collection.id}',
+                            ),
+                            onLongPressStart: (LongPressStartDetails details) {
+                              _showCollectionActionMenu(
+                                globalPosition: details.globalPosition,
+                                collection: collection,
+                              );
+                            },
+                            onMenuPressed: (Offset globalPosition) {
+                              _showCollectionActionMenu(
+                                globalPosition: globalPosition,
+                                collection: collection,
+                              );
+                            },
                           ),
-                      ],
-                    );
-                  },
-                ),
+                        ),
+                    ],
+                  );
+                },
               ),
             if (shouldCollapse)
               Center(
@@ -186,34 +203,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.lg,
-                AppSpacing.md,
-                0,
-              ),
-              child: Material(
-                color: appCardSurfaceColor(context),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  leading: Icon(
-                    Icons.person_pin_rounded,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: const Text(
-                    '关注的 UP 主',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  subtitle: const Text('查看 / 管理关注列表'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push('/profile/favorite-ups'),
-                ),
-              ),
-            ),
             if (favoritePlaylists.isNotEmpty) ...<Widget>[
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: 18),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
@@ -221,16 +212,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   style: AppTextStyles.sectionTitle(Theme.of(context)),
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: 10),
               ...favoritePlaylists.map((HotPlaylist playlist) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: _PlaylistTile(
+                  child: ProfilePlaylistCard(
                     title: playlist.name,
-                    count: playlist.trackCount,
-                    isRemote: false,
-                    badgeLabel: playlist.platform.label,
+                    trackCount: playlist.trackCount,
                     coverUrl: playlist.coverUrl,
+                    badgeLabel: playlist.platform.label,
                     onTap: () => context.push(
                       '/home/playlist/${playlist.platform.name}/${playlist.id}',
                       extra: playlist,
@@ -243,11 +233,34 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 );
               }),
             ],
+            const SizedBox(height: 14),
+            FollowedUpsCard(
+              ups: followedUps,
+              onTap: () => context.push('/profile/favorite-ups'),
+            ),
+            const SizedBox(height: 18),
+            ProfileVersionFooter(onTap: () => context.push('/settings/about')),
             const BottomPageSpacer(),
           ],
         ),
       ),
     );
+  }
+
+  WeeklyListeningSummary _weeklyListeningSummary() {
+    try {
+      return ref.watch(weeklyListeningProvider);
+    } on Object {
+      return const WeeklyListeningSummary();
+    }
+  }
+
+  List<FavoriteUp> _followedUps() {
+    try {
+      return ref.watch(favoriteUpControllerProvider);
+    } on Object {
+      return const <FavoriteUp>[];
+    }
   }
 
   Future<void> _removeFavoritePlaylist(HotPlaylist playlist) async {
@@ -775,165 +788,6 @@ class _CollectionNameDialogState extends State<_CollectionNameDialog> {
   }
 }
 
-class _ProfileQuickActions extends StatelessWidget {
-  const _ProfileQuickActions({
-    required this.likedCount,
-    required this.playlistCount,
-    required this.recentCount,
-    required this.downloadCount,
-    required this.onLikedTap,
-    required this.onLikedLongPressStart,
-    required this.onRecentTap,
-    required this.onDownloadTap,
-  });
-
-  final int likedCount;
-  final int playlistCount;
-  final int recentCount;
-  final int downloadCount;
-  final VoidCallback onLikedTap;
-  final GestureLongPressStartCallback onLikedLongPressStart;
-  final VoidCallback onRecentTap;
-  final VoidCallback onDownloadTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Container(
-        decoration: appElevatedCardDecoration(context),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: _ProfileStatItem(
-                icon: Icons.favorite_rounded,
-                label: '我喜欢',
-                count: likedCount,
-                onTap: onLikedTap,
-                onLongPressStart: onLikedLongPressStart,
-              ),
-            ),
-            _ProfileStatDivider(colorScheme: colorScheme),
-            Expanded(
-              child: _ProfileStatItem(
-                icon: Icons.queue_music_rounded,
-                label: '歌单',
-                count: playlistCount,
-              ),
-            ),
-            _ProfileStatDivider(colorScheme: colorScheme),
-            Expanded(
-              child: _ProfileStatItem(
-                icon: Icons.history_rounded,
-                label: '历史记录',
-                count: recentCount,
-                onTap: onRecentTap,
-              ),
-            ),
-            _ProfileStatDivider(colorScheme: colorScheme),
-            Expanded(
-              child: _ProfileStatItem(
-                icon: Icons.library_music_rounded,
-                label: '本地',
-                count: downloadCount,
-                onTap: onDownloadTap,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileStatDivider extends StatelessWidget {
-  const _ProfileStatDivider({required this.colorScheme});
-
-  final ColorScheme colorScheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 0.5,
-      height: 28,
-      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-    );
-  }
-}
-
-class _ProfileStatItem extends StatelessWidget {
-  const _ProfileStatItem({
-    required this.icon,
-    required this.label,
-    required this.count,
-    this.onTap,
-    this.onLongPressStart,
-  });
-
-  final IconData icon;
-  final String label;
-  final int count;
-  final VoidCallback? onTap;
-  final GestureLongPressStartCallback? onLongPressStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    return GestureDetector(
-      onLongPressStart: onLongPressStart,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md - 2),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(icon, size: 15, color: colorScheme.primary),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs + 2),
-                    Text(
-                      '$count',
-                      style: TextStyle(
-                        fontSize: 17,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
-                        color: colorScheme.onSurface,
-                        fontFeatures: const <FontFeature>[
-                          FontFeature.tabularFigures(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs + 2),
-                Text(label, style: AppTextStyles.meta(theme, fontSize: 12)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ProfileSectionHeader extends StatelessWidget {
   const _ProfileSectionHeader({required this.onAddPressed});
 
@@ -945,223 +799,44 @@ class _ProfileSectionHeader extends StatelessWidget {
     final ColorScheme colorScheme = theme.colorScheme;
     return Row(
       children: <Widget>[
-        Text('我的歌单', style: AppTextStyles.sectionTitle(theme)),
+        Text(
+          '我的歌单',
+          style: TextStyle(
+            fontSize: 17,
+            height: 1.2,
+            letterSpacing: -0.2,
+            fontWeight: FontWeight.w800,
+            color: colorScheme.onSurface,
+          ),
+        ),
         const Spacer(),
-        FilledButton.icon(
-          onPressed: onAddPressed,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('新建'),
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
-            foregroundColor: colorScheme.primary,
-            minimumSize: const Size(0, 34),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            visualDensity: VisualDensity.compact,
-            textStyle: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            onTap: onAddPressed,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(Icons.add_rounded, size: 17, color: colorScheme.primary),
+                  const SizedBox(width: 2),
+                  Text(
+                    '新建',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _PlaylistTile extends StatelessWidget {
-  const _PlaylistTile({
-    required this.title,
-    required this.count,
-    required this.isRemote,
-    required this.coverUrl,
-    required this.onTap,
-    required this.onLongPressStart,
-    required this.onMenuPressed,
-    this.badgeLabel,
-  });
-
-  final String title;
-  final int count;
-  final bool isRemote;
-  final String? coverUrl;
-  final VoidCallback onTap;
-  final ValueChanged<LongPressStartDetails> onLongPressStart;
-  final ValueChanged<Offset> onMenuPressed;
-
-  /// 标题右侧的来源角标文字；为空时只按 [isRemote] 决定是否显示 B 站角标。
-  final String? badgeLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    return Material(
-      color: appCardSurfaceColor(context),
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      clipBehavior: Clip.antiAlias,
-      child: GestureDetector(
-        onLongPressStart: onLongPressStart,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.sm + 2),
-            child: Row(
-              children: <Widget>[
-                _PlaylistCover(coverUrl: coverUrl),
-                const SizedBox(width: AppSpacing.sm + 2),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.listTitle(theme).copyWith(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              '$count 首',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.meta(theme, fontSize: 10.5),
-                            ),
-                          ),
-                          if (isRemote || badgeLabel != null) ...<Widget>[
-                            const SizedBox(width: 4),
-                            _RemoteSourceBadge(
-                              colorScheme: colorScheme,
-                              label: badgeLabel ?? 'B站',
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Builder(
-                  builder: (BuildContext buttonContext) {
-                    return Tooltip(
-                      message: '歌单设置',
-                      child: InkResponse(
-                        radius: 16,
-                        onTap: () {
-                          final RenderBox? box =
-                              buttonContext.findRenderObject() as RenderBox?;
-                          if (box == null) {
-                            return;
-                          }
-                          onMenuPressed(
-                            box.localToGlobal(box.size.center(Offset.zero)),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(
-                            Icons.more_horiz_rounded,
-                            size: 18,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RemoteSourceBadge extends StatelessWidget {
-  const _RemoteSourceBadge({required this.colorScheme, this.label = 'B站'});
-
-  final ColorScheme colorScheme;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(Icons.sync_rounded, size: 10, color: colorScheme.primary),
-          const SizedBox(width: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 9,
-              height: 1.3,
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlaylistCover extends StatelessWidget {
-  const _PlaylistCover({required this.coverUrl});
-
-  final String? coverUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color primary = Theme.of(context).colorScheme.primary;
-
-    return CommonCachedImage(
-      imageUrl: coverUrl,
-      width: 46,
-      height: 46,
-      fit: BoxFit.cover,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      placeholder: _PlaylistPlaceholder(primary: primary),
-      errorWidget: _PlaylistPlaceholder(primary: primary),
-    );
-  }
-}
-
-class _PlaylistPlaceholder extends StatelessWidget {
-  const _PlaylistPlaceholder({required this.primary});
-
-  final Color primary;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: AppSizes.tileCover,
-      height: AppSizes.tileCover,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            primary.withValues(alpha: 0.18),
-            primary.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(Icons.queue_music_rounded, color: primary, size: 28),
     );
   }
 }

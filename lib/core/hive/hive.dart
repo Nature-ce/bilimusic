@@ -16,6 +16,7 @@ import 'package:bilimusic/feature/player/data/player_queue_local_repository.dart
 import 'package:bilimusic/feature/player/domain/persisted_playback_queue.dart';
 import 'package:bilimusic/feature/recent/data/recent_playback_local_repository.dart';
 import 'package:bilimusic/feature/recent/domain/recent_playback_entry.dart';
+import 'package:bilimusic/feature/statistics/data/daily_listening_repository.dart';
 import 'package:bilimusic/feature/statistics/data/statistics_local_repository.dart';
 import 'package:bilimusic/feature/up/data/favorite_up_local_repository.dart';
 import 'package:bilimusic/feature/favorites/data/favorited_season_local_repository.dart';
@@ -58,6 +59,7 @@ Future<void> initHive() async {
   await Hive.openBox<PersistedPlaybackQueue>(playerQueueSnapshotBoxName);
   await Hive.openBox<RecentPlaybackEntry>(recentPlaybackBoxName);
   await Hive.openBox<Map>(songStatisticsBoxName);
+  await Hive.openBox<Map>(dailyListeningBoxName);
   await Hive.openBox<FavoriteUp>(favoriteUpsBoxName);
   await Hive.openBox<FavoritedSeason>(favoritedSeasonsBoxName);
   await Hive.openLazyBox<Metadata>(metadataCacheBoxName);
