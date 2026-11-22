@@ -54,7 +54,7 @@ final class PlayerDisplayProvider
   }
 }
 
-String _$playerDisplayHash() => r'3c50db38db2677577011bc8616c7a39ec995e18a';
+String _$playerDisplayHash() => r'8f2798cadf1a493c135d9b703920256b06d8a98f';
 
 @ProviderFor(playerQueueDisplay)
 final playerQueueDisplayProvider = PlayerQueueDisplayFamily._();

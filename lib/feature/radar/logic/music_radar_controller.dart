@@ -7,6 +7,11 @@ import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
+import 'package:bilimusic/feature/radar/domain/radar_keys.dart';
+import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
+import 'package:bilimusic/feature/radar/domain/radar_taste.dart';
+import 'package:bilimusic/feature/radar/logic/radar_recommender.dart';
+import 'package:bilimusic/feature/radar/logic/radar_taste_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'music_radar_controller.g.dart';
@@ -14,13 +19,17 @@ part 'music_radar_controller.g.dart';
 @riverpod
 Random musicRadarRandom(Ref ref) => Random();
 
-/// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
+/// 刷歌流：把各平台热门歌单汇成候选池，再按「私人雷达」的口味画像挑选。
+///
+/// 不再是「随机挑一张歌单的前几首」——那样整条流都是各平台榜首，很单调。
+/// 现在会按常听歌手 / 同歌单 / 换口味三档混合，并限制同一歌手、同一歌单的占比。
 @Riverpod(keepAlive: true)
 class MusicRadarController extends _$MusicRadarController {
-  static const int _tracksPerPlatform = 8;
   static const int _batchTracks = 24;
   static const int _extendTracks = 12;
-  static const int _sourcePageSize = 30;
+  static const int _firstWavePlaylists = 1;
+  static const int _secondWavePlaylists = 2;
+  static const int _tracksPerPlaylist = 40;
   static const int _feedLookahead = 3;
 
   int _scanId = 0;
@@ -29,13 +38,16 @@ class MusicRadarController extends _$MusicRadarController {
   /// 整个刷歌流期间已出现过的曲目，跨批次去重。
   final Set<String> _seenKeys = <String>{};
 
+  List<HotPlaylistTrack> _pool = const <HotPlaylistTrack>[];
+  RadarTaste _taste = const RadarTaste();
+
   @override
   MusicRadarState build() {
     unawaited(Future<void>.microtask(scan));
     return const MusicRadarState(isScanning: true);
   }
 
-  /// 换一批：清空已看过的曲目并重新采样。
+  /// 换一批：清空已看过的曲目，重新采一批候选池并按当前口味挑。
   Future<void> scan() async {
     final int scanId = ++_scanId;
     ++_extendId;
@@ -46,35 +58,50 @@ class MusicRadarController extends _$MusicRadarController {
       isLoadingMore: false,
       errorMessage: null,
     );
-    final _BatchResult result = await _collectBatch(
-      limit: _batchTracks,
-      random: random,
+    final _PoolResult pool = await _gatherPool(
+      random,
+      playlistsPerPlatform: _firstWavePlaylists,
     );
     if (!ref.mounted || scanId != _scanId) {
       return;
     }
-    if (result.tracks.isEmpty) {
+    _taste = await ref.read(radarTasteProvider.future);
+    if (!ref.mounted || scanId != _scanId) {
+      return;
+    }
+    final List<RadarPick> picks = const RadarRecommender().pick(
+      pool: pool.tracks,
+      taste: _taste,
+      limit: _batchTracks,
+      random: random,
+      excludeKeys: _seenKeys,
+    );
+    if (picks.isEmpty) {
       state = state.copyWith(
         isScanning: false,
         tracks: const <HotPlaylistTrack>[],
-        errorMessage:
-            (result.lastError ?? const HotPlaylistException('刷歌暂时没有发现'))
-                .toString(),
+        picks: const <RadarPick>[],
+        errorMessage: (pool.lastError ?? const HotPlaylistException('刷歌暂时没有发现'))
+            .toString(),
       );
       return;
     }
-    final List<HotPlaylistTrack> tracks = List<HotPlaylistTrack>.of(
-      result.tracks,
-    )..shuffle(random);
+    _pool = pool.tracks;
+    _remember(picks);
     state = state.copyWith(
-      tracks: List<HotPlaylistTrack>.unmodifiable(tracks),
+      tracks: List<HotPlaylistTrack>.unmodifiable(
+        picks.map((RadarPick pick) => pick.track),
+      ),
+      picks: List<RadarPick>.unmodifiable(picks),
       isScanning: false,
       scanCount: state.scanCount + 1,
+      listenedCount: _taste.sampleCount,
+      isPersonalized: !_taste.isColdStart,
       errorMessage: null,
     );
   }
 
-  /// 补货：再抽一批追加到流末尾，滑到后面时无缝继续。
+  /// 补货：从候选池里继续挑，池子见底就换一批歌单。
   Future<void> extendFeed() async {
     if (state.isScanning || state.isLoadingMore) {
       return;
@@ -82,29 +109,55 @@ class MusicRadarController extends _$MusicRadarController {
     final int extendId = ++_extendId;
     final Random random = ref.read(musicRadarRandomProvider);
     state = state.copyWith(isLoadingMore: true, errorMessage: null);
-    final _BatchResult result = await _collectBatch(
-      limit: _extendTracks,
-      random: random,
-    );
+    if (_pool.isEmpty) {
+      final _PoolResult pool = await _gatherPool(random);
+      if (!ref.mounted || extendId != _extendId) {
+        return;
+      }
+      _pool = pool.tracks;
+    }
+    _taste = await ref.read(radarTasteProvider.future);
     if (!ref.mounted || extendId != _extendId) {
       return;
     }
-    if (result.tracks.isEmpty) {
-      state = state.copyWith(
-        isLoadingMore: false,
-        errorMessage: result.lastError?.toString() ?? '刷歌暂时没有更多歌曲了',
+    List<RadarPick> picks = const RadarRecommender().pick(
+      pool: _pool,
+      taste: _taste,
+      limit: _extendTracks,
+      random: random,
+      excludeKeys: _seenKeys,
+    );
+    if (picks.isEmpty) {
+      final _PoolResult pool = await _gatherPool(random);
+      if (!ref.mounted || extendId != _extendId) {
+        return;
+      }
+      _pool = pool.tracks;
+      picks = const RadarRecommender().pick(
+        pool: _pool,
+        taste: _taste,
+        limit: _extendTracks,
+        random: random,
+        excludeKeys: _seenKeys,
       );
+    }
+    if (picks.isEmpty) {
+      state = state.copyWith(isLoadingMore: false, errorMessage: '刷歌暂时没有更多歌曲了');
       return;
     }
-    final List<HotPlaylistTrack> appended = List<HotPlaylistTrack>.of(
-      result.tracks,
-    )..shuffle(random);
+    _remember(picks);
     state = state.copyWith(
       tracks: List<HotPlaylistTrack>.unmodifiable(<HotPlaylistTrack>[
         ...state.tracks,
-        ...appended,
+        ...picks.map((RadarPick pick) => pick.track),
+      ]),
+      picks: List<RadarPick>.unmodifiable(<RadarPick>[
+        ...state.picks,
+        ...picks,
       ]),
       isLoadingMore: false,
+      listenedCount: _taste.sampleCount,
+      isPersonalized: !_taste.isColdStart,
       errorMessage: null,
     );
   }
@@ -117,73 +170,96 @@ class MusicRadarController extends _$MusicRadarController {
     unawaited(extendFeed());
   }
 
-  Future<_BatchResult> _collectBatch({
-    required int limit,
-    required Random random,
+  void _remember(List<RadarPick> picks) {
+    for (final RadarPick pick in picks) {
+      _seenKeys.add(pick.key);
+    }
+  }
+
+  Future<_PoolResult> _gatherPool(
+    Random random, {
+    int playlistsPerPlatform = _secondWavePlaylists,
   }) async {
     final HotPlaylistRepository repository = ref.read(
       hotPlaylistRepositoryProvider,
     );
-    final List<HotPlaylistTrack> discovered = <HotPlaylistTrack>[];
+    final List<Future<_PlatformPool>> tasks = <Future<_PlatformPool>>[
+      for (final MusicChartPlatform platform
+          in MusicChartPlatform.playlistPlatforms)
+        _gatherPlatform(
+          repository,
+          platform,
+          random,
+          playlistsPerPlatform: playlistsPerPlatform,
+        ),
+    ];
+    final List<_PlatformPool> groups = await Future.wait(tasks);
+    final Map<String, HotPlaylistTrack> unique = <String, HotPlaylistTrack>{};
     Object? lastError;
     bool anySourceLoaded = false;
-
-    for (final MusicChartPlatform platform
-        in MusicChartPlatform.playlistPlatforms) {
-      if (discovered.length >= limit) {
-        break;
-      }
-      try {
-        final List<HotPlaylist> playlists = await repository.fetchPlaylists(
-          platform,
-        );
-        if (playlists.isEmpty) {
-          continue;
-        }
-        final List<HotPlaylist> candidates = List<HotPlaylist>.of(playlists)
-          ..shuffle(random);
-        final HotPlaylist source = candidates.first;
-        final HotPlaylistTrackPage page = await repository.fetchTrackPage(
-          source,
-          limit: _sourcePageSize,
-        );
-        if (page.tracks.isEmpty) {
-          continue;
-        }
+    for (final _PlatformPool group in groups) {
+      if (group.tracks.isNotEmpty) {
         anySourceLoaded = true;
-        final List<HotPlaylistTrack> pool = List<HotPlaylistTrack>.of(
-          page.tracks,
-        )..shuffle(random);
-        int picked = 0;
-        for (final HotPlaylistTrack track in pool) {
-          if (picked >= _tracksPerPlatform || discovered.length >= limit) {
-            break;
-          }
-          if (!_seenKeys.add(_dedupeKey(track))) {
-            continue;
-          }
-          discovered.add(track);
-          picked += 1;
-        }
-      } on Object catch (error) {
-        lastError = error;
+      }
+      lastError ??= group.error;
+      for (final HotPlaylistTrack track in group.tracks) {
+        unique.putIfAbsent(
+          radarTrackKey(title: track.title, artist: track.artist),
+          () => track,
+        );
       }
     }
-
-    return _BatchResult(
-      tracks: discovered,
+    return _PoolResult(
+      tracks: unique.values.toList(growable: false),
       lastError: anySourceLoaded ? null : lastError,
     );
   }
 
-  static String _dedupeKey(HotPlaylistTrack track) {
-    return '${track.title.toLowerCase()}|${track.artist.toLowerCase()}';
+  Future<_PlatformPool> _gatherPlatform(
+    HotPlaylistRepository repository,
+    MusicChartPlatform platform,
+    Random random, {
+    int playlistsPerPlatform = _secondWavePlaylists,
+  }) async {
+    try {
+      final List<HotPlaylist> playlists = await repository.fetchPlaylists(
+        platform,
+      );
+      if (playlists.isEmpty) {
+        return const _PlatformPool(tracks: <HotPlaylistTrack>[], error: null);
+      }
+      final List<HotPlaylist> selected = List<HotPlaylist>.of(playlists)
+        ..shuffle(random);
+      final List<HotPlaylistTrack> tracks = <HotPlaylistTrack>[];
+      Object? lastError;
+      for (final HotPlaylist playlist in selected.take(playlistsPerPlatform)) {
+        try {
+          final HotPlaylistTrackPage page = await repository.fetchTrackPage(
+            playlist,
+            limit: _tracksPerPlaylist,
+          );
+          tracks.addAll(page.tracks);
+        } on Object catch (error) {
+          lastError = error;
+        }
+      }
+      return _PlatformPool(tracks: tracks, error: lastError);
+    } on Object catch (error) {
+      return _PlatformPool(tracks: const <HotPlaylistTrack>[], error: error);
+    }
   }
 }
 
-class _BatchResult {
-  const _BatchResult({required this.tracks, this.lastError});
+class _PoolResult {
+  const _PoolResult({required this.tracks, this.lastError});
 
   final List<HotPlaylistTrack> tracks;
   final Object? lastError;
+}
+
+class _PlatformPool {
+  const _PlatformPool({required this.tracks, this.error});
+
+  final List<HotPlaylistTrack> tracks;
+  final Object? error;
 }

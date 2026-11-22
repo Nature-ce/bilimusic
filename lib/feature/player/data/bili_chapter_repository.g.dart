@@ -55,4 +55,4 @@ final class BiliChapterRepositoryProvider
 }
 
 String _$biliChapterRepositoryHash() =>
-    r'288f643cdd2775de2a31f42c55ac8df48eec11fa';
+    r'ca3eccc98c1c89b57cbbbb66fb8240db70f2fbca';

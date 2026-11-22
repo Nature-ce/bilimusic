@@ -45,7 +45,7 @@ final class RecentPlaybackProgressControllerProvider
 }
 
 String _$recentPlaybackProgressControllerHash() =>
-    r'851323c1a161e4cff0ba1e3bbca9ade1da52d9c0';
+    r'caae38b4f11d5bc27d29bece862fbe3d06f7b53c';
 
 abstract class _$RecentPlaybackProgressController
     extends $Notifier<Map<String, int>> {

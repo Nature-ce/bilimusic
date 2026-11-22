@@ -96,7 +96,7 @@ final class UpPageControllerProvider
   }
 }
 
-String _$upPageControllerHash() => r'8876abaa3bea0ada8a8c7e22c435f5f347471ad8';
+String _$upPageControllerHash() => r'c599b58243f0fa16d779ab1e2460452690d95d91';
 
 final class UpPageControllerFamily extends $Family
     with

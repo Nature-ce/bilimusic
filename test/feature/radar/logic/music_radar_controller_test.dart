@@ -1,10 +1,12 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
+import 'package:bilimusic/feature/radar/domain/radar_taste.dart';
 import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
+import 'package:bilimusic/feature/radar/logic/radar_taste_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -143,6 +145,7 @@ ProviderContainer _container(HotPlaylistRepository repository) {
     overrides: [
       hotPlaylistRepositoryProvider.overrideWithValue(repository),
       musicRadarRandomProvider.overrideWithValue(Random(7)),
+      radarTasteProvider.overrideWith((Ref ref) async => const RadarTaste()),
     ],
   );
   addTearDown(container.dispose);
@@ -199,7 +202,7 @@ void main() {
     final MusicRadarState state = await _settle(container);
 
     expect(state.hasError, isFalse);
-    expect(state.tracks, hasLength(16));
+    expect(state.tracks, hasLength(24));
     expect(
       state.tracks.map((track) => track.playlist.platform).toSet(),
       isNot(contains(MusicChartPlatform.kugou)),

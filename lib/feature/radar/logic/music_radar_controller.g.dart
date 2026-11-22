@@ -50,15 +50,24 @@ final class MusicRadarRandomProvider
 
 String _$musicRadarRandomHash() => r'7ef00326402536208036f8f47518c4c06f5d035c';
 
-/// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
+/// 刷歌流：把各平台热门歌单汇成候选池，再按「私人雷达」的口味画像挑选。
+///
+/// 不再是「随机挑一张歌单的前几首」——那样整条流都是各平台榜首，很单调。
+/// 现在会按常听歌手 / 同歌单 / 换口味三档混合，并限制同一歌手、同一歌单的占比。
 
 @ProviderFor(MusicRadarController)
 final musicRadarControllerProvider = MusicRadarControllerProvider._();
 
-/// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
+/// 刷歌流：把各平台热门歌单汇成候选池，再按「私人雷达」的口味画像挑选。
+///
+/// 不再是「随机挑一张歌单的前几首」——那样整条流都是各平台榜首，很单调。
+/// 现在会按常听歌手 / 同歌单 / 换口味三档混合，并限制同一歌手、同一歌单的占比。
 final class MusicRadarControllerProvider
     extends $NotifierProvider<MusicRadarController, MusicRadarState> {
-  /// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
+  /// 刷歌流：把各平台热门歌单汇成候选池，再按「私人雷达」的口味画像挑选。
+  ///
+  /// 不再是「随机挑一张歌单的前几首」——那样整条流都是各平台榜首，很单调。
+  /// 现在会按常听歌手 / 同歌单 / 换口味三档混合，并限制同一歌手、同一歌单的占比。
   MusicRadarControllerProvider._()
     : super(
         from: null,
@@ -87,9 +96,12 @@ final class MusicRadarControllerProvider
 }
 
 String _$musicRadarControllerHash() =>
-    r'42f92e53c2484f8b40d487aa477b892e2589759e';
+    r'8705776a78a1d5847ddf32f9502a944a3b59fe7f';
 
-/// 刷歌流：扫描各平台热榜歌单，随机抽取曲目组成可持续下滑的发现流。
+/// 刷歌流：把各平台热门歌单汇成候选池，再按「私人雷达」的口味画像挑选。
+///
+/// 不再是「随机挑一张歌单的前几首」——那样整条流都是各平台榜首，很单调。
+/// 现在会按常听歌手 / 同歌单 / 换口味三档混合，并限制同一歌手、同一歌单的占比。
 
 abstract class _$MusicRadarController extends $Notifier<MusicRadarState> {
   MusicRadarState build();

@@ -49,4 +49,4 @@ final class PlayerMediaSessionSyncProvider
 }
 
 String _$playerMediaSessionSyncHash() =>
-    r'771224a30945fbea6af2a53894313dbdf7a12648';
+    r'3a135d93e1fede94969341745fc6a7af91d96b8e';

@@ -51,4 +51,6 @@ class HiveKeys {
   static const String biliBuvid3 = 'bili.buvid3';
 
   static const String desktopWindowState = 'desktop.window_state';
+
+  static const String radarPlayHistory = 'radar.play_history';
 }

@@ -6,6 +6,8 @@ import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/display/player_cover_color_provider.dart';
 import 'package:bilimusic/feature/player/logic/utils/player_ui_helpers.dart';
+import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
+import 'package:bilimusic/feature/radar/logic/radar_pick_reasons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -21,17 +23,80 @@ class PlayerMetaPage extends ConsumerWidget {
     final Color activeColor =
         ref.watch(playerCoverColorControllerProvider) ??
         Theme.of(context).colorScheme.primary;
+    final PlayableItem? currentItem = item;
+    final RadarPick? radarPick = ref.watch(
+      radarPickReasonsProvider.select(
+        (Map<String, RadarPick> reasons) =>
+            currentItem == null ? null : reasons[radarReasonKey(currentItem)],
+      ),
+    );
 
     return ListView(
       physics: const BouncingScrollPhysics(),
       children: <Widget>[
         PlayerMetaSheet(state: state, item: item),
+        if (radarPick != null) ...<Widget>[
+          const SizedBox(height: 12),
+          PlayerRadarReasonCard(pick: radarPick),
+        ],
         const SizedBox(height: 18),
         PlayerStatsGrid(item: item, activeColor: activeColor),
         const SizedBox(height: 18),
         if ((item?.description ?? '').trim().isNotEmpty)
           PlayerDescriptionCard(description: item!.description!),
       ],
+    );
+  }
+}
+
+/// 刷歌推过来的歌会带一句推荐理由（为什么推这首）。
+class PlayerRadarReasonCard extends StatelessWidget {
+  const PlayerRadarReasonCard({super.key, required this.pick});
+
+  final RadarPick pick;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final IconData icon = switch (pick.reason) {
+      RadarReason.familiarArtist => Icons.favorite_rounded,
+      RadarReason.relatedPlaylist => Icons.playlist_add_check_rounded,
+      RadarReason.explorer => Icons.explore_rounded,
+      RadarReason.coldStart => Icons.radar_rounded,
+    };
+    return GlassPanel(
+      tone: GlassTone.smoke,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: <Widget>[
+          Icon(icon, size: 20, color: GlassTone.smoke.secondaryText),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  '私人雷达',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: GlassTone.smoke.secondaryText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  pick.reasonLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: GlassTone.smoke.primaryText,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

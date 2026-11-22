@@ -26,6 +26,8 @@ import 'package:bilimusic/feature/player/ui/components/player_part_selector.dart
 import 'package:bilimusic/feature/player/ui/components/player_queue_sheet.dart';
 import 'package:bilimusic/feature/player/ui/components/player_top_bar.dart';
 import 'package:bilimusic/feature/player/ui/sleep_timer_page.dart';
+import 'package:bilimusic/feature/player/domain/queue_source.dart';
+import 'package:bilimusic/feature/radar/logic/radar_refresh_requests.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -471,6 +473,21 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
+                    if (isAutoFeedQueue(
+                      ref.read(playerControllerProvider).queueSourceLabel,
+                    ))
+                      ListTile(
+                        key: const Key('radarRefreshMenuEntry'),
+                        leading: const Icon(Icons.radar_rounded),
+                        title: const Text('换一批推荐'),
+                        subtitle: const Text('按最近的收听重新算一批'),
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          ref
+                              .read(radarRefreshRequestsProvider.notifier)
+                              .request();
+                        },
+                      ),
                     ListTile(
                       key: const Key('sleepTimerMenuEntry'),
                       leading: const Icon(Icons.timer_outlined),

@@ -9,7 +9,10 @@ import 'package:bilimusic/feature/player/domain/queue_source.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/player_page.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
+import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
 import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
+import 'package:bilimusic/feature/radar/logic/radar_pick_reasons.dart';
+import 'package:bilimusic/feature/radar/logic/radar_refresh_requests.dart';
 import 'package:bilimusic/feature/radar/ui/components/music_radar_visual.dart';
 import 'package:bilimusic/router/util/shell_location.dart';
 import 'package:flutter/material.dart';
@@ -148,6 +151,18 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     }
   }
 
+  /// 换一批：重新扫一遍候选池按最新口味挑，再把队列换掉。
+  Future<void> _refreshRadarFeed() async {
+    if (_isBootstrapping) {
+      return;
+    }
+    await ref.read(musicRadarControllerProvider.notifier).scan();
+    if (!mounted) {
+      return;
+    }
+    await _ensureShuffleQueue(force: true);
+  }
+
   /// 解析一批；候选都被过滤掉时清空已试集合 + 重新扫一批再试一次。
   Future<List<PlayableItem>> _fillBatchWithRetry(int want) async {
     List<PlayableItem> items = await _fillBatch(want);
@@ -208,6 +223,7 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       await _resolveCandidates(
         resolver,
         candidates,
+        reasons: _reasonsByTrackKey(ref.read(musicRadarControllerProvider)),
         want: want - items.length,
         pickedIds: pickedIds,
         sink: items,
@@ -216,10 +232,17 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     return items;
   }
 
+  Map<String, RadarPick> _reasonsByTrackKey(MusicRadarState radar) {
+    return <String, RadarPick>{
+      for (final RadarPick pick in radar.picks) pick.key: pick,
+    };
+  }
+
   /// 并发解析候选（最多 [_resolveConcurrency] 路），成功且不重复的收进 [sink]。
   Future<void> _resolveCandidates(
     MusicChartResolver resolver,
     List<HotPlaylistTrack> candidates, {
+    required Map<String, RadarPick> reasons,
     required int want,
     required Set<String> pickedIds,
     required List<PlayableItem> sink,
@@ -248,7 +271,12 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
         if (!pickedIds.add(item.stableId)) {
           continue;
         }
+        final RadarPick? pick = reasons[track.key];
         sink.add(item);
+        if (pick == null) {
+          continue;
+        }
+        ref.read(radarPickReasonsProvider.notifier).record(item, pick);
       }
     }
 
@@ -380,6 +408,13 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
 
     // 从别的 tab 重新切回刷歌：如果期间播放队列已经被别的歌单占掉，
     // 就重新拉一批推荐并开播（indexedStack 下 initState 不会重跑）。
+    ref.listen<int>(radarRefreshRequestsProvider, (int? previous, int next) {
+      if (previous == null || previous == next) {
+        return;
+      }
+      unawaited(_refreshRadarFeed());
+    });
+
     ref.listen<String>(shellLocationProvider, (String? previous, String next) {
       if (previous == next || next != shuffleTabLocation) {
         return;

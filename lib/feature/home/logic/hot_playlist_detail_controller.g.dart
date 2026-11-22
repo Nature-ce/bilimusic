@@ -62,7 +62,7 @@ final class HotPlaylistDetailControllerProvider
 }
 
 String _$hotPlaylistDetailControllerHash() =>
-    r'cf5ed0d085cc7081395496e104227fe24cc1db0c';
+    r'179a3448526ccb0b400563807a847cbf72f95e18';
 
 final class HotPlaylistDetailControllerFamily extends $Family
     with

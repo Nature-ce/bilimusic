@@ -1,16 +1,20 @@
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
+import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'music_radar_state.freezed.dart';
 
-/// 刷歌流：跨平台热门歌单采样出来的可持续下滑队列。
+/// 刷歌流：私人雷达推出来的可持续下滑队列。
 @freezed
 abstract class MusicRadarState with _$MusicRadarState {
   const factory MusicRadarState({
     @Default(<HotPlaylistTrack>[]) List<HotPlaylistTrack> tracks,
+    @Default(<RadarPick>[]) List<RadarPick> picks,
     @Default(false) bool isScanning,
     @Default(false) bool isLoadingMore,
     @Default(0) int scanCount,
+    @Default(0) int listenedCount,
+    @Default(false) bool isPersonalized,
     String? errorMessage,
   }) = _MusicRadarState;
 
