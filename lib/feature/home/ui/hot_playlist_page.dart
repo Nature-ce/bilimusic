@@ -1,6 +1,4 @@
-import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/status_view.dart';
-import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
@@ -9,13 +7,13 @@ import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_detail_state.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
+import 'package:bilimusic/feature/home/logic/collection_play_all.dart';
 import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_detail_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
+import 'package:bilimusic/feature/home/ui/components/collection_detail_header.dart';
 import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
-import 'package:bilimusic/feature/player/domain/player_state.dart';
-import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -51,12 +49,6 @@ class HotPlaylistPage extends ConsumerStatefulWidget {
 }
 
 class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
-  /// 先解析够这么多首就开播，剩下的边解析边补进队列。
-  static const int _playAllStartSize = 5;
-
-  /// 播放中每攒够这么多首就往队列尾部补一批。
-  static const int _playAllBatchSize = 5;
-
   String? _resolvingTrackKey;
   bool _isPlayingAll = false;
   int _playAllResolved = 0;
@@ -104,71 +96,32 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     }
   }
 
-  /// 一键播放整个歌单。
-  ///
-  /// 每首歌都要在 B 站里搜一次，所以先解析够 [_playAllStartSize] 首就开播，
-  /// 剩下的继续在后台解析，攒够一批就补到队列尾部。
-  Future<void> _playAllTracks(List<HotPlaylistTrack> tracks) async {
+  Future<void> _playAll(List<HotPlaylistTrack> tracks) async {
     if (_isPlayingAll || tracks.isEmpty) {
       return;
     }
-    final MusicChartResolver resolver = ref.read(musicChartResolverProvider);
-    final PlayerController player = ref.read(playerControllerProvider.notifier);
-    final String sourceLabel = _playlist.name;
     setState(() {
       _isPlayingAll = true;
       _playAllResolved = 0;
       _playAllTotal = tracks.length;
     });
-
-    final List<PlayableItem> resolved = <PlayableItem>[];
-    final Set<String> seen = <String>{};
-    int queued = 0;
-    bool started = false;
-
     try {
-      for (final HotPlaylistTrack track in tracks) {
-        if (!mounted) {
-          break;
-        }
-        PlayableItem? item;
-        try {
-          item = await resolver.resolve(track);
-        } on Object {
-          item = null;
-        }
-        if (item != null && seen.add(item.stableId)) {
-          resolved.add(item);
-        }
-        if (mounted) {
-          setState(() => _playAllResolved += 1);
-        }
-        if (!started && resolved.length >= _playAllStartSize) {
-          started = true;
-          await _startPlayback(resolved, sourceLabel);
-          player.setQueueMode(PlayerQueueMode.sequence);
-          queued = resolved.length;
-        } else if (started && resolved.length - queued >= _playAllBatchSize) {
-          await player.enqueue(resolved.sublist(queued));
-          queued = resolved.length;
-        }
-      }
-
-      if (!started && resolved.isNotEmpty) {
-        started = true;
-        await _startPlayback(resolved, sourceLabel);
-        player.setQueueMode(PlayerQueueMode.sequence);
-        queued = resolved.length;
-      }
-      if (started && resolved.length > queued) {
-        await player.enqueue(resolved.sublist(queued));
-      } else if (!started && mounted) {
-        ToastUtil.show('这个歌单没有匹配到可播放的 B 站视频');
-      }
-    } on Object {
-      if (mounted) {
-        ToastUtil.show('一键播放失败，请稍后再试');
-      }
+      await CollectionPlayAllRunner(
+        context: context,
+        ref: ref,
+        sourceLabel: _playlist.name,
+        isActive: () => mounted,
+        startPlayback: widget.playAll,
+        onProgress: (int resolved, int total) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _playAllResolved = resolved;
+            _playAllTotal = total;
+          });
+        },
+      ).run(tracks);
     } finally {
       if (mounted) {
         setState(() {
@@ -180,30 +133,6 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     }
   }
 
-  Future<void> _startPlayback(
-    List<PlayableItem> items,
-    String sourceLabel,
-  ) async {
-    if (!mounted) {
-      return;
-    }
-    final HotPlaylistPlayAll? playAll = widget.playAll;
-    if (playAll != null) {
-      await playAll(context, ref, List<PlayableItem>.of(items), sourceLabel);
-      return;
-    }
-    await PlayerUtil.playQueueAndOpenPlayer(
-      context,
-      ref,
-      items: List<PlayableItem>.of(items),
-      sourceLabel: sourceLabel,
-    );
-  }
-
-  Future<void> _toggleFavorite(HotPlaylist playlist) async {
-    await ref.read(favoriteHotPlaylistsProvider.notifier).toggle(playlist);
-  }
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -213,6 +142,13 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
       hotPlaylistDetailControllerProvider(playlist),
     );
     final String title = playlist.name.trim().isEmpty ? '热门歌单' : playlist.name;
+    final int effectiveTrackCount = playlist.trackCount > 0
+        ? playlist.trackCount
+        : state.totalCount;
+    final List<String> meta = <String>[
+      if (playlist.playCount > 0) '${playlist.playCountText}次播放',
+      if (effectiveTrackCount > 0) '$effectiveTrackCount 首',
+    ];
     final bool canPlayAll =
         !state.isLoading && !state.hasError && state.tracks.isNotEmpty;
     final bool isFavorite = ref.watch(
@@ -225,19 +161,6 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: <Widget>[
-          IconButton(
-            tooltip: '刷新',
-            onPressed: state.isLoading
-                ? null
-                : () => ref
-                      .read(
-                        hotPlaylistDetailControllerProvider(playlist).notifier,
-                      )
-                      .refresh(),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => ref
@@ -247,21 +170,45 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: <Widget>[
-            _HotPlaylistHeader(
-              playlist: playlist,
-              totalCount: state.totalCount,
+            CollectionDetailHeader(
+              coverUrl: playlist.coverUrl,
+              chipLabel: '${playlist.platform.label} · 歌单',
+              title: title,
+              meta: meta.isEmpty ? null : meta.join(' · '),
+              subMeta: playlist.creator.isNotEmpty
+                  ? 'by ${playlist.creator}'
+                  : null,
             ),
+            if (playlist.description.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                playlist.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.meta(
+                  theme,
+                  fontSize: 12,
+                ).copyWith(color: colorScheme.onSurfaceVariant, height: 1.4),
+              ),
+            ],
             const SizedBox(height: AppSpacing.lg),
-            _PlaylistActionRow(
-              isFavorite: isFavorite,
-              favoriteCount: playlist.favoriteCount,
+            CollectionActionRow(
+              playAllKey: const Key('hotPlaylistPlayAll'),
               canPlayAll: canPlayAll,
-              isPlayingAll: _isPlayingAll,
+              onPlayAll: () => _playAll(state.tracks),
+              favoriteKey: const Key('hotPlaylistFavorite'),
+              isFavorite: isFavorite,
+              onToggleFavorite: () => ref
+                  .read(favoriteHotPlaylistsProvider.notifier)
+                  .toggle(playlist),
+              refreshKey: const Key('hotPlaylistRefresh'),
+              onRefresh: () => ref
+                  .read(hotPlaylistDetailControllerProvider(playlist).notifier)
+                  .refresh(),
+              busy: _isPlayingAll,
               resolved: _playAllResolved,
               total: _playAllTotal,
-              trackCount: state.tracks.length,
-              onToggleFavorite: () => _toggleFavorite(playlist),
-              onPlayAll: () => _playAllTracks(state.tracks),
+              playAllLabel: '播放全部',
             ),
             const SizedBox(height: AppSpacing.xl),
             Row(
@@ -333,105 +280,6 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
   }
 }
 
-/// 一键播放按钮：解析曲目时显示匹配进度。
-/// 歌单操作行：收藏 + 播放全部。
-class _PlaylistActionRow extends StatelessWidget {
-  const _PlaylistActionRow({
-    required this.isFavorite,
-    required this.favoriteCount,
-    required this.canPlayAll,
-    required this.isPlayingAll,
-    required this.resolved,
-    required this.total,
-    required this.trackCount,
-    required this.onToggleFavorite,
-    required this.onPlayAll,
-  });
-
-  final bool isFavorite;
-  final int favoriteCount;
-  final bool canPlayAll;
-  final bool isPlayingAll;
-  final int resolved;
-  final int total;
-  final int trackCount;
-  final VoidCallback onToggleFavorite;
-  final VoidCallback onPlayAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final String favoriteLabel = isFavorite
-        ? (favoriteCount > 0
-              ? '已收藏(${formatCompactCount(favoriteCount)})'
-              : '已收藏')
-        : (favoriteCount > 0
-              ? '收藏(${formatCompactCount(favoriteCount)})'
-              : '收藏');
-    final String playLabel = isPlayingAll ? '匹配中 $resolved/$total' : '全部播放';
-
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: FilledButton.tonalIcon(
-            key: const Key('hotPlaylistFavorite'),
-            onPressed: onToggleFavorite,
-            icon: Icon(
-              isFavorite
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-            ),
-            label: Text(
-              favoriteLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            style: _pillStyle(context, isTonal: true),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: FilledButton.icon(
-            key: const Key('hotPlaylistPlayAll'),
-            onPressed: canPlayAll && !isPlayingAll ? onPlayAll : null,
-            icon: isPlayingAll
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.play_arrow_rounded),
-            label: Text(
-              playLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            style: _pillStyle(context, isTonal: false),
-          ),
-        ),
-      ],
-    );
-  }
-
-  ButtonStyle _pillStyle(BuildContext context, {required bool isTonal}) {
-    final OutlinedBorder shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-    );
-    const EdgeInsets padding = EdgeInsets.symmetric(
-      horizontal: AppSpacing.md,
-      vertical: AppSpacing.md,
-    );
-    if (isTonal) {
-      return FilledButton.styleFrom(padding: padding, shape: shape);
-    }
-    return FilledButton.styleFrom(
-      padding: padding,
-      shape: shape,
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-    );
-  }
-}
-
 class _HotPlaylistFooter extends StatelessWidget {
   const _HotPlaylistFooter({required this.state, required this.onRetry});
 
@@ -473,110 +321,6 @@ class _HotPlaylistFooter extends StatelessWidget {
       );
     }
     return const SizedBox.shrink();
-  }
-}
-
-class _HotPlaylistHeader extends StatelessWidget {
-  const _HotPlaylistHeader({required this.playlist, this.totalCount = 0});
-
-  final HotPlaylist playlist;
-
-  /// 列表接口可能不返回曲目数（如 QQ音乐），加载首屏后用它补齐。
-  final int totalCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    final int effectiveTrackCount = playlist.trackCount > 0
-        ? playlist.trackCount
-        : totalCount;
-    final List<String> meta = <String>[
-      if (playlist.playCount > 0) '${playlist.playCountText}次播放',
-      if (effectiveTrackCount > 0) '$effectiveTrackCount 首',
-    ];
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          child: CommonCachedImage(
-            imageUrl: playlist.coverUrl,
-            width: 108,
-            height: 108,
-            fit: BoxFit.cover,
-            fallbackIcon: Icons.queue_music_rounded,
-            iconColor: colorScheme.onSurfaceVariant,
-            backgroundColor: appSkeletonColor(context),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Text(
-                  '${playlist.platform.label} · 歌单',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                playlist.name.trim().isEmpty ? '热门歌单' : playlist.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.listTitle(theme).copyWith(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                  height: 1.25,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs + 2),
-              Text(
-                meta.join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.meta(theme, fontSize: 11.5),
-              ),
-              if (playlist.creator.isNotEmpty) ...<Widget>[
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'by ${playlist.creator}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.meta(theme, fontSize: 11.5).copyWith(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
-                  ),
-                ),
-              ],
-              if (playlist.description.isNotEmpty) ...<Widget>[
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  playlist.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.meta(theme, fontSize: 11.5).copyWith(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }
 

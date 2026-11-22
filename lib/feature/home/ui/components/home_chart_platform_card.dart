@@ -1,19 +1,20 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
+import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:flutter/material.dart';
 
 /// 首页排行榜的平台卡片（对应设计稿 C-A）：
-/// 封面扇 + 榜单名 + 播放按钮 + 更新时间 + 前三名。
+/// 封面扇 + 榜单名 + 播放按钮 + 更新时间 + 前三名 + 进入平台榜单页的入口。
 class HomeChartPlatformCard extends StatelessWidget {
   const HomeChartPlatformCard({
     super.key,
     required this.entry,
     required this.selected,
-    required this.onTap,
+    required this.onOpen,
     required this.onPlay,
     required this.onTrackTap,
   });
@@ -22,7 +23,7 @@ class HomeChartPlatformCard extends StatelessWidget {
 
   final MusicChartEntry entry;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback onOpen;
   final VoidCallback onPlay;
   final ValueChanged<MusicChartTrack> onTrackTap;
 
@@ -39,7 +40,7 @@ class HomeChartPlatformCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.card),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onTap,
+          onTap: onOpen,
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.card),
@@ -94,6 +95,34 @@ class HomeChartPlatformCard extends StatelessWidget {
                   for (final MusicChartTrack track in entry.topTracks)
                     _TopRow(track: track, onTap: () => onTrackTap(track)),
                 _PlatformBadge(platform: entry.chart.platform),
+                const SizedBox(height: AppSpacing.sm),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: <Widget>[
+                    Text(
+                      '共 ${MusicChartCatalog.chartsFor(entry.chart.platform).length} 个榜单',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '查看全部 ›',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

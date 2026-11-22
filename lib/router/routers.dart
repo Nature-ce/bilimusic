@@ -7,7 +7,11 @@ import 'package:bilimusic/feature/auth/ui/auth_page.dart';
 import 'package:bilimusic/feature/favorites/ui/desktop/desktop_favorite_collection_page.dart';
 import 'package:bilimusic/feature/favorites/ui/favorite_collection_page.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
+import 'package:bilimusic/feature/home/domain/music_chart.dart';
+import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
+import 'package:bilimusic/feature/home/ui/chart_detail_page.dart';
+import 'package:bilimusic/feature/home/ui/chart_platform_page.dart';
 import 'package:bilimusic/feature/home/ui/home_page.dart';
 import 'package:bilimusic/feature/home/ui/hot_playlist_page.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
@@ -75,6 +79,11 @@ GoRouter router(Ref ref) => GoRouter(
   routes: PlatformUtil.isDesktop ? desktopRoutes : mobileRoutes,
 );
 
+MusicChartPlatform _chartPlatformOf(String? rawName) {
+  return MusicChartPlatform.tryFromName(rawName ?? '') ??
+      MusicChartPlatform.netease;
+}
+
 final List<Map<String, dynamic>> mobileTabs = [
   {
     'path': '/home',
@@ -95,6 +104,31 @@ final List<Map<String, dynamic>> mobileTabs = [
             initialPlaylist: extra is HotPlaylist ? extra : null,
           );
         },
+      ),
+      GoRoute(
+        path: 'charts/:platform',
+        builder: (context, state) {
+          return ChartPlatformPage(
+            platform: _chartPlatformOf(state.pathParameters['platform']),
+          );
+        },
+        routes: <RouteBase>[
+          GoRoute(
+            path: ':chartId',
+            builder: (context, state) {
+              final MusicChartPlatform platform = _chartPlatformOf(
+                state.pathParameters['platform'],
+              );
+              final String chartId = state.pathParameters['chartId'] ?? '';
+              final MusicChart chart =
+                  MusicChartCatalog.chartsFor(platform)
+                      .where((MusicChart item) => item.chartId == chartId)
+                      .firstOrNull ??
+                  MusicChartCatalog.defaultChartOf(platform);
+              return ChartDetailPage(chart: chart);
+            },
+          ),
+        ],
       ),
     ],
     'icon': HugeIcon(icon: HugeIcons.strokeRoundedHome07),

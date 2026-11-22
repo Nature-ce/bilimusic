@@ -1,8 +1,11 @@
+import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
+import 'package:bilimusic/feature/home/domain/hot_playlist_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
+import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dart';
 import 'package:bilimusic/feature/home/ui/home_page.dart';
@@ -38,6 +41,27 @@ class _FakeCharts extends MusicChartController {
             tracks: tracks,
           ),
       },
+    );
+  }
+}
+
+class _FakePlaylists extends HotPlaylistController {
+  @override
+  HotPlaylistState build() {
+    return HotPlaylistState(
+      platform: MusicChartPlatform.netease,
+      playlists: <HotPlaylist>[
+        for (int index = 0; index < 24; index += 1)
+          HotPlaylist(
+            platform: MusicChartPlatform.netease,
+            id: '$index',
+            name: '歌单 $index',
+            coverUrl: '',
+            playCount: 1000 + index,
+            trackCount: 20,
+            creator: 'UP主',
+          ),
+      ],
     );
   }
 }
@@ -124,6 +148,7 @@ void main() {
       overrides: [
         musicChartControllerProvider.overrideWith(_FakeCharts.new),
         musicRadarControllerProvider.overrideWith(_FakeRadar.new),
+        hotPlaylistControllerProvider.overrideWith(_FakePlaylists.new),
       ],
     );
     addTearDown(container.dispose);
@@ -137,6 +162,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(homeBackToTopVisibilityProvider), isFalse);
+
+    // 推荐 tab 改成卡片入口后一屏放得下，改用更长的热门歌单 tab 验证滚动状态。
+    await tester.tap(find.text('热门歌单'));
+    await tester.pumpAndSettle();
 
     await tester.drag(find.byType(ListView), const Offset(0, -900));
     await tester.pumpAndSettle();
