@@ -96,7 +96,7 @@ final class MusicRadarControllerProvider
 }
 
 String _$musicRadarControllerHash() =>
-    r'8705776a78a1d5847ddf32f9502a944a3b59fe7f';
+    r'821c3d9b648d9c8aeeb84a5dc7b11e6eee016f09';
 
 /// 刷歌流：把各平台热门歌单汇成候选池，再按「私人雷达」的口味画像挑选。
 ///

@@ -1,8 +1,6 @@
-import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/home/ui/components/home_section_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 Future<void> _pumpSwitch(
   WidgetTester tester, {
@@ -16,6 +14,7 @@ Future<void> _pumpSwitch(
       ),
     ),
   );
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -29,7 +28,7 @@ void main() {
       onSelected: (HomeSection section) => tapped = section,
     );
 
-    expect(find.text('音乐热榜'), findsOneWidget);
+    expect(find.text('推荐'), findsOneWidget);
     expect(find.text('热门歌单'), findsOneWidget);
 
     await tester.tap(find.text('热门歌单'));
@@ -54,7 +53,7 @@ void main() {
     expect(tapped, HomeSection.playlists);
   });
 
-  testWidgets('active tab is emphasized with the primary color', (
+  testWidgets('active tab is bigger and bold, inactive one is muted', (
     WidgetTester tester,
   ) async {
     await _pumpSwitch(
@@ -64,28 +63,29 @@ void main() {
     );
 
     final Text active = tester.widget<Text>(find.text('热门歌单'));
-    final Text inactive = tester.widget<Text>(find.text('音乐热榜'));
+    final Text inactive = tester.widget<Text>(find.text('推荐'));
     final ColorScheme colorScheme = Theme.of(
       tester.element(find.text('热门歌单')),
     ).colorScheme;
 
-    expect(active.style?.color, colorScheme.primary);
     expect(active.style?.fontWeight, FontWeight.w800);
+    expect(active.style?.color, colorScheme.onSurface);
+    expect(inactive.style?.fontWeight, FontWeight.w600);
     expect(inactive.style?.color, colorScheme.onSurfaceVariant);
+    expect(active.style!.fontSize, greaterThan(inactive.style!.fontSize!));
   });
 
-  testWidgets('section switch is a glass pill', (WidgetTester tester) async {
+  testWidgets('selected tab shows an underline indicator', (
+    WidgetTester tester,
+  ) async {
     await _pumpSwitch(tester, selected: HomeSection.charts, onSelected: (_) {});
 
-    final Finder glass = find.byType(GlassPanel);
-    expect(glass, findsOneWidget);
-    expect(
-      tester.widget<GlassPanel>(glass).shape,
-      isA<LiquidRoundedSuperellipse>(),
-    );
-    final GlassContainer container = tester.widget<GlassContainer>(
-      find.byType(GlassContainer),
-    );
-    expect(container.useOwnLayer, isTrue);
+    final Iterable<AnimatedContainer> bars = tester
+        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer));
+    expect(bars.length, 2);
+    final List<double> widthFactors = bars.map((AnimatedContainer bar) {
+      return bar.constraints?.maxWidth ?? 0;
+    }).toList();
+    expect(widthFactors.where((double width) => width > 0).length, 1);
   });
 }

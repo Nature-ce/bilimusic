@@ -57,11 +57,24 @@ final class MusicChartRepositoryProvider
 String _$musicChartRepositoryHash() =>
     r'eb302d6972fb99edd06295828fde0847827ad0ec';
 
+/// 首页排行榜：四个平台各加载自己的默认榜单，供卡片与完整列表共用。
+///
+/// 之前一次只持有一个平台的榜单，首页只能竖着放一排平台 chip；
+/// 现在卡片要同时显示 4 个平台的前三名，所以按平台分开缓存。
+
 @ProviderFor(MusicChartController)
 final musicChartControllerProvider = MusicChartControllerProvider._();
 
+/// 首页排行榜：四个平台各加载自己的默认榜单，供卡片与完整列表共用。
+///
+/// 之前一次只持有一个平台的榜单，首页只能竖着放一排平台 chip；
+/// 现在卡片要同时显示 4 个平台的前三名，所以按平台分开缓存。
 final class MusicChartControllerProvider
     extends $NotifierProvider<MusicChartController, MusicChartState> {
+  /// 首页排行榜：四个平台各加载自己的默认榜单，供卡片与完整列表共用。
+  ///
+  /// 之前一次只持有一个平台的榜单，首页只能竖着放一排平台 chip；
+  /// 现在卡片要同时显示 4 个平台的前三名，所以按平台分开缓存。
   MusicChartControllerProvider._()
     : super(
         from: null,
@@ -90,7 +103,12 @@ final class MusicChartControllerProvider
 }
 
 String _$musicChartControllerHash() =>
-    r'46a38355ce663e0f1f0697f4db652375dd1642ff';
+    r'9c27199f78731d180af98bb944fa2fae40ba1fd7';
+
+/// 首页排行榜：四个平台各加载自己的默认榜单，供卡片与完整列表共用。
+///
+/// 之前一次只持有一个平台的榜单，首页只能竖着放一排平台 chip；
+/// 现在卡片要同时显示 4 个平台的前三名，所以按平台分开缓存。
 
 abstract class _$MusicChartController extends $Notifier<MusicChartState> {
   MusicChartState build();

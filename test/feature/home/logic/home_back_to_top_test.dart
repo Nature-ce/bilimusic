@@ -1,4 +1,5 @@
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
+import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
@@ -7,23 +8,36 @@ import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dar
 import 'package:bilimusic/feature/home/ui/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
+import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeRadar extends MusicRadarController {
+  @override
+  MusicRadarState build() => const MusicRadarState();
+}
 
 class _FakeCharts extends MusicChartController {
   @override
   MusicChartState build() {
+    final List<MusicChartTrack> tracks = <MusicChartTrack>[
+      for (int index = 0; index < 60; index += 1)
+        MusicChartTrack(
+          chart: MusicChartCatalog.defaultChart,
+          rank: index + 1,
+          title: '歌曲 $index',
+          artist: '歌手',
+          coverUrl: '',
+        ),
+    ];
     return MusicChartState(
-      isLoading: false,
-      tracks: <MusicChartTrack>[
-        for (int index = 0; index < 60; index += 1)
-          MusicChartTrack(
-            chart: MusicChartCatalog.defaultChart,
-            rank: index + 1,
-            title: '歌曲 $index',
-            artist: '歌手',
-            coverUrl: '',
+      entries: <MusicChartPlatform, MusicChartEntry>{
+        for (final MusicChartPlatform platform in MusicChartPlatform.values)
+          platform: MusicChartEntry(
+            chart: MusicChartCatalog.defaultChartOf(platform),
+            tracks: tracks,
           ),
-      ],
+      },
     );
   }
 }
@@ -107,7 +121,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final ProviderContainer container = ProviderContainer(
-      overrides: [musicChartControllerProvider.overrideWith(_FakeCharts.new)],
+      overrides: [
+        musicChartControllerProvider.overrideWith(_FakeCharts.new),
+        musicRadarControllerProvider.overrideWith(_FakeRadar.new),
+      ],
     );
     addTearDown(container.dispose);
 

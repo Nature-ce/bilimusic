@@ -7,7 +7,7 @@ import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:bilimusic/feature/home/ui/components/home_section_switch.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_section.dart';
-import 'package:bilimusic/feature/home/ui/components/music_chart_section.dart';
+import 'package:bilimusic/feature/home/ui/components/home_recommend_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -89,7 +89,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             HomeSectionSwitch(selected: _section, onSelected: _selectSection),
             const SizedBox(height: AppSpacing.lg),
             if (_section == HomeSection.charts)
-              const MusicChartSection()
+              const HomeRecommendSection()
             else
               const HotPlaylistSection(),
             const BottomPageSpacer(),

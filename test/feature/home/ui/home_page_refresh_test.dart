@@ -5,7 +5,14 @@ import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:bilimusic/feature/home/ui/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
+import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeRadar extends MusicRadarController {
+  @override
+  MusicRadarState build() => const MusicRadarState();
+}
 
 class _CountingChartController extends MusicChartController {
   static int refreshes = 0;
@@ -46,6 +53,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          musicRadarControllerProvider.overrideWith(_FakeRadar.new),
           musicChartControllerProvider.overrideWith(
             _CountingChartController.new,
           ),
