@@ -17,6 +17,7 @@ import 'package:bilimusic/feature/player/ui/components/player_dynamic_backdrop.d
 import 'package:bilimusic/feature/player/ui/components/player_landscape_page.dart';
 import 'package:bilimusic/feature/player/ui/lyrics/player_lyric_page.dart';
 import 'package:bilimusic/feature/player/ui/player_gestures.dart';
+import 'package:bilimusic/feature/player/ui/player_page_pager.dart';
 import 'package:bilimusic/feature/player/ui/components/player_main_page.dart';
 import 'package:bilimusic/feature/player/ui/components/player_chapter_selector.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
@@ -56,8 +57,6 @@ class PlayerPage extends ConsumerStatefulWidget {
 
 class _PlayerPageState extends ConsumerState<PlayerPage> {
   int _currentPage = 1;
-  int _pageDirection = 1;
-  double _pageDragDx = 0;
   double _dismissDragDy = 0;
   Offset? _dismissPointerOrigin;
   Duration? _dismissPointerAt;
@@ -112,16 +111,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     );
     final PlayerDisplayInfo display = ref.watch(playerDisplayProvider);
     final favoritesState = ref.watch(favoritesControllerProvider);
-    final PlayerController playerController = ref.read(
-      playerControllerProvider.notifier,
-    );
     final PlayableItem? item = state.currentItem ?? widget.initialItem;
-    final List<PlayableItem> availableParts = state.availableParts;
-    final List<PlaybackChapter> chapters = state.chapters;
-    final bool canOpenJumpPanel =
-        item != null && (availableParts.length > 1 || chapters.length > 1);
     final bool isFavorite = item != null ? favoritesState.isLiked(item) : false;
-    final bool isLyricPageActive = _currentPage == 2;
     final Color? coverColor = ref.watch(playerCoverColorControllerProvider);
 
     if (MediaQuery.orientationOf(context) == Orientation.landscape) {
@@ -187,91 +178,21 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
                           _buildTopBar(context, item),
                           const SizedBox(height: 18),
                           Expanded(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onHorizontalDragStart: _handlePageDragStart,
-                              onHorizontalDragUpdate: _handlePageDragUpdate,
-                              onHorizontalDragEnd: _handlePageSwipe,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 220),
-                                switchInCurve: Curves.easeOutCubic,
-                                switchOutCurve: Curves.easeOutCubic,
-                                transitionBuilder: _buildPageTransition,
-                                child: KeyedSubtree(
-                                  key: ValueKey<int>(_currentPage),
-                                  child: switch (_currentPage) {
-                                    0 => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: PlayerMetaPage(
-                                        state: state,
-                                        item: item,
-                                      ),
-                                    ),
-                                    2 => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                      ),
-                                      child: PlayerLyricPage(
-                                        state: state,
-                                        item: item,
-                                        isActive: isLyricPageActive,
-                                        onSeek: playerController.seek,
-                                        activeColor: coverColor,
-                                      ),
-                                    ),
-                                    _ => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: PlayerMainPage(
-                                        state: state,
-                                        item: item,
-                                        display: display,
-                                        commentCount: item?.replyCount,
-                                        canOpenJumpPanel: canOpenJumpPanel,
-                                        onPartTap: !canOpenJumpPanel
-                                            ? null
-                                            : () => _openJumpPanel(
-                                                context,
-                                                state,
-                                                item,
-                                                availableParts,
-                                                playerController,
-                                              ),
-                                        onOpenCollectionSheet: item == null
-                                            ? null
-                                            : () => showPlayerCollectionSheet(
-                                                context: context,
-                                                item: item,
-                                                glass: GlassTone.smoke,
-                                              ),
-                                        isFavorite: isFavorite,
-                                        onFavoriteToggle: item == null
-                                            ? null
-                                            : () => _toggleFavorite(item),
-                                        onToggleSource: _toggleDisplaySource,
-                                        onSeek: _seekFromProgressBar,
-                                        onToggleQueueMode:
-                                            playerController.toggleQueueMode,
-                                        onBackward:
-                                            playerController.skipToPrevious,
-                                        onTogglePlayback:
-                                            playerController.togglePlayback,
-                                        onForward: playerController.skipToNext,
-                                        onOpenQueue: () => showPlayerQueueSheet(
-                                          context: context,
-                                          state: state,
-                                        ),
-                                        onOpenComments: item == null
-                                            ? null
-                                            : () => _openComments(item),
-                                      ),
-                                    ),
-                                  },
-                                ),
-                              ),
+                            child: PlayerPagePager(
+                              index: _currentPage,
+                              pageCount: 3,
+                              onIndexChanged: (int page) =>
+                                  setState(() => _currentPage = page),
+                              buildPage: (BuildContext pageContext, int page) =>
+                                  _buildPage(
+                                    pageContext: pageContext,
+                                    page: page,
+                                    state: state,
+                                    display: display,
+                                    item: item,
+                                    isFavorite: isFavorite,
+                                    coverColor: coverColor,
+                                  ),
                             ),
                           ),
                         ],
@@ -349,51 +270,82 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     Navigator.of(context).maybePop();
   }
 
-  /// 横向滑动切页。
+  /// 横滑三页：播放信息 / 播放控制 / 歌词。
   ///
-  /// 这里没有用 PageView：它的回弹动画期间会把页面内容包进 IgnorePointer，
-  /// 刚切到「播放信息」马上快速上下滑会被丢掉（表现为滑不动、卡一下）。
-  void _handlePageDragStart(DragStartDetails details) {
-    _pageDragDx = 0;
-  }
-
-  void _handlePageDragUpdate(DragUpdateDetails details) {
-    _pageDragDx += details.delta.dx;
-  }
-
-  void _handlePageSwipe(DragEndDetails details) {
-    final double velocity = details.primaryVelocity ?? 0;
-    final double distance = _pageDragDx;
-    _pageDragDx = 0;
-    final bool fling = velocity.abs() >= 180;
-    final double threshold = MediaQuery.sizeOf(context).width * 0.18;
-    final double delta = fling ? -velocity : -distance;
-    if (fling ? delta.abs() < 180 : delta.abs() < threshold) {
-      return;
+  /// 唯一的数据来源是 [state]，页面本身不持有播放状态，因此可以被分页容器
+  /// 随时重建（拖到一半时两侧页面会一起挂载）。
+  Widget _buildPage({
+    required BuildContext pageContext,
+    required int page,
+    required PlayerState state,
+    required PlayerDisplayInfo display,
+    required PlayableItem? item,
+    required bool isFavorite,
+    required Color? coverColor,
+  }) {
+    switch (page) {
+      case 0:
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: PlayerMetaPage(state: state, item: item),
+        );
+      case 2:
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: PlayerLyricPage(
+            state: state,
+            item: item,
+            isActive: _currentPage == 2,
+            onSeek: ref.read(playerControllerProvider.notifier).seek,
+            activeColor: coverColor,
+          ),
+        );
+      default:
+        final List<PlayableItem> availableParts = state.availableParts;
+        final List<PlaybackChapter> chapters = state.chapters;
+        final bool canOpenJumpPanel =
+            item != null && (availableParts.length > 1 || chapters.length > 1);
+        final PlayerController playerController = ref.read(
+          playerControllerProvider.notifier,
+        );
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: PlayerMainPage(
+            state: state,
+            item: item,
+            display: display,
+            commentCount: item?.replyCount,
+            canOpenJumpPanel: canOpenJumpPanel,
+            onPartTap: !canOpenJumpPanel
+                ? null
+                : () => _openJumpPanel(
+                    pageContext,
+                    state,
+                    item,
+                    availableParts,
+                    playerController,
+                  ),
+            onOpenCollectionSheet: item == null
+                ? null
+                : () => showPlayerCollectionSheet(
+                    context: pageContext,
+                    item: item,
+                    glass: GlassTone.smoke,
+                  ),
+            isFavorite: isFavorite,
+            onFavoriteToggle: item == null ? null : () => _toggleFavorite(item),
+            onToggleSource: _toggleDisplaySource,
+            onSeek: _seekFromProgressBar,
+            onToggleQueueMode: playerController.toggleQueueMode,
+            onBackward: playerController.skipToPrevious,
+            onTogglePlayback: playerController.togglePlayback,
+            onForward: playerController.skipToNext,
+            onOpenQueue: () =>
+                showPlayerQueueSheet(context: pageContext, state: state),
+            onOpenComments: item == null ? null : () => _openComments(item),
+          ),
+        );
     }
-    final int target = (_currentPage + (delta > 0 ? 1 : -1)).clamp(0, 2);
-    if (target == _currentPage) {
-      return;
-    }
-    setState(() {
-      _pageDirection = delta > 0 ? 1 : -1;
-      _currentPage = target;
-    });
-  }
-
-  Widget _buildPageTransition(Widget child, Animation<double> animation) {
-    final Animation<double> curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-    );
-    final Animation<Offset> offset = Tween<Offset>(
-      begin: Offset(_pageDirection * 0.16, 0),
-      end: Offset.zero,
-    ).animate(curved);
-    return FadeTransition(
-      opacity: curved,
-      child: SlideTransition(position: offset, child: child),
-    );
   }
 
   Widget _buildTopBar(BuildContext context, PlayableItem? item) {
