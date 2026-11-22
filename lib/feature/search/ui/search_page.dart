@@ -5,7 +5,6 @@ import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 import 'package:bilimusic/feature/search/domain/search_state.dart';
-import 'package:bilimusic/feature/search/domain/search_type.dart';
 import 'package:bilimusic/feature/search/domain/search_user_item.dart';
 import 'package:bilimusic/feature/search/logic/search_controller.dart';
 import 'package:bilimusic/feature/search/ui/components/search_input_area.dart';
@@ -21,22 +20,15 @@ class SearchPage extends ConsumerStatefulWidget {
   ConsumerState<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends ConsumerState<SearchPage>
-    with SingleTickerProviderStateMixin {
+class _SearchPageState extends ConsumerState<SearchPage> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
-  late final TabController _tabController;
-  int _lastTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
     _focusNode = FocusNode()..addListener(_handleFocusChange);
-    _tabController = TabController(
-      length: SearchType.values.length,
-      vsync: this,
-    )..addListener(_handleTabChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _focusNode.requestFocus();
@@ -50,21 +42,7 @@ class _SearchPageState extends ConsumerState<SearchPage>
     _focusNode
       ..removeListener(_handleFocusChange)
       ..dispose();
-    _tabController
-      ..removeListener(_handleTabChange)
-      ..dispose();
     super.dispose();
-  }
-
-  void _handleTabChange() {
-    if (_tabController.indexIsChanging ||
-        _tabController.index == _lastTabIndex) {
-      return;
-    }
-    _lastTabIndex = _tabController.index;
-    ref
-        .read(searchPageControllerProvider.notifier)
-        .changeType(SearchType.values[_tabController.index]);
   }
 
   void _handleFocusChange() {
@@ -114,7 +92,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
         isShowingSuggestions && state.submittedQuery?.isNotEmpty == true;
 
     _syncSearchText(state.query);
-    _syncTabIndex(state.type);
 
     return PopScope<Object?>(
       canPop: !shouldCloseSuggestions,
@@ -150,7 +127,6 @@ class _SearchPageState extends ConsumerState<SearchPage>
                         state.submittedQuery?.isNotEmpty == true
                     ? SearchResultsView(
                         state: state,
-                        tabController: _tabController,
                         onLoadMore: controller.loadNextPage,
                         onChangeSort: controller.changeSort,
                         onPlayItem: (SearchResultItem item) async {
@@ -215,15 +191,5 @@ class _SearchPageState extends ConsumerState<SearchPage>
       text: query,
       selection: TextSelection.collapsed(offset: query.length),
     );
-  }
-
-  void _syncTabIndex(SearchType type) {
-    final int stateTabIndex = SearchType.values.indexOf(type);
-    if (_tabController.index == stateTabIndex ||
-        _tabController.indexIsChanging) {
-      return;
-    }
-    _lastTabIndex = stateTabIndex;
-    _tabController.index = stateTabIndex;
   }
 }

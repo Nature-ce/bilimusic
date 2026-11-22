@@ -36,16 +36,20 @@ class UserCard extends ConsumerWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: <Color>[
-                  colorScheme.primary.withValues(alpha: 0.16),
-                  colorScheme.primary.withValues(alpha: 0.04),
+                  colorScheme.primary,
+                  colorScheme.primary.withValues(alpha: 0.86),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.12),
-              ),
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: colorScheme.primary.withValues(alpha: 0.28),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -56,8 +60,8 @@ class UserCard extends ConsumerWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.5),
-                        width: 1.5,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        width: 2,
                       ),
                     ),
                     child: CommonCachedAvatar(
@@ -79,36 +83,41 @@ class UserCard extends ConsumerWidget {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.pageTitle(
-                            theme,
-                          ).copyWith(fontSize: 18),
+                          style: AppTextStyles.pageTitle(theme).copyWith(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.meta(theme),
+                          style: AppTextStyles.meta(theme).copyWith(
+                            color: Colors.white.withValues(alpha: 0.82),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   if (!isLoggedIn)
-                    Icon(
+                    const Icon(
                       Icons.chevron_right_rounded,
-                      color: colorScheme.primary,
+                      color: Colors.white,
                     ),
                   Material(
-                    color: colorScheme.surface.withValues(alpha: 0.6),
+                    color: Colors.white.withValues(alpha: 0.22),
                     shape: const CircleBorder(),
                     child: IconButton(
                       onPressed: onSettingsPressed,
                       tooltip: '设置',
                       iconSize: 20,
-                      icon: Icon(
+                      icon: const Icon(
                         Icons.settings_rounded,
-                        color: colorScheme.primary,
+                        color: Colors.white,
                       ),
                     ),
                   ),

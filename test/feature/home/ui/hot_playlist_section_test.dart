@@ -76,11 +76,15 @@ void main() {
   ) async {
     await _pumpSection(tester, controller: _LoadedPlaylists.new);
 
-    expect(find.text('测试歌单 A'), findsOneWidget);
-    expect(find.text('测试歌单 B'), findsOneWidget);
-    expect(find.textContaining('1.2万'), findsOneWidget);
+    // 前两张歌单会同时出现在「编辑甄选」大卡和下方网格里。
+    expect(find.text('测试歌单 A'), findsNWidgets(2));
+    expect(find.text('测试歌单 B'), findsNWidgets(2));
+    expect(find.textContaining('1.2万'), findsWidgets);
     expect(find.textContaining('20 首'), findsOneWidget);
-    expect(find.text('网易云'), findsOneWidget);
+    expect(find.text('编辑甄选'), findsOneWidget);
+    expect(find.text('热门歌单'), findsOneWidget);
+    expect(find.text('换一批'), findsOneWidget);
+    expect(find.text('网易云'), findsWidgets);
     expect(find.text('QQ音乐'), findsOneWidget);
     expect(find.text('酷狗'), findsOneWidget);
   });
@@ -95,7 +99,7 @@ void main() {
       onPlaylistTap: (HotPlaylist playlist) => tapped = playlist,
     );
 
-    await tester.tap(find.text('测试歌单 B'));
+    await tester.tap(find.text('测试歌单 B').last);
     await tester.pump();
 
     expect(tapped?.id, '2');

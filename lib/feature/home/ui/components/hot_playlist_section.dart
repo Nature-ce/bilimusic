@@ -7,6 +7,7 @@ import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/ui/components/home_chips.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_card.dart';
+import 'package:bilimusic/feature/home/ui/components/hot_playlist_feature_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +38,43 @@ class HotPlaylistSection extends ConsumerWidget {
             },
           ),
           const SizedBox(height: AppSpacing.lg),
+          if (state.playlists.isNotEmpty) ...<Widget>[
+            _FeatureRow(
+              playlists: state.playlists,
+              onTap: (HotPlaylist playlist) =>
+                  _handlePlaylistTap(context, playlist),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+          Row(
+            children: <Widget>[
+              Text(
+                '热门歌单',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: state.isLoading
+                    ? null
+                    : () => ref
+                          .read(hotPlaylistControllerProvider.notifier)
+                          .refresh(),
+                iconAlignment: IconAlignment.end,
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('换一批'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
           if (state.isLoading)
             const _HotPlaylistLoadingGrid()
           else if (state.hasError)
@@ -70,6 +108,56 @@ class HotPlaylistSection extends ConsumerWidget {
     context.push(
       '/home/playlist/${playlist.platform.name}/${playlist.id}',
       extra: playlist,
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  const _FeatureRow({required this.playlists, required this.onTap});
+
+  final List<HotPlaylist> playlists;
+  final ValueChanged<HotPlaylist> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<HotPlaylist> featured = playlists
+        .take(2)
+        .toList(growable: false);
+    if (featured.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final ThemeData theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Text(
+            '编辑甄选',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: <Widget>[
+              for (final HotPlaylist playlist in featured)
+                Padding(
+                  padding: EdgeInsets.only(
+                    right: playlist == featured.last ? 0 : AppSpacing.sm + 2,
+                  ),
+                  child: HotPlaylistFeatureCard(
+                    playlist: playlist,
+                    onTap: () => onTap(playlist),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

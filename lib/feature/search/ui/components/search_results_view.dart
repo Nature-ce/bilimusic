@@ -4,7 +4,6 @@ import 'package:bilimusic/feature/search/domain/search_sort.dart';
 import 'package:bilimusic/feature/search/domain/search_state.dart';
 import 'package:bilimusic/feature/search/domain/search_type.dart';
 import 'package:bilimusic/feature/search/domain/search_user_item.dart';
-import 'package:bilimusic/feature/search/ui/components/search_user_results.dart';
 import 'package:bilimusic/feature/search/ui/components/search_video_results.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +11,6 @@ class SearchResultsView extends StatelessWidget {
   const SearchResultsView({
     super.key,
     required this.state,
-    required this.tabController,
     required this.onLoadMore,
     required this.onChangeSort,
     required this.onPlayItem,
@@ -22,7 +20,6 @@ class SearchResultsView extends StatelessWidget {
   });
 
   final SearchState state;
-  final TabController tabController;
   final VoidCallback onLoadMore;
   final Future<void> Function(SearchSort sort) onChangeSort;
   final Future<void> Function(SearchResultItem item) onPlayItem;
@@ -32,60 +29,25 @@ class SearchResultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _SearchTypeTabBar(controller: tabController),
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: tabController,
-            children: <Widget>[
-              _SearchTabScrollView(
-                type: SearchType.video,
-                activeType: state.type,
-                onLoadMore: onLoadMore,
-                sliver: SearchVideoResults(
-                  submittedQuery: state.submittedQuery,
-                  results: state.results,
-                  isLoading: state.isLoadingFor(SearchType.video),
-                  isLoadingMore: state.isLoadingMoreFor(SearchType.video),
-                  hasMore: state.hasMoreFor(SearchType.video),
-                  errorMessage: state.errorMessageFor(SearchType.video),
-                  loadMoreErrorMessage: state.loadMoreErrorMessageFor(
-                    SearchType.video,
-                  ),
-                  sort: state.sort,
-                  onRetryLoadMore: onLoadMore,
-                  onPlayItem: onPlayItem,
-                  onPlayNext: onPlayNext,
-                  onEnqueue: onEnqueue,
-                  onChangeSort: onChangeSort,
-                ),
-              ),
-              _SearchTabScrollView(
-                type: SearchType.up,
-                activeType: state.type,
-                onLoadMore: onLoadMore,
-                sliver: SearchUserResults(
-                  submittedQuery: state.submittedQuery,
-                  results: state.userResults,
-                  isLoading: state.isLoadingFor(SearchType.up),
-                  isLoadingMore: state.isLoadingMoreFor(SearchType.up),
-                  hasMore: state.hasMoreFor(SearchType.up),
-                  errorMessage: state.errorMessageFor(SearchType.up),
-                  loadMoreErrorMessage: state.loadMoreErrorMessageFor(
-                    SearchType.up,
-                  ),
-                  onRetryLoadMore: onLoadMore,
-                  onTapItem: onTapUser,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return _SearchTabScrollView(
+      type: SearchType.video,
+      activeType: state.type,
+      onLoadMore: onLoadMore,
+      sliver: SearchVideoResults(
+        submittedQuery: state.submittedQuery,
+        results: state.results,
+        isLoading: state.isLoadingFor(SearchType.video),
+        isLoadingMore: state.isLoadingMoreFor(SearchType.video),
+        hasMore: state.hasMoreFor(SearchType.video),
+        errorMessage: state.errorMessageFor(SearchType.video),
+        loadMoreErrorMessage: state.loadMoreErrorMessageFor(SearchType.video),
+        sort: state.sort,
+        onRetryLoadMore: onLoadMore,
+        onPlayItem: onPlayItem,
+        onPlayNext: onPlayNext,
+        onEnqueue: onEnqueue,
+        onChangeSort: onChangeSort,
+      ),
     );
   }
 }
@@ -167,34 +129,6 @@ class SearchResultFooter extends StatelessWidget {
     }
 
     return const SizedBox.shrink();
-  }
-}
-
-class _SearchTypeTabBar extends StatelessWidget {
-  const _SearchTypeTabBar({required this.controller});
-
-  final TabController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    return TabBar(
-      controller: controller,
-      labelColor: colorScheme.primary,
-      unselectedLabelColor: colorScheme.onSurfaceVariant,
-      indicatorColor: colorScheme.primary,
-      labelStyle: theme.textTheme.titleSmall?.copyWith(
-        fontWeight: FontWeight.w800,
-      ),
-      unselectedLabelStyle: theme.textTheme.titleSmall?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
-      tabs: SearchType.values.map((SearchType item) {
-        return Tab(height: 40, child: Text(item.label));
-      }).toList(),
-    );
   }
 }
 

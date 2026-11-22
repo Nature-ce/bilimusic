@@ -8,7 +8,6 @@ import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
-import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
@@ -97,6 +96,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             const SizedBox(height: AppSpacing.lg),
             _ProfileQuickActions(
               likedCount: likedCount,
+              playlistCount: favoritesState.collections.length,
               recentCount: recentCount,
               downloadCount: downloadCount,
               onLikedTap: () => context.push(
@@ -113,37 +113,54 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             const SizedBox(height: 16),
             _ProfileSectionHeader(onAddPressed: _handleAddPressed),
             if (visibleCollections.isNotEmpty) const SizedBox(height: 14),
-            ...visibleCollections.map((FavoriteCollection collection) {
-              final List<FavoriteEntry> items = favoritesState
-                  .itemsForCollection(collection.id);
-              final FavoriteEntry? latestItem = items.isEmpty
-                  ? null
-                  : items.first;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _PlaylistTile(
-                  title: collection.name,
-                  count: favoritesState.itemCountForCollection(collection.id),
-                  isRemote: collection.isRemote,
-                  coverUrl: latestItem?.coverUrl,
-                  onTap: () =>
-                      context.push('/profile/favorites/${collection.id}'),
-                  onLongPressStart: (LongPressStartDetails details) {
-                    _showCollectionActionMenu(
-                      globalPosition: details.globalPosition,
-                      collection: collection,
-                    );
-                  },
-                  onMenuPressed: (Offset globalPosition) {
-                    _showCollectionActionMenu(
-                      globalPosition: globalPosition,
-                      collection: collection,
+            if (visibleCollections.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    const double gap = AppSpacing.sm + 2;
+                    final double itemWidth = (constraints.maxWidth - gap) / 2;
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: <Widget>[
+                        for (final FavoriteCollection collection
+                            in visibleCollections)
+                          SizedBox(
+                            width: itemWidth,
+                            child: _PlaylistTile(
+                              title: collection.name,
+                              count: favoritesState.itemCountForCollection(
+                                collection.id,
+                              ),
+                              isRemote: collection.isRemote,
+                              coverUrl: favoritesState
+                                  .itemsForCollection(collection.id)
+                                  .firstOrNull
+                                  ?.coverUrl,
+                              onTap: () => context.push(
+                                '/profile/favorites/${collection.id}',
+                              ),
+                              onLongPressStart:
+                                  (LongPressStartDetails details) {
+                                    _showCollectionActionMenu(
+                                      globalPosition: details.globalPosition,
+                                      collection: collection,
+                                    );
+                                  },
+                              onMenuPressed: (Offset globalPosition) {
+                                _showCollectionActionMenu(
+                                  globalPosition: globalPosition,
+                                  collection: collection,
+                                );
+                              },
+                            ),
+                          ),
+                      ],
                     );
                   },
                 ),
-              );
-            }),
+              ),
             if (shouldCollapse)
               Center(
                 child: TextButton.icon(
@@ -169,6 +186,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ),
               ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.md,
+                0,
+              ),
+              child: Material(
+                color: appCardSurfaceColor(context),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  leading: Icon(
+                    Icons.person_pin_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: const Text(
+                    '关注的 UP 主',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: const Text('查看 / 管理关注列表'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/profile/favorite-ups'),
+                ),
+              ),
+            ),
             if (favoritePlaylists.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppSpacing.lg),
               Padding(
@@ -735,6 +778,7 @@ class _CollectionNameDialogState extends State<_CollectionNameDialog> {
 class _ProfileQuickActions extends StatelessWidget {
   const _ProfileQuickActions({
     required this.likedCount,
+    required this.playlistCount,
     required this.recentCount,
     required this.downloadCount,
     required this.onLikedTap,
@@ -744,6 +788,7 @@ class _ProfileQuickActions extends StatelessWidget {
   });
 
   final int likedCount;
+  final int playlistCount;
   final int recentCount;
   final int downloadCount;
   final VoidCallback onLikedTap;
@@ -768,6 +813,14 @@ class _ProfileQuickActions extends StatelessWidget {
                 count: likedCount,
                 onTap: onLikedTap,
                 onLongPressStart: onLikedLongPressStart,
+              ),
+            ),
+            _ProfileStatDivider(colorScheme: colorScheme),
+            Expanded(
+              child: _ProfileStatItem(
+                icon: Icons.queue_music_rounded,
+                label: '歌单',
+                count: playlistCount,
               ),
             ),
             _ProfileStatDivider(colorScheme: colorScheme),
@@ -892,7 +945,7 @@ class _ProfileSectionHeader extends StatelessWidget {
     final ColorScheme colorScheme = theme.colorScheme;
     return Row(
       children: <Widget>[
-        Text('歌单', style: AppTextStyles.sectionTitle(theme)),
+        Text('我的歌单', style: AppTextStyles.sectionTitle(theme)),
         const Spacer(),
         FilledButton.icon(
           onPressed: onAddPressed,
@@ -944,37 +997,47 @@ class _PlaylistTile extends StatelessWidget {
     final ColorScheme colorScheme = theme.colorScheme;
 
     return Material(
-      color: Colors.transparent,
+      color: appCardSurfaceColor(context),
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      clipBehavior: Clip.antiAlias,
       child: GestureDetector(
         onLongPressStart: onLongPressStart,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            padding: const EdgeInsets.all(AppSpacing.sm + 2),
             child: Row(
               children: <Widget>[
                 _PlaylistCover(coverUrl: coverUrl),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.sm + 2),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.listTitle(theme).copyWith(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
                       Row(
                         children: <Widget>[
                           Flexible(
                             child: Text(
-                              title,
+                              '$count 首',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.listTitle(
-                                theme,
-                              ).copyWith(fontWeight: FontWeight.w700),
+                              style: AppTextStyles.meta(theme, fontSize: 10.5),
                             ),
                           ),
                           if (isRemote || badgeLabel != null) ...<Widget>[
-                            const SizedBox(width: AppSpacing.xs + 2),
+                            const SizedBox(width: 4),
                             _RemoteSourceBadge(
                               colorScheme: colorScheme,
                               label: badgeLabel ?? 'B站',
@@ -982,30 +1045,33 @@ class _PlaylistTile extends StatelessWidget {
                           ],
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text('$count 首', style: AppTextStyles.meta(theme)),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
                 Builder(
                   builder: (BuildContext buttonContext) {
-                    return IconButton(
-                      tooltip: '歌单设置',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () {
-                        final RenderBox? box =
-                            buttonContext.findRenderObject() as RenderBox?;
-                        if (box == null) {
-                          return;
-                        }
-                        onMenuPressed(
-                          box.localToGlobal(box.size.center(Offset.zero)),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.more_horiz_rounded,
-                        color: colorScheme.onSurfaceVariant,
+                    return Tooltip(
+                      message: '歌单设置',
+                      child: InkResponse(
+                        radius: 16,
+                        onTap: () {
+                          final RenderBox? box =
+                              buttonContext.findRenderObject() as RenderBox?;
+                          if (box == null) {
+                            return;
+                          }
+                          onMenuPressed(
+                            box.localToGlobal(box.size.center(Offset.zero)),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.more_horiz_rounded,
+                            size: 18,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -1064,10 +1130,10 @@ class _PlaylistCover extends StatelessWidget {
 
     return CommonCachedImage(
       imageUrl: coverUrl,
-      width: AppSizes.tileCover,
-      height: AppSizes.tileCover,
+      width: 46,
+      height: 46,
       fit: BoxFit.cover,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       placeholder: _PlaylistPlaceholder(primary: primary),
       errorWidget: _PlaylistPlaceholder(primary: primary),
     );

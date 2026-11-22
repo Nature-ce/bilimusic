@@ -11,7 +11,6 @@ extension SearchSortExtension on SearchSort {
         return '最新发布';
       case SearchSort.mostFavorite:
         return '最多收藏';
-      
     }
   }
 

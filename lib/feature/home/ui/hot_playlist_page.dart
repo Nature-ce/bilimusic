@@ -264,6 +264,23 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
               onPlayAll: () => _playAllTracks(state.tracks),
             ),
             const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: <Widget>[
+                Text(
+                  '歌曲',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                if (state.tracks.isNotEmpty)
+                  Text(
+                    '共 ${state.tracks.length} 首',
+                    style: AppTextStyles.meta(theme, fontSize: 11.5),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
             if (state.isLoading)
               const _HotPlaylistTracksLoading()
             else if (state.hasError)
@@ -475,7 +492,6 @@ class _HotPlaylistHeader extends StatelessWidget {
         ? playlist.trackCount
         : totalCount;
     final List<String> meta = <String>[
-      playlist.platform.label,
       if (playlist.playCount > 0) '${playlist.playCountText}次播放',
       if (effectiveTrackCount > 0) '$effectiveTrackCount 首',
     ];
@@ -484,11 +500,11 @@ class _HotPlaylistHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           child: CommonCachedImage(
             imageUrl: playlist.coverUrl,
-            width: 96,
-            height: 96,
+            width: 108,
+            height: 108,
             fit: BoxFit.cover,
             fallbackIcon: Icons.queue_music_rounded,
             iconColor: colorScheme.onSurfaceVariant,
@@ -500,14 +516,30 @@ class _HotPlaylistHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  '${playlist.platform.label} · 歌单',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 playlist.name.trim().isEmpty ? '热门歌单' : playlist.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.listTitle(theme).copyWith(
-                  fontSize: 16,
+                  fontSize: 19,
                   fontWeight: FontWeight.w800,
                   height: 1.25,
+                  letterSpacing: -0.3,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs + 2),
@@ -515,7 +547,7 @@ class _HotPlaylistHeader extends StatelessWidget {
                 meta.join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.meta(theme, fontSize: 12),
+                style: AppTextStyles.meta(theme, fontSize: 11.5),
               ),
               if (playlist.creator.isNotEmpty) ...<Widget>[
                 const SizedBox(height: AppSpacing.xs),
@@ -523,7 +555,7 @@ class _HotPlaylistHeader extends StatelessWidget {
                   'by ${playlist.creator}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.meta(theme, fontSize: 12).copyWith(
+                  style: AppTextStyles.meta(theme, fontSize: 11.5).copyWith(
                     color: colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
                   ),
                 ),
@@ -534,7 +566,7 @@ class _HotPlaylistHeader extends StatelessWidget {
                   playlist.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.meta(theme, fontSize: 12).copyWith(
+                  style: AppTextStyles.meta(theme, fontSize: 11.5).copyWith(
                     color: colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
                     height: 1.4,
                   ),
