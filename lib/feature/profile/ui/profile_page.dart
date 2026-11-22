@@ -11,7 +11,6 @@ import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
 import 'package:bilimusic/feature/profile/ui/components/followed_ups_card.dart';
-import 'package:bilimusic/feature/profile/ui/components/profile_local_entry.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_playlist_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_stats_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_version_footer.dart';
@@ -126,11 +125,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               onReportTap: () => context.push('/profile/recent'),
             ),
             const SizedBox(height: 14),
-            ProfileLocalEntry(
-              trackCount: downloadCount,
-              onTap: () => context.push('/profile/downloads'),
-            ),
-            const SizedBox(height: 14),
             _ProfileSectionHeader(onAddPressed: _handleAddPressed),
             if (visibleCollections.isNotEmpty) const SizedBox(height: 12),
             if (visibleCollections.isNotEmpty)
@@ -146,7 +140,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           in visibleCollections)
                         SizedBox(
                           width: itemWidth,
-                          child: ProfilePlaylistCard(
+                          child: ProfileCollectionGridCard(
                             title: collection.name,
                             trackCount: favoritesState.itemCountForCollection(
                               collection.id,
@@ -155,7 +149,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 .itemsForCollection(collection.id)
                                 .firstOrNull
                                 ?.coverUrl,
-                            isRemote: collection.isRemote,
                             updatedAt: collection.updatedAt,
                             onTap: () => context.push(
                               '/profile/favorites/${collection.id}',

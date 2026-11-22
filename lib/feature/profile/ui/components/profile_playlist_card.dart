@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
+import 'package:bilimusic/feature/profile/ui/components/profile_card_surface.dart';
 import 'package:flutter/material.dart';
 
 class ProfilePlaylistCard extends StatelessWidget {
@@ -136,6 +137,184 @@ class ProfilePlaylistCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class ProfileCollectionGridCard extends StatelessWidget {
+  const ProfileCollectionGridCard({
+    super.key,
+    required this.title,
+    required this.trackCount,
+    required this.coverUrl,
+    required this.onTap,
+    required this.onLongPressStart,
+    required this.onMenuPressed,
+    this.updatedAt,
+  });
+
+  final String title;
+  final int trackCount;
+  final String? coverUrl;
+  final VoidCallback onTap;
+  final ValueChanged<LongPressStartDetails> onLongPressStart;
+  final ValueChanged<Offset> onMenuPressed;
+  final DateTime? updatedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final String? updatedLabel = _relativeUpdatedLabel(
+      updatedAt,
+      DateTime.now(),
+    );
+
+    return ProfileCardSurface(
+      onTap: onTap,
+      onLongPressStart: onLongPressStart,
+      padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+      child: Row(
+        children: <Widget>[
+          _PlaylistGridCover(coverUrl: coverUrl, trackCount: trackCount),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                if (updatedLabel != null) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text(
+                    updatedLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.meta(theme, fontSize: 11),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Builder(
+            builder: (BuildContext buttonContext) {
+              return Tooltip(
+                message: '歌单设置',
+                child: InkResponse(
+                  radius: 14,
+                  onTap: () {
+                    final RenderBox? box =
+                        buttonContext.findRenderObject() as RenderBox?;
+                    if (box == null) {
+                      return;
+                    }
+                    onMenuPressed(
+                      box.localToGlobal(box.size.center(Offset.zero)),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: Icon(
+                      Icons.more_horiz_rounded,
+                      size: 18,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlaylistGridCover extends StatelessWidget {
+  const _PlaylistGridCover({required this.coverUrl, required this.trackCount});
+
+  static const double _size = 64;
+  static const double _radius = 14;
+
+  final String? coverUrl;
+  final int trackCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color primary = Theme.of(context).colorScheme.primary;
+    return SizedBox(
+      width: _size,
+      height: _size,
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: CommonCachedImage(
+              imageUrl: coverUrl,
+              width: _size,
+              height: _size,
+              fit: BoxFit.cover,
+              borderRadius: BorderRadius.circular(_radius),
+              placeholder: _PlaylistGridCoverFallback(primary: primary),
+              errorWidget: _PlaylistGridCoverFallback(primary: primary),
+            ),
+          ),
+          Positioned(
+            right: 3,
+            bottom: 3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+              child: Text(
+                '$trackCount',
+                style: const TextStyle(
+                  fontSize: 9.5,
+                  height: 1.2,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlaylistGridCoverFallback extends StatelessWidget {
+  const _PlaylistGridCoverFallback({required this.primary});
+
+  final Color primary;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: <Color>[
+            primary.withValues(alpha: 0.18),
+            primary.withValues(alpha: 0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(_PlaylistGridCover._radius),
+      ),
+      child: Icon(Icons.queue_music_rounded, color: primary, size: 24),
     );
   }
 }

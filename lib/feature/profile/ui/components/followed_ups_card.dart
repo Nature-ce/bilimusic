@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/cached_avatar.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
+import 'package:bilimusic/feature/profile/ui/components/profile_card_surface.dart';
 import 'package:bilimusic/feature/up/domain/favorite_up.dart';
 import 'package:flutter/material.dart';
 
@@ -25,73 +26,62 @@ class FollowedUpsCard extends StatelessWidget {
         ? _avatarSize
         : _avatarSize + (preview.length - 1) * _avatarOverlap;
 
-    return Material(
-      color: appCardSurfaceColor(context),
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-          child: Row(
-            children: <Widget>[
-              SizedBox(
-                width: stackWidth,
-                height: _avatarSize,
-                child: preview.isEmpty
-                    ? _FollowedUpPlaceholder(colorScheme: colorScheme)
-                    : Stack(
-                        children: <Widget>[
-                          for (
-                            int index = 0;
-                            index < preview.length;
-                            index += 1
-                          )
-                            Positioned(
-                              left: index * _avatarOverlap,
-                              child: _FollowedUpAvatar(
-                                avatarUrl: preview[index].avatarUrl,
-                                colorScheme: colorScheme,
-                              ),
-                            ),
-                        ],
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      '关注的 UP 主',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.2,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${ups.length} 位 · 查看 / 管理',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.meta(theme, fontSize: 11.5),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ],
+    return ProfileCardSurface(
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(
+        children: <Widget>[
+          SizedBox(
+            width: stackWidth,
+            height: _avatarSize,
+            child: preview.isEmpty
+                ? _FollowedUpPlaceholder(colorScheme: colorScheme)
+                : Stack(
+                    children: <Widget>[
+                      for (int index = 0; index < preview.length; index += 1)
+                        Positioned(
+                          left: index * _avatarOverlap,
+                          child: _FollowedUpAvatar(
+                            avatarUrl: preview[index].avatarUrl,
+                            colorScheme: colorScheme,
+                          ),
+                        ),
+                    ],
+                  ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  '关注的 UP 主',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.2,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${ups.length} 位 · 查看 / 管理',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.meta(theme, fontSize: 11.5),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ],
       ),
     );
   }
