@@ -358,16 +358,6 @@ class MetadataLookupService {
     );
   }
 
-  String? defaultSearchKeyword(PlayableItem item) {
-    for (final String title in item.lyricSearchTitles) {
-      final String keyword = title.trim();
-      if (keyword.isNotEmpty) {
-        return keyword;
-      }
-    }
-    return null;
-  }
-
   Future<String> resolveSearchKeyword(String value) async {
     final String rawTitle = value.trim();
     if (rawTitle.isEmpty) {

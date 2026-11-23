@@ -274,25 +274,4 @@ void main() {
     expect(rescanned.tracks, hasLength(24));
     expect(rescanned.scanCount, 2);
   });
-
-  test('ensureFeedAt only tops up near the end of the feed', () async {
-    final ProviderContainer container = _container(_repository());
-
-    container.read(musicRadarControllerProvider.notifier);
-    final MusicRadarState first = await _settle(container);
-    final MusicRadarController controller = container.read(
-      musicRadarControllerProvider.notifier,
-    );
-
-    controller.ensureFeedAt(0);
-    await _settle(container);
-    expect(
-      container.read(musicRadarControllerProvider).tracks,
-      hasLength(first.tracks.length),
-    );
-
-    controller.ensureFeedAt(first.tracks.length - 1);
-    final MusicRadarState toppedUp = await _settle(container);
-    expect(toppedUp.tracks.length, greaterThan(first.tracks.length));
-  });
 }

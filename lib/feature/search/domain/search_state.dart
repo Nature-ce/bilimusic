@@ -45,19 +45,6 @@ abstract class SearchState with _$SearchState {
 }
 
 extension SearchStateComputed on SearchState {
-  int get activeResultCount {
-    return resultCountFor(type);
-  }
-
-  int resultCountFor(SearchType type) {
-    switch (type) {
-      case SearchType.video:
-        return videoResults.items.length;
-      case SearchType.up:
-        return userResultsPage.items.length;
-    }
-  }
-
   bool isLoadingFor(SearchType type) {
     return this.type == type && isLoading;
   }

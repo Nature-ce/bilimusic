@@ -76,13 +76,6 @@ class PlayerAudioSessionCoordinator {
     _isBound = true;
   }
 
-  Future<void> refreshConfiguration() async {
-    final AudioSession session = await AudioSession.instance;
-    await session.configure(
-      _audioSessionConfiguration(_readAllowMixWithOthers()),
-    );
-  }
-
   Future<void> activateForPlayback() {
     return _activationFuture ??= _activateForPlayback().whenComplete(() {
       _activationFuture = null;
@@ -192,11 +185,6 @@ class PlayerAudioSessionCoordinator {
 
     _volumeBeforeUnknownInterruption = _audioEngine.volume;
     _isDuckedForUnknownInterruption = true;
-    // await _audioEngine.setVolume(
-    //   _volumeBeforeUnknownInterruption <= _unknownInterruptionDuckVolume
-    //       ? _volumeBeforeUnknownInterruption
-    //       : _unknownInterruptionDuckVolume,
-    // );
   }
 
   Future<void> _restoreVolumeAfterUnknownInterruption() async {

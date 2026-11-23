@@ -23,9 +23,4 @@ abstract class MusicRadarState with _$MusicRadarState {
   bool get hasError => errorMessage != null && errorMessage!.isNotEmpty;
 
   bool get isEmpty => !isScanning && !hasError && tracks.isEmpty;
-
-  bool get hasResult => tracks.isNotEmpty;
-
-  /// 是否还有未加载的曲目（刷歌流可持续下滑，恒为 true）。
-  bool get isLoadingMoreError => errorMessage != null && tracks.isNotEmpty;
 }

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 const Color _hotSearchFirstRankColor = Color(0xFFF04438);
 const Color _hotSearchSecondRankColor = Color(0xFFF2731F);
 const Color _hotSearchHotBadgeColor = Color(0xFFF2731F);
-const Color _hotSearchNewBadgeColor = Color(0xFFF04438);
 
 class HotSearchSection extends StatelessWidget {
   const HotSearchSection({
@@ -73,10 +72,6 @@ class _HotSearchRow extends StatelessWidget {
     };
     final Widget? badge = switch (rank) {
       1 => const _HotSearchBadge(label: '热', color: _hotSearchHotBadgeColor),
-      _ when item.isNew => const _HotSearchBadge(
-        label: '新',
-        color: _hotSearchNewBadgeColor,
-      ),
       _ => null,
     };
 

@@ -33,10 +33,6 @@ Color appMutedTextColor(BuildContext context) {
   return Theme.of(context).colorScheme.onSurfaceVariant;
 }
 
-Color appSubtleTextColor(BuildContext context, {double alpha = 0.72}) {
-  return Theme.of(context).colorScheme.onSurface.withValues(alpha: alpha);
-}
-
 Color appSkeletonColor(BuildContext context) {
   return Theme.of(context).colorScheme.surfaceContainerHighest;
 }

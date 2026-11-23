@@ -14,7 +14,6 @@ import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 class ChartTrackMatcher {
   const ChartTrackMatcher._();
 
-  static const int minimumConfidentScore = 2;
   static const int _titleScore = 3;
   static const int _artistScore = 2;
   static const int _exactDurationScore = 4;

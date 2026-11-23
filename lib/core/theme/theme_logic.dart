@@ -47,14 +47,6 @@ class ThemeLogic extends _$ThemeLogic {
     state = state.copyWith(themeVariantId: normalizedVariantId);
   }
 
-  void toggleTheme() {
-    if (state.themeMode == ThemeMode.dark) {
-      setThemeMode(ThemeMode.light);
-    } else {
-      setThemeMode(ThemeMode.dark);
-    }
-  }
-
   ThemeMode _readThemeMode(String? rawValue) {
     switch (rawValue) {
       case 'dark':

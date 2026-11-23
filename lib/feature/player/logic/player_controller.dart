@@ -175,15 +175,6 @@ class PlayerController extends Notifier<PlayerState>
     }
   }
 
-  Future<void> loadFromItem(PlayableItem item, {bool autoplay = true}) {
-    return setQueue(
-      <PlayableItem>[item],
-      startIndex: 0,
-      sourceLabel: state.queueSourceLabel,
-      autoplay: autoplay,
-    );
-  }
-
   @override
   Future<void> play() async {
     if (!state.hasQueue) {
@@ -370,17 +361,6 @@ class PlayerController extends Notifier<PlayerState>
     state = state.copyWith(speed: speed);
     await _audioEngine.setRate(speed);
     _publishPlaybackState();
-  }
-
-  Future<void> seekBy(Duration offset) async {
-    final Duration effectiveDuration = state.duration ?? Duration.zero;
-    final Duration nextPosition = _audioEngine.position + offset;
-    final Duration clamped = nextPosition < Duration.zero
-        ? Duration.zero
-        : effectiveDuration > Duration.zero && nextPosition > effectiveDuration
-        ? effectiveDuration
-        : nextPosition;
-    await seek(clamped);
   }
 
   @override

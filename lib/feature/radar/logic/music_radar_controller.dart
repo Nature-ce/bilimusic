@@ -30,7 +30,6 @@ class MusicRadarController extends _$MusicRadarController {
   static const int _firstWavePlaylists = 1;
   static const int _secondWavePlaylists = 2;
   static const int _tracksPerPlaylist = 40;
-  static const int _feedLookahead = 3;
 
   int _scanId = 0;
   int _extendId = 0;
@@ -160,14 +159,6 @@ class MusicRadarController extends _$MusicRadarController {
       isPersonalized: !_taste.isColdStart,
       errorMessage: null,
     );
-  }
-
-  /// 滑到接近末尾时自动补货。
-  void ensureFeedAt(int index) {
-    if (index < state.tracks.length - _feedLookahead) {
-      return;
-    }
-    unawaited(extendFeed());
   }
 
   void _remember(List<RadarPick> picks) {

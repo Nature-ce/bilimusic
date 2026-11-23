@@ -63,15 +63,6 @@ class MetadataCacheRepository {
     );
   }
 
-  Future<void> removeCachedMetadata({
-    required PlayableItem item,
-    int? chapterStartMs,
-  }) {
-    return _box.delete(
-      buildCacheKey(item: item, chapterStartMs: chapterStartMs),
-    );
-  }
-
   Future<void> clear() {
     return _box.clear();
   }

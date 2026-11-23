@@ -1,4 +1,3 @@
-import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/playback_chapter.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
@@ -17,17 +16,6 @@ String formatPlayerDuration(Duration value) {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
   return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-}
-
-String buildPlayerSubtitle(String author, PlayerState state) {
-  final String normalizedAuthor = normalizeDisplayTextOrEmpty(author);
-  final String pageTitle = normalizeDisplayTextOrEmpty(
-    state.audioStream?.pageTitle,
-  );
-  if (pageTitle.isEmpty) {
-    return normalizedAuthor;
-  }
-  return '$normalizedAuthor · $pageTitle';
 }
 
 String resolvePlayerDurationLabel(PlayerState state, PlayableItem? item) {

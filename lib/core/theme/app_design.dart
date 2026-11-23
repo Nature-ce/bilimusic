@@ -24,9 +24,6 @@ abstract final class AppRadius {
 
 abstract final class AppSizes {
   static const double listCover = 48;
-  static const double tileCover = 56;
-  static const double listRowHeight = 62;
-  static const double miniPlayerHeight = 64;
   static const double minTapTarget = 48;
   static const double minIconTapTarget = 44;
 }

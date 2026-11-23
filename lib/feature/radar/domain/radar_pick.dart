@@ -31,8 +31,6 @@ abstract class RadarPick with _$RadarPick {
 
   String get key => track.key;
 
-  String get titleKey => normalizeRadarKey(track.title);
-
   String get artistKey => normalizeRadarKey(track.artist);
 
   String get reasonLabel {

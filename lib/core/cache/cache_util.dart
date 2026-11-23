@@ -25,47 +25,6 @@ class CacheUtil {
     await Hive.lazyBox<Metadata>(metadataCacheBoxName).clear();
   }
 
-  static Future<void> clearAllCache() async {
-    await Future.wait(<Future<void>>[
-      clearImageCache(),
-      clearAudioCache(),
-      clearLyricsCache(),
-      clearMetadataCache(),
-    ]);
-  }
-
-  static Future<void> removeImageCache(String url) async {
-    await imageCacheManager.removeFile(url);
-  }
-
-  static Future<void> removeAudioCache(String url) async {
-    await audioCacheManager.removeFile(url);
-  }
-
-  static Future<void> removeLyricsCache(String key) async {
-    await lyricsCacheManager.removeFile(key);
-  }
-
-  static Future<void> removeMetadataCache(String key) async {
-    await Hive.lazyBox<Metadata>(metadataCacheBoxName).delete(key);
-  }
-
-  static Future<FileInfo?> getImageCache(String url) async {
-    return await imageCacheManager.getFileFromCache(url);
-  }
-
-  static Future<FileInfo?> getAudioCache(String url) async {
-    return await audioCacheManager.getFileFromCache(url);
-  }
-
-  static Future<FileInfo?> getLyricsCache(String key) async {
-    return await lyricsCacheManager.getFileFromCache(key);
-  }
-
-  static Future<Metadata?> getMetadataCache(String key) {
-    return Hive.lazyBox<Metadata>(metadataCacheBoxName).get(key);
-  }
-
   static Future<int> getImageCacheSizeBytes() async {
     return imageCacheManager.store.getCacheSize();
   }

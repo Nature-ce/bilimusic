@@ -46,10 +46,6 @@ class BiliSessionController extends _$BiliSessionController {
     return session;
   }
 
-  Future<void> setSession(BiliSession session) async {
-    await _persistSession(session);
-  }
-
   Future<void> clearSession() async {
     await _store.clear();
     _client.clearCookie();

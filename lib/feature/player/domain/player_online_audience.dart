@@ -13,8 +13,4 @@ abstract class PlayerOnlineAudience with _$PlayerOnlineAudience {
   }) = _PlayerOnlineAudience;
 
   const PlayerOnlineAudience._();
-
-  bool get hasVisibleValue =>
-      (showTotal && (totalText?.isNotEmpty ?? false)) ||
-      (showCount && (countText?.isNotEmpty ?? false));
 }

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HotSearchItem {
 
- String get keyword; String get showName; int get heatScore; bool get isNew;
+ String get keyword; String get showName;
 /// Create a copy of HotSearchItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $HotSearchItemCopyWith<HotSearchItem> get copyWith => _$HotSearchItemCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HotSearchItem&&(identical(other.keyword, keyword) || other.keyword == keyword)&&(identical(other.showName, showName) || other.showName == showName)&&(identical(other.heatScore, heatScore) || other.heatScore == heatScore)&&(identical(other.isNew, isNew) || other.isNew == isNew));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HotSearchItem&&(identical(other.keyword, keyword) || other.keyword == keyword)&&(identical(other.showName, showName) || other.showName == showName));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,keyword,showName,heatScore,isNew);
+int get hashCode => Object.hash(runtimeType,keyword,showName);
 
 @override
 String toString() {
-  return 'HotSearchItem(keyword: $keyword, showName: $showName, heatScore: $heatScore, isNew: $isNew)';
+  return 'HotSearchItem(keyword: $keyword, showName: $showName)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $HotSearchItemCopyWith<$Res>  {
   factory $HotSearchItemCopyWith(HotSearchItem value, $Res Function(HotSearchItem) _then) = _$HotSearchItemCopyWithImpl;
 @useResult
 $Res call({
- String keyword, String showName, int heatScore, bool isNew
+ String keyword, String showName
 });
 
 
@@ -62,13 +62,11 @@ class _$HotSearchItemCopyWithImpl<$Res>
 
 /// Create a copy of HotSearchItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? keyword = null,Object? showName = null,Object? heatScore = null,Object? isNew = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? keyword = null,Object? showName = null,}) {
   return _then(_self.copyWith(
 keyword: null == keyword ? _self.keyword : keyword // ignore: cast_nullable_to_non_nullable
 as String,showName: null == showName ? _self.showName : showName // ignore: cast_nullable_to_non_nullable
-as String,heatScore: null == heatScore ? _self.heatScore : heatScore // ignore: cast_nullable_to_non_nullable
-as int,isNew: null == isNew ? _self.isNew : isNew // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,
   ));
 }
 
@@ -153,10 +151,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String keyword,  String showName,  int heatScore,  bool isNew)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String keyword,  String showName)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HotSearchItem() when $default != null:
-return $default(_that.keyword,_that.showName,_that.heatScore,_that.isNew);case _:
+return $default(_that.keyword,_that.showName);case _:
   return orElse();
 
 }
@@ -174,10 +172,10 @@ return $default(_that.keyword,_that.showName,_that.heatScore,_that.isNew);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String keyword,  String showName,  int heatScore,  bool isNew)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String keyword,  String showName)  $default,) {final _that = this;
 switch (_that) {
 case _HotSearchItem():
-return $default(_that.keyword,_that.showName,_that.heatScore,_that.isNew);case _:
+return $default(_that.keyword,_that.showName);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +192,10 @@ return $default(_that.keyword,_that.showName,_that.heatScore,_that.isNew);case _
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String keyword,  String showName,  int heatScore,  bool isNew)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String keyword,  String showName)?  $default,) {final _that = this;
 switch (_that) {
 case _HotSearchItem() when $default != null:
-return $default(_that.keyword,_that.showName,_that.heatScore,_that.isNew);case _:
+return $default(_that.keyword,_that.showName);case _:
   return null;
 
 }
@@ -209,13 +207,11 @@ return $default(_that.keyword,_that.showName,_that.heatScore,_that.isNew);case _
 
 
 class _HotSearchItem extends HotSearchItem {
-  const _HotSearchItem({required this.keyword, this.showName = '', this.heatScore = 0, this.isNew = false}): super._();
+  const _HotSearchItem({required this.keyword, this.showName = ''}): super._();
   
 
 @override final  String keyword;
 @override@JsonKey() final  String showName;
-@override@JsonKey() final  int heatScore;
-@override@JsonKey() final  bool isNew;
 
 /// Create a copy of HotSearchItem
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +223,16 @@ _$HotSearchItemCopyWith<_HotSearchItem> get copyWith => __$HotSearchItemCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HotSearchItem&&(identical(other.keyword, keyword) || other.keyword == keyword)&&(identical(other.showName, showName) || other.showName == showName)&&(identical(other.heatScore, heatScore) || other.heatScore == heatScore)&&(identical(other.isNew, isNew) || other.isNew == isNew));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HotSearchItem&&(identical(other.keyword, keyword) || other.keyword == keyword)&&(identical(other.showName, showName) || other.showName == showName));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,keyword,showName,heatScore,isNew);
+int get hashCode => Object.hash(runtimeType,keyword,showName);
 
 @override
 String toString() {
-  return 'HotSearchItem(keyword: $keyword, showName: $showName, heatScore: $heatScore, isNew: $isNew)';
+  return 'HotSearchItem(keyword: $keyword, showName: $showName)';
 }
 
 
@@ -247,7 +243,7 @@ abstract mixin class _$HotSearchItemCopyWith<$Res> implements $HotSearchItemCopy
   factory _$HotSearchItemCopyWith(_HotSearchItem value, $Res Function(_HotSearchItem) _then) = __$HotSearchItemCopyWithImpl;
 @override @useResult
 $Res call({
- String keyword, String showName, int heatScore, bool isNew
+ String keyword, String showName
 });
 
 
@@ -264,13 +260,11 @@ class __$HotSearchItemCopyWithImpl<$Res>
 
 /// Create a copy of HotSearchItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? keyword = null,Object? showName = null,Object? heatScore = null,Object? isNew = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? keyword = null,Object? showName = null,}) {
   return _then(_HotSearchItem(
 keyword: null == keyword ? _self.keyword : keyword // ignore: cast_nullable_to_non_nullable
 as String,showName: null == showName ? _self.showName : showName // ignore: cast_nullable_to_non_nullable
-as String,heatScore: null == heatScore ? _self.heatScore : heatScore // ignore: cast_nullable_to_non_nullable
-as int,isNew: null == isNew ? _self.isNew : isNew // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,
   ));
 }
 

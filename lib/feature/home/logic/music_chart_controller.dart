@@ -38,27 +38,6 @@ class MusicChartController extends _$MusicChartController {
     );
   }
 
-  Future<void> selectPlatform(MusicChartPlatform platform) async {
-    if (state.selected == platform) {
-      final MusicChartEntry? entry = state.entryOf(platform);
-      if (entry == null || (entry.isEmpty && !entry.isLoading)) {
-        await _loadPlatform(platform, ++_requestId);
-      }
-      return;
-    }
-    state = state.copyWith(selected: platform);
-    final MusicChartEntry? entry = state.entryOf(platform);
-    if (entry == null || (entry.isEmpty && !entry.isLoading)) {
-      await _loadPlatform(platform, ++_requestId);
-    }
-  }
-
-  /// 换一个榜单（同一平台内切换热歌榜 / 飙升榜…）。
-  Future<void> selectChart(MusicChart chart) async {
-    state = state.copyWith(selected: chart.platform);
-    await _loadPlatform(chart.platform, ++_requestId, chart: chart);
-  }
-
   Future<void> retry(MusicChartPlatform platform) {
     return _loadPlatform(platform, ++_requestId);
   }

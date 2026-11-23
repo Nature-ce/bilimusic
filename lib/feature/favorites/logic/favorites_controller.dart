@@ -654,20 +654,6 @@ class FavoritesController extends _$FavoritesController {
     return true;
   }
 
-  Future<Map<String, bool>> addToCollections({
-    required Iterable<String> collectionIds,
-    required PlayableItem item,
-  }) async {
-    final Map<String, bool> result = <String, bool>{};
-    for (final String collectionId in collectionIds) {
-      result[collectionId] = await addToCollection(
-        collectionId: collectionId,
-        item: item,
-      );
-    }
-    return result;
-  }
-
   bool isLiked(PlayableItem item) {
     return state.isLiked(item);
   }

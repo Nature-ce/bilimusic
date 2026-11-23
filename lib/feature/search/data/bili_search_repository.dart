@@ -3,7 +3,6 @@ import 'package:bilimusic/common/util/json_util.dart';
 import 'package:bilimusic/common/util/url_util.dart';
 import 'package:bilimusic/core/net/bili_client.dart';
 import 'package:dio/dio.dart';
-import 'package:bilimusic/feature/search/domain/hot_search_item.dart';
 import 'package:bilimusic/feature/search/domain/search_page_result.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 import 'package:bilimusic/feature/search/domain/search_sort.dart';
@@ -15,10 +14,8 @@ class BiliSearchRepository {
   const BiliSearchRepository(this._client);
 
   static const int _defaultPageSize = 20;
-  static const int _hotSearchLimit = 10;
   static const String _suggestEndpoint =
       'https://s.search.bilibili.com/main/suggest';
-  static const String _hotSearchEndpoint = '/x/web-interface/search/square';
 
   final BiliHttpClient _client;
 
@@ -167,59 +164,6 @@ class BiliSearchRepository {
     }
 
     return suggestions;
-  }
-
-  Future<List<HotSearchItem>> fetchHotSearch() async {
-    final Map<String, dynamic> json = await _client.getJson(
-      _hotSearchEndpoint,
-      queryParameters: <String, dynamic>{'limit': _hotSearchLimit},
-      mode: BiliRequestMode.defaultCookie,
-    );
-
-    final Map<String, dynamic> data = _asMap(json['data']);
-    final Map<String, dynamic>? trending = _asNullableMap(data['trending']);
-    final List<dynamic> rawItems =
-        trending?['list'] as List<dynamic>? ?? <dynamic>[];
-    final Set<String> seen = <String>{};
-    final List<HotSearchItem> items = <HotSearchItem>[];
-
-    for (final dynamic rawItem in rawItems) {
-      final Map<String, dynamic>? item = _asNullableMap(rawItem);
-      final String keyword = (item?['keyword'] as String? ?? '').trim();
-      if (keyword.isEmpty || !seen.add(keyword)) {
-        continue;
-      }
-      items.add(
-        HotSearchItem(
-          keyword: keyword,
-          showName: (item?['show_name'] as String? ?? '').trim(),
-          heatScore: _readInt(item?['heat_score']) ?? 0,
-          isNew: _readHotSearchNew(item),
-        ),
-      );
-      if (items.length >= _hotSearchLimit) {
-        break;
-      }
-    }
-
-    return items;
-  }
-
-  bool _readHotSearchNew(Map<String, dynamic>? json) {
-    if (json == null) {
-      return false;
-    }
-    for (final String key in <String>['is_new', 'isNew', 'new']) {
-      if (json[key] == true) {
-        return true;
-      }
-    }
-    for (final String key in <String>['badge', 'tag', 'label', 'show_badge']) {
-      if ((json[key] as String? ?? '').trim() == '新') {
-        return true;
-      }
-    }
-    return false;
   }
 
   SearchResultItem _mapVideoItem(Map<String, dynamic> json) {

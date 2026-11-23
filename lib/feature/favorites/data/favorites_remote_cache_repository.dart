@@ -57,20 +57,6 @@ class FavoritesRemoteCacheRepository {
     return (hasFullSnapshot: false, ids: <String>{});
   }
 
-  Set<String> loadWastedIds(String collectionId) {
-    return loadWastedSnapshot(collectionId).ids;
-  }
-
-  Future<void> addWastedIds(String collectionId, Iterable<String> ids) async {
-    final ({bool hasFullSnapshot, Set<String> ids}) snapshot =
-        loadWastedSnapshot(collectionId);
-    await saveWastedSnapshot(
-      collectionId: collectionId,
-      hasFullSnapshot: snapshot.hasFullSnapshot,
-      ids: snapshot.ids..addAll(ids),
-    );
-  }
-
   Future<void> saveWastedSnapshot({
     required String collectionId,
     required bool hasFullSnapshot,

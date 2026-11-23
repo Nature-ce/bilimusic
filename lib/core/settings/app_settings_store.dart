@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:bilimusic/core/hive/hive_keys.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -44,35 +42,6 @@ class AppSettingsStore {
 
   Future<void> writeDouble(String key, double value) {
     return _prefsBox.put(key, value.toString());
-  }
-
-  List<String> readStringList(String key, {int maxItems = 20}) {
-    final String rawValue = _prefsBox.get(key, defaultValue: '[]') ?? '[]';
-
-    try {
-      final List<dynamic> decoded = jsonDecode(rawValue) as List<dynamic>;
-      return decoded
-          .whereType<String>()
-          .map((String item) => item.trim())
-          .where((String item) => item.isNotEmpty)
-          .take(maxItems)
-          .toList();
-    } on FormatException {
-      return <String>[];
-    }
-  }
-
-  Future<void> writeStringList(
-    String key,
-    List<String> values, {
-    int maxItems = 20,
-  }) {
-    final List<String> sanitized = values
-        .map((String item) => item.trim())
-        .where((String item) => item.isNotEmpty)
-        .take(maxItems)
-        .toList();
-    return _prefsBox.put(key, jsonEncode(sanitized));
   }
 
   Future<void> remove(String key) {

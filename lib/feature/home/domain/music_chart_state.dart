@@ -41,19 +41,4 @@ abstract class MusicChartState with _$MusicChartState {
   const MusicChartState._();
 
   MusicChartEntry? entryOf(MusicChartPlatform platform) => entries[platform];
-
-  MusicChartEntry? get selectedEntry => entries[selected];
-
-  MusicChartPlatform get platform => selected;
-
-  List<MusicChartTrack> get tracks =>
-      selectedEntry?.tracks ?? const <MusicChartTrack>[];
-
-  bool get isLoading => selectedEntry?.isLoading ?? true;
-
-  String? get errorMessage => selectedEntry?.errorMessage;
-
-  bool get hasError => selectedEntry?.hasError ?? false;
-
-  bool get isEmpty => !isLoading && !hasError && tracks.isEmpty;
 }

@@ -103,7 +103,7 @@ final class MusicChartControllerProvider
 }
 
 String _$musicChartControllerHash() =>
-    r'9c27199f78731d180af98bb944fa2fae40ba1fd7';
+    r'f8b42b51123702dc6081560d32c01d6720f10571';
 
 /// 首页排行榜：三个平台各加载自己的默认榜单，供卡片与完整列表共用。
 ///

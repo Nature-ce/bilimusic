@@ -17,31 +17,6 @@ class MetadataLookupResult {
 abstract final class MetadataResolver {
   const MetadataResolver._();
 
-  static MetadataLookupResult buildLookupResult({
-    required String stableId,
-    required String? artist,
-    required String? title,
-    required String? lyrics,
-    MetaLyrics? metaLyrics,
-    required String? albumArtUrl,
-    required List<MetingSearchItem> searchResults,
-    String? searchKeyword,
-  }) {
-    return MetadataLookupResult(
-      metadata: Metadata(
-        stableId: stableId,
-        artist: _normalizeText(artist),
-        title: _normalizeText(title),
-        lyrics: _normalizeText(lyrics),
-        metaLyrics: _normalizeMetaLyrics(metaLyrics),
-        albumArtUrl: _normalizeText(albumArtUrl),
-        updatedAt: DateTime.now(),
-      ),
-      searchResults: searchResults,
-      searchKeyword: _normalizeText(searchKeyword),
-    );
-  }
-
   static Metadata fromCacheLikeValues({
     required String stableId,
     String? artist,

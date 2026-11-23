@@ -58,12 +58,6 @@ class PlayerCoverColorController extends _$PlayerCoverColorController {
     return null;
   }
 
-  String? get currentCoverUrl => _currentCoverUrl;
-
-  Color? getCurrentColor() {
-    return state;
-  }
-
   void _useCoverUrl(String? coverUrl) {
     final String resolvedUrl = coverUrl?.trim() ?? '';
     if (_currentCoverUrl == resolvedUrl) {

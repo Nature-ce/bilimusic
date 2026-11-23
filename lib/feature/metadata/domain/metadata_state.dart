@@ -22,5 +22,4 @@ abstract class MetadataState with _$MetadataState {
 
   bool get hasLyrics => metadata?.hasLyrics ?? false;
   bool get hasError => errorMessage != null && errorMessage!.isNotEmpty;
-  bool get hasNoLyrics => hasSearched && !hasLyrics && !hasError;
 }

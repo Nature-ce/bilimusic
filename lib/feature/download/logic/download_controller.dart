@@ -29,19 +29,7 @@ class DownloadState {
     return tracks.any((DownloadedTrack track) => track.contentId == contentId);
   }
 
-  DownloadedTrack? trackFor(String contentId) {
-    for (final DownloadedTrack track in tracks) {
-      if (track.contentId == contentId) {
-        return track;
-      }
-    }
-    return null;
-  }
-
   DownloadTask? taskFor(String contentId) => tasks[contentId];
-
-  bool get hasActiveTasks =>
-      tasks.values.any((DownloadTask task) => task.isActive);
 
   List<DownloadTask> get activeTasks => tasks.values
       .where((DownloadTask task) => task.isActive)

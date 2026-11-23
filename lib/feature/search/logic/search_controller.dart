@@ -30,9 +30,6 @@ class SearchPageController extends _$SearchPageController {
   );
   int _suggestionRequestId = 0;
   int _searchRequestId = 0;
-  String? _cacheKeyword;
-  bool _videoLoaded = false;
-  bool _userLoaded = false;
   Timer? _suggestionDebounceTimer;
 
   static const Duration suggestionDebounce = Duration(milliseconds: 300);
@@ -82,7 +79,6 @@ class SearchPageController extends _$SearchPageController {
         suggestionsErrorMessage: null,
         loadMoreErrorMessage: null,
       );
-      _resetResultCache();
       return;
     }
 
@@ -91,7 +87,6 @@ class SearchPageController extends _$SearchPageController {
       ...state.recentKeywords.where((String item) => item != nextQuery),
     ].take(20).toList();
 
-    _resetResultCache(keyword: nextQuery);
     state = state.copyWith(
       query: nextQuery,
       submittedQuery: nextQuery,
@@ -117,7 +112,6 @@ class SearchPageController extends _$SearchPageController {
       if (requestId != _searchRequestId) {
         return;
       }
-      _recordLoadedPage(state.type, page);
 
       state = _applyFirstPage(state, state.type, page);
       if (state.type == SearchType.video) {
@@ -162,7 +156,6 @@ class SearchPageController extends _$SearchPageController {
       if (requestId != _searchRequestId) {
         return;
       }
-      _recordLoadedPage(activeType, page);
 
       state = _applyNextPage(state, activeType, page);
     } on Object catch (error) {
@@ -171,11 +164,6 @@ class SearchPageController extends _$SearchPageController {
       }
       state = _applyPageFailure(state, activeType, error);
     }
-  }
-
-  Future<void> selectKeyword(String value) async {
-    state = state.copyWith(query: value);
-    await submitSearch(value);
   }
 
   Future<void> loadSuggestions(String value) async {
@@ -267,47 +255,6 @@ class SearchPageController extends _$SearchPageController {
     }
   }
 
-  Future<void> changeType(SearchType type) async {
-    if (state.type == type) {
-      return;
-    }
-
-    final String submittedQuery = state.submittedQuery?.trim() ?? '';
-    state = state.copyWith(
-      type: type,
-      errorMessage: null,
-      loadMoreErrorMessage: null,
-    );
-    if (submittedQuery.isEmpty || _isLoaded(type)) {
-      return;
-    }
-
-    state = state.copyWith(isLoading: true);
-    final int requestId = _searchRequestId;
-    try {
-      final _SearchPageLoadResult page = await _loadPage(
-        submittedQuery,
-        type: type,
-        page: 1,
-      );
-      if (requestId != _searchRequestId) {
-        return;
-      }
-      _recordLoadedPage(type, page);
-      state = _applyFirstPage(state, type, page);
-    } on Object catch (error) {
-      if (requestId != _searchRequestId) {
-        return;
-      }
-      state = _applyPageFailure(
-        state.copyWith(isLoading: false),
-        type,
-        error,
-        resetPage: true,
-      );
-    }
-  }
-
   void clearQuery() {
     _suggestionDebounceTimer?.cancel();
     _suggestionDebounceTimer = null;
@@ -325,7 +272,6 @@ class SearchPageController extends _$SearchPageController {
       suggestionsErrorMessage: null,
       loadMoreErrorMessage: null,
     );
-    _resetResultCache();
   }
 
   void clearHistory() {
@@ -349,7 +295,6 @@ class SearchPageController extends _$SearchPageController {
           hasMore: result.hasMore,
         ),
       );
-      _userLoaded = true;
     } on Object {
       return;
     }
@@ -419,18 +364,13 @@ class SearchPageController extends _$SearchPageController {
   SearchState _applyPageFailure(
     SearchState current,
     SearchType type,
-    Object error, {
-    bool resetPage = false,
-  }) {
+    Object error,
+  ) {
     final PagedState<SearchResultItem> videoResults = type == SearchType.video
-        ? resetPage
-              ? current.videoResults.reset()
-              : current.videoResults.failed(error)
+        ? current.videoResults.failed(error)
         : current.videoResults;
     final PagedState<SearchUserItem> userResultsPage = type == SearchType.up
-        ? resetPage
-              ? current.userResultsPage.reset()
-              : current.userResultsPage.failed(error)
+        ? current.userResultsPage.failed(error)
         : current.userResultsPage;
     return current.copyWith(
       videoResults: videoResults,
@@ -438,33 +378,6 @@ class SearchPageController extends _$SearchPageController {
       isLoading: false,
       errorMessage: error.toString(),
     );
-  }
-
-  void _resetResultCache({String? keyword}) {
-    _cacheKeyword = keyword;
-    _videoLoaded = false;
-    _userLoaded = false;
-  }
-
-  bool _isLoaded(SearchType type) {
-    if (_cacheKeyword != state.submittedQuery?.trim()) {
-      return false;
-    }
-    switch (type) {
-      case SearchType.video:
-        return _videoLoaded;
-      case SearchType.up:
-        return _userLoaded;
-    }
-  }
-
-  void _recordLoadedPage(SearchType type, _SearchPageLoadResult page) {
-    switch (type) {
-      case SearchType.video:
-        _videoLoaded = true;
-      case SearchType.up:
-        _userLoaded = true;
-    }
   }
 }
 

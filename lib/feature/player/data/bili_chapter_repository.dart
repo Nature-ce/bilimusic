@@ -47,10 +47,6 @@ class BiliChapterRepository {
     return _resolveWithinDuration(chapters, duration);
   }
 
-  void clearCache() {
-    _cache.clear();
-  }
-
   Future<List<PlaybackChapter>> _resolve(
     PlayableItem item,
     Duration? duration,

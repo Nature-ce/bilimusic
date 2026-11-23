@@ -26,19 +26,6 @@ class HotPlaylistController extends _$HotPlaylistController {
 
   Future<void> refresh() => _load(forceRefresh: true);
 
-  Future<void> selectPlatform(MusicChartPlatform platform) async {
-    if (state.platform == platform) {
-      return;
-    }
-    state = state.copyWith(
-      platform: platform,
-      playlists: const <HotPlaylist>[],
-      isLoading: true,
-      errorMessage: null,
-    );
-    await _load();
-  }
-
   Future<void> _load({bool forceRefresh = false}) async {
     final int requestId = ++_requestId;
     if (!state.isLoading) {

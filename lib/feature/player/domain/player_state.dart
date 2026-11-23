@@ -65,8 +65,6 @@ abstract class PlayerState with _$PlayerState {
       currentQueueIndex != null &&
       currentQueueIndex! >= 0 &&
       currentQueueIndex! < queue.length;
-  PlayableItem? get currentQueueItem =>
-      hasActiveQueueIndex ? queue[currentQueueIndex!] : null;
   bool get hasPrevious => hasActiveQueueIndex && queue.length > 1;
   bool get hasNext => hasActiveQueueIndex && queue.length > 1;
 }

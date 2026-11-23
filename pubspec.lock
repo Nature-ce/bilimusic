@@ -322,14 +322,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.0.8"
-  cupertino_icons:
-    dependency: "direct main"
-    description:
-      name: cupertino_icons
-      sha256: "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "1.0.9"
   cupertino_ui:
     dependency: transitive
     description:
@@ -386,14 +378,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "5.0.3"
-  equatable:
-    dependency: transitive
-    description:
-      name: equatable
-      sha256: ea36e500cbf0ec18361deabca755434f73e42fe53c5130021c7e2d6b5ebe1702
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "3.0.0"
   fake_async:
     dependency: transitive
     description:
@@ -442,14 +426,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.1.1"
-  fl_chart:
-    dependency: "direct main"
-    description:
-      name: fl_chart
-      sha256: "5ed69b8be550c6276c8f0bc25c09704fb061018ed1b1681867ad18fcf477e7b7"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "1.3.0"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -871,14 +847,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.3.0"
-  lottie:
-    dependency: "direct main"
-    description:
-      name: lottie
-      sha256: d20f4d75fcab2f27e039c33d6d0ee923a9da3dc8579d59454188a2714a5cce84
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "3.7.0"
   matcher:
     dependency: transitive
     description:
@@ -992,14 +960,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "5.6.4"
-  multi_reorderable:
-    dependency: "direct main"
-    description:
-      name: multi_reorderable
-      sha256: "6498029e86ad22dbac9d2ea04b4bfc4e7d874019465ed92f7ac7ef3d6aa5b594"
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "0.2.2"
   nm:
     dependency: transitive
     description:

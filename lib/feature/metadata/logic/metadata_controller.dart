@@ -94,30 +94,6 @@ class MetadataController extends _$MetadataController {
     );
   }
 
-  Future<void> resetOffset() async {
-    final PlayerState playerState = ref.read(playerControllerProvider);
-    final PlayableItem? item = playerState.currentItem;
-    final String? stableId = item?.stableId;
-    final Metadata? metadata = state.metadata;
-    if (item == null || state.stableId != stableId) {
-      return;
-    }
-    if (metadata == null || metadata.stableId != stableId) {
-      return;
-    }
-
-    final Metadata updatedMetadata = metadata.copyWith(
-      lyricOffsetMs: 0,
-      updatedAt: DateTime.now(),
-    );
-    state = state.copyWith(metadata: updatedMetadata);
-    await _saveCacheIfEligible(
-      item: item,
-      metadata: updatedMetadata,
-      context: _activeContext,
-    );
-  }
-
   Future<void> searchManual(String keyword, {MetingServer? server}) async {
     final PlayerState playerState = ref.read(playerControllerProvider);
     final PlayableItem? item = playerState.currentItem;

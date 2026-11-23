@@ -9,8 +9,6 @@ abstract class HotSearchItem with _$HotSearchItem {
   const factory HotSearchItem({
     required String keyword,
     @Default('') String showName,
-    @Default(0) int heatScore,
-    @Default(false) bool isNew,
   }) = _HotSearchItem;
 
   bool get hasDistinctShowName => showName.isNotEmpty && showName != keyword;

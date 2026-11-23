@@ -19,8 +19,6 @@ class PagedState<T> {
 
   List<T> get items => _items ?? const <Never>[];
 
-  bool get isInitialLoading => status == PagedStatus.loadingFirstPage;
-
   bool get isLoadingMore => status == PagedStatus.loadingMore;
 
   bool get hasFailed => status == PagedStatus.failure;
@@ -88,9 +86,5 @@ class PagedState<T> {
       status: PagedStatus.failure,
       errorMessage: error.toString(),
     );
-  }
-
-  PagedState<T> reset() {
-    return PagedState<T>(page: page, hasMore: hasMore);
   }
 }

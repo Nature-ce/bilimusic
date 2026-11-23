@@ -501,24 +501,6 @@ class _MutableFavorites {
   final Map<String, FavoriteEntry> entries;
   final Map<String, FavoriteMembership> memberships;
 
-  void removeCollection(String collectionId) {
-    collections.remove(collectionId);
-    removeMembershipsForCollection(collectionId);
-  }
-
-  void removeMembershipsForCollection(String collectionId) {
-    final List<String> membershipIds = memberships.values
-        .where(
-          (FavoriteMembership membership) =>
-              membership.collectionId == collectionId,
-        )
-        .map((FavoriteMembership membership) => membership.id)
-        .toList(growable: false);
-    for (final String membershipId in membershipIds) {
-      memberships.remove(membershipId);
-    }
-  }
-
   void upsertEntry(FavoriteEntry entry) {
     final FavoriteEntry? current = entries[entry.itemId];
     if (current == null || entry.updatedAt.isAfter(current.updatedAt)) {

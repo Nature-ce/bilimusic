@@ -117,15 +117,33 @@ void main() {
   test(
     'wasted IDs are isolated by collection and deleted with collection',
     () async {
-      await repository.addWastedIds('remote:1', <String>{'aid:1', 'bvid:1'});
-      await repository.addWastedIds('remote:2', <String>{'aid:2'});
+      await repository.saveWastedSnapshot(
+        collectionId: 'remote:1',
+        hasFullSnapshot: false,
+        ids: <String>{'aid:1'},
+      );
+      final ({bool hasFullSnapshot, Set<String> ids}) first = repository
+          .loadWastedSnapshot('remote:1');
+      await repository.saveWastedSnapshot(
+        collectionId: 'remote:1',
+        hasFullSnapshot: first.hasFullSnapshot,
+        ids: first.ids..add('bvid:1'),
+      );
+      await repository.saveWastedSnapshot(
+        collectionId: 'remote:2',
+        hasFullSnapshot: false,
+        ids: <String>{'aid:2'},
+      );
 
-      expect(repository.loadWastedIds('remote:1'), <String>{'aid:1', 'bvid:1'});
-      expect(repository.loadWastedIds('remote:2'), <String>{'aid:2'});
+      expect(repository.loadWastedSnapshot('remote:1').ids, <String>{
+        'aid:1',
+        'bvid:1',
+      });
+      expect(repository.loadWastedSnapshot('remote:2').ids, <String>{'aid:2'});
 
       await repository.deleteCollection('remote:1');
-      expect(repository.loadWastedIds('remote:1'), isEmpty);
-      expect(repository.loadWastedIds('remote:2'), <String>{'aid:2'});
+      expect(repository.loadWastedSnapshot('remote:1').ids, isEmpty);
+      expect(repository.loadWastedSnapshot('remote:2').ids, <String>{'aid:2'});
     },
   );
 
@@ -136,7 +154,7 @@ void main() {
       ids: <String>{'aid:2'},
     );
     expect(repository.loadWastedSnapshot('remote:1').hasFullSnapshot, isTrue);
-    expect(repository.loadWastedIds('remote:1'), <String>{'aid:2'});
+    expect(repository.loadWastedSnapshot('remote:1').ids, <String>{'aid:2'});
   });
 
   test('upsert preserves an existing membership timestamp', () async {

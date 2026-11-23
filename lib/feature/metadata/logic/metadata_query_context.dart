@@ -27,17 +27,6 @@ class MetadataQueryContext {
 
   String get defaultKeyword => titles.isEmpty ? '' : titles.first;
 
-  MetadataQueryContext withTitlesUpTo(int count) {
-    if (count >= titles.length) {
-      return this;
-    }
-    return MetadataQueryContext(
-      stableId: stableId,
-      titles: titles.take(count).toList(growable: false),
-      chapterStartMs: chapterStartMs,
-    );
-  }
-
   bool matches(MetadataQueryContext other) {
     return stableId == other.stableId &&
         chapterStartMs == other.chapterStartMs &&

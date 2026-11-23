@@ -60,16 +60,6 @@ void main() {
       expect(cleared.status, PagedStatus.failure);
     });
 
-    test('reset 清空条目但保留游标', () {
-      final PagedState<int> state = const PagedState<int>()
-          .withFirstPage(<int>[1, 2], page: 3, hasMore: true)
-          .reset();
-
-      expect(state.items, isEmpty);
-      expect(state.page, 3);
-      expect(state.hasMore, isTrue);
-    });
-
     test('withFirstPage 结果不可变', () {
       final List<int> source = <int>[1, 2];
       final PagedState<int> state = const PagedState<int>().withFirstPage(

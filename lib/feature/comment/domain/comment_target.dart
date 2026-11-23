@@ -30,6 +30,4 @@ abstract class CommentTarget with _$CommentTarget {
       coverUrl: coverUrl,
     );
   }
-
-  bool get isVideo => type == 1;
 }

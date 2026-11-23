@@ -38,10 +38,6 @@ class AppLogger {
     _logger.e(_message(message), error: error, stackTrace: stackTrace);
   }
 
-  void f(Object? message, [Object? error, StackTrace? stackTrace]) {
-    _logger.f(_message(message), error: error, stackTrace: stackTrace);
-  }
-
   String _message(Object? message) {
     return '[$_tag] ${message ?? ''}'.trimRight();
   }
