@@ -120,9 +120,9 @@ class CollectionActionRow extends StatelessWidget {
     required this.playAllKey,
     required this.canPlayAll,
     required this.onPlayAll,
-    required this.favoriteKey,
-    required this.isFavorite,
-    required this.onToggleFavorite,
+    this.favoriteKey,
+    this.isFavorite = false,
+    this.onToggleFavorite,
     required this.refreshKey,
     required this.onRefresh,
     this.busy = false,
@@ -134,9 +134,9 @@ class CollectionActionRow extends StatelessWidget {
   final Key playAllKey;
   final bool canPlayAll;
   final VoidCallback onPlayAll;
-  final Key favoriteKey;
+  final Key? favoriteKey;
   final bool isFavorite;
-  final VoidCallback onToggleFavorite;
+  final VoidCallback? onToggleFavorite;
   final Key refreshKey;
   final VoidCallback onRefresh;
   final bool busy;
@@ -190,18 +190,20 @@ class CollectionActionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.sm + 2),
-        _CircleAction(
-          actionKey: favoriteKey,
-          icon: isFavorite
-              ? Icons.favorite_rounded
-              : Icons.favorite_border_rounded,
-          iconColor: isFavorite
-              ? colorScheme.primary
-              : colorScheme.onSurfaceVariant,
-          tooltip: isFavorite ? '取消收藏' : '收藏',
-          onTap: onToggleFavorite,
-        ),
-        const SizedBox(width: AppSpacing.sm + 2),
+        if (favoriteKey != null && onToggleFavorite != null) ...<Widget>[
+          _CircleAction(
+            actionKey: favoriteKey!,
+            icon: isFavorite
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            iconColor: isFavorite
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
+            tooltip: isFavorite ? '取消收藏' : '收藏',
+            onTap: onToggleFavorite!,
+          ),
+          const SizedBox(width: AppSpacing.sm + 2),
+        ],
         _CircleAction(
           actionKey: refreshKey,
           icon: Icons.refresh_rounded,

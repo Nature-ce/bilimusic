@@ -58,7 +58,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
   bool _searchActive = false;
   bool _selectionMode = false;
   Set<String> _selectedItemIds = <String>{};
-  bool _likeAllBusy = false;
+  _FavoriteSortMode _sortMode = _FavoriteSortMode.all;
   int _tabIndex = 0;
 
   @override
@@ -75,6 +75,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       _resetSearchState();
       _selectionMode = false;
       _selectedItemIds = <String>{};
+      _sortMode = _FavoriteSortMode.all;
       _tabIndex = 0;
       _tabController.index = 0;
       _scheduleSync();
@@ -272,6 +273,36 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
         .toList(growable: false);
   }
 
+  void _changeSortMode(_FavoriteSortMode mode) {
+    if (_sortMode == mode) {
+      return;
+    }
+    setState(() => _sortMode = mode);
+  }
+
+  List<FavoriteEntry> _applySortMode(List<FavoriteEntry> items) {
+    if (_sortMode == _FavoriteSortMode.all || items.length < 2) {
+      return items;
+    }
+    final List<int> order = List<int>.generate(
+      items.length,
+      (int index) => index,
+    );
+    order.sort((int left, int right) {
+      final int compared = switch (_sortMode) {
+        _FavoriteSortMode.recent => items[right].createdAt.compareTo(
+          items[left].createdAt,
+        ),
+        _FavoriteSortMode.author => items[left].author.toLowerCase().compareTo(
+          items[right].author.toLowerCase(),
+        ),
+        _FavoriteSortMode.all => 0,
+      };
+      return compared != 0 ? compared : left.compareTo(right);
+    });
+    return <FavoriteEntry>[for (final int index in order) items[index]];
+  }
+
   @override
   Widget build(BuildContext context) {
     final FavoritesState state = ref.watch(favoritesControllerProvider);
@@ -284,9 +315,8 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
     final List<FavoriteEntry> items = state.itemsForCollection(
       resolvedCollection.id,
     );
-    final List<FavoriteEntry> visibleItems = filterFavoriteEntries(
-      items,
-      _searchQuery,
+    final List<FavoriteEntry> visibleItems = _applySortMode(
+      filterFavoriteEntries(items, _searchQuery),
     );
     final List<PlayableItem> queueItems = visibleItems
         .map(
@@ -300,7 +330,6 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       items: items,
       visibleItems: visibleItems,
       queueItems: queueItems,
-      likedItemIds: state.likedItemIds,
     );
 
     return PopScope(
@@ -460,12 +489,8 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
     required List<FavoriteEntry> items,
     required List<FavoriteEntry> visibleItems,
     required List<PlayableItem> queueItems,
-    required Set<String> likedItemIds,
   }) {
     final ThemeData theme = Theme.of(context);
-    final bool allLiked =
-        items.isNotEmpty &&
-        items.every((FavoriteEntry item) => likedItemIds.contains(item.itemId));
 
     return Column(
       children: <Widget>[
@@ -495,19 +520,19 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
                     canPlayAll: queueItems.isNotEmpty,
                     onPlayAll: () =>
                         unawaited(_playCollection(collection, queueItems)),
-                    favoriteKey: const Key('favoriteCollectionFavorite'),
-                    isFavorite: allLiked,
-                    onToggleFavorite: () => unawaited(
-                      _toggleCollectionLiked(
-                        collection: collection,
-                        items: items,
-                      ),
-                    ),
                     refreshKey: const Key('favoriteCollectionRefresh'),
                     onRefresh: () => unawaited(_refresh(collection)),
                     playAllLabel: '播放全部',
                   ),
                   const SizedBox(height: AppSpacing.xl),
+                  if (!_selectionMode && items.isNotEmpty) ...<Widget>[
+                    _FavoriteSortCapsuleRow(
+                      mode: _sortMode,
+                      totalCount: items.length,
+                      onChanged: _changeSortMode,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
                   Row(
                     children: <Widget>[
                       Text(
@@ -787,79 +812,6 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       items: queueItems,
       startIndex: targetIndex,
       sourceLabel: collection.name,
-    );
-  }
-
-  Future<void> _toggleCollectionLiked({
-    required FavoriteCollection collection,
-    required List<FavoriteEntry> items,
-  }) async {
-    if (_likeAllBusy || items.isEmpty) {
-      return;
-    }
-    final Set<String> likedItemIds = ref
-        .read(favoritesControllerProvider)
-        .likedItemIds;
-    final bool allLiked = items.every(
-      (FavoriteEntry item) => likedItemIds.contains(item.itemId),
-    );
-    final String message = allLiked
-        ? '将从「我喜欢」移出 ${items.length} 首'
-        : '将把 ${items.length} 首全部加入「我喜欢」';
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Text(allLiked ? '取消喜欢整张歌单' : '喜欢整张歌单'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('确定'),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    setState(() => _likeAllBusy = true);
-    int changedCount = 0;
-    try {
-      final FavoritesController controller = ref.read(
-        favoritesControllerProvider.notifier,
-      );
-      for (final FavoriteEntry item in items) {
-        final bool liked = ref
-            .read(favoritesControllerProvider)
-            .likedItemIds
-            .contains(item.itemId);
-        if (liked != allLiked) {
-          continue;
-        }
-        final bool nowLiked = await controller.toggleLiked(
-          item.toPlayableItem(collection: collection),
-        );
-        if (nowLiked != allLiked) {
-          changedCount += 1;
-        }
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _likeAllBusy = false);
-      }
-    }
-    if (!mounted) {
-      return;
-    }
-    ToastUtil.show(
-      allLiked ? '已从「我喜欢」移出 $changedCount 首' : '已把 $changedCount 首加入「我喜欢」',
     );
   }
 
@@ -1221,6 +1173,100 @@ class _FavoriteTracksLoading extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+}
+
+enum _FavoriteSortMode { all, recent, author }
+
+class _FavoriteSortCapsuleRow extends StatelessWidget {
+  const _FavoriteSortCapsuleRow({
+    required this.mode,
+    required this.totalCount,
+    required this.onChanged,
+  });
+
+  final _FavoriteSortMode mode;
+  final int totalCount;
+  final ValueChanged<_FavoriteSortMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: <Widget>[
+          _FavoriteSortCapsule(
+            capsuleKey: const Key('favoriteCollectionSortAll'),
+            label: '全部 · $totalCount',
+            selected: mode == _FavoriteSortMode.all,
+            onTap: () => onChanged(_FavoriteSortMode.all),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _FavoriteSortCapsule(
+            capsuleKey: const Key('favoriteCollectionSortRecent'),
+            label: '最近添加',
+            selected: mode == _FavoriteSortMode.recent,
+            onTap: () => onChanged(_FavoriteSortMode.recent),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _FavoriteSortCapsule(
+            capsuleKey: const Key('favoriteCollectionSortAuthor'),
+            label: '按歌手',
+            selected: mode == _FavoriteSortMode.author,
+            onTap: () => onChanged(_FavoriteSortMode.author),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FavoriteSortCapsule extends StatelessWidget {
+  const _FavoriteSortCapsule({
+    required this.capsuleKey,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Key capsuleKey;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    return Material(
+      color: selected
+          ? colorScheme.primary
+          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: capsuleKey,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md + 2,
+            vertical: AppSpacing.sm - 2,
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: selected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
