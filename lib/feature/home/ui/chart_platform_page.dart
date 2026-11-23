@@ -158,7 +158,6 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
       chart: chart,
       entry: entry,
       playing: _isPlayingAll,
-      totalCharts: MusicChartCatalog.chartsFor(widget.platform).length,
       onTap: () => _openChart(chart),
       onPlay: () => _playChart(chart),
     );
@@ -170,7 +169,6 @@ class _DefaultChartCard extends StatelessWidget {
     required this.chart,
     required this.entry,
     required this.playing,
-    required this.totalCharts,
     required this.onTap,
     required this.onPlay,
   });
@@ -178,7 +176,6 @@ class _DefaultChartCard extends StatelessWidget {
   final MusicChart chart;
   final MusicChartEntry entry;
   final bool playing;
-  final int totalCharts;
   final VoidCallback onTap;
   final VoidCallback onPlay;
 
@@ -209,7 +206,9 @@ class _DefaultChartCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _ChartCoverFan(covers: covers),
+                _DefaultChartCover(
+                  coverUrl: covers.isEmpty ? '' : covers.first,
+                ),
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: <Widget>[
@@ -243,11 +242,6 @@ class _DefaultChartCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.xs + 2),
-                Text(
-                  '默认榜 · 共 $totalCharts 个榜单',
-                  style: AppTextStyles.meta(theme, fontSize: 11),
-                ),
               ],
             ),
           ),
@@ -257,85 +251,38 @@ class _DefaultChartCard extends StatelessWidget {
   }
 }
 
-class _ChartCoverFan extends StatelessWidget {
-  const _ChartCoverFan({required this.covers});
+class _DefaultChartCover extends StatelessWidget {
+  const _DefaultChartCover({required this.coverUrl});
 
-  final List<String> covers;
-
-  static const double _size = 56;
-  static const double _focusSize = 62;
-  static const double _overlap = 12;
-  static const double _height = 64;
+  final String coverUrl;
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final Color borderColor = appCardSurfaceColor(context);
-
-    if (covers.isEmpty) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          width: _focusSize,
-          height: _focusSize,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
+    final String url = coverUrl.trim();
+    if (url.isEmpty) {
+      return Container(
+        height: 140,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          color: colorScheme.primary.withValues(alpha: 0.06),
+        ),
+        child: Center(
           child: Icon(
             Icons.album_outlined,
-            size: 26,
             color: colorScheme.primary.withValues(alpha: 0.45),
           ),
         ),
       );
     }
-
-    final List<String> shown = covers.take(3).toList(growable: false);
-    final int focusIndex = shown.length == 1 ? 0 : 1;
-    final List<double> sizes = <double>[
-      for (int index = 0; index < shown.length; index += 1)
-        index == focusIndex ? _focusSize : _size,
-    ];
-    final List<double> lefts = <double>[];
-    double cursor = 0;
-    for (int index = 0; index < shown.length; index += 1) {
-      lefts.add(cursor);
-      cursor += sizes[index] - _overlap;
-    }
-    final double totalWidth = cursor + _overlap;
-
-    return SizedBox(
-      height: _height,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: SizedBox(
-          width: totalWidth,
-          height: _height,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: <Widget>[
-              for (int index = 0; index < shown.length; index += 1)
-                Positioned(
-                  left: lefts[index],
-                  top: index == focusIndex ? 0 : 8,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      border: Border.all(color: borderColor, width: 2),
-                    ),
-                    child: CommonCachedImage(
-                      imageUrl: shown[index],
-                      width: sizes[index],
-                      height: sizes[index],
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: CommonCachedImage(
+        imageUrl: url,
+        width: double.infinity,
+        height: 140,
+        fit: BoxFit.cover,
       ),
     );
   }

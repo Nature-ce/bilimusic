@@ -2,7 +2,6 @@ import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
-import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:flutter/material.dart';
@@ -56,16 +55,7 @@ class HomeChartPlatformCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Stack(
-                  children: <Widget>[
-                    _CoverFan(entry: entry),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: _PlatformBadge(platform: entry.chart.platform),
-                    ),
-                  ],
-                ),
+                _CoverFan(entry: entry),
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: <Widget>[
@@ -173,7 +163,7 @@ class _CoverFan extends StatelessWidget {
     ];
 
     return Container(
-      height: 86,
+      height: 104,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -188,32 +178,42 @@ class _CoverFan extends StatelessWidget {
             )
           : LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
-                const double size = 52;
-                const double overlap = 12;
-                final double count = covers.length.toDouble();
-                final double fanWidth = size + (count - 1) * (size - overlap);
-                final double left = (constraints.maxWidth - fanWidth) / 2;
-                const double middleSize = 58;
+                final List<double> sizes = switch (covers.length) {
+                  1 => const <double>[76],
+                  2 => const <double>[72, 72],
+                  _ => const <double>[68, 76, 68],
+                };
+                const double gap = 5;
+                final int count = sizes.length;
+                double fanWidth = gap * (count - 1);
+                for (final double size in sizes) {
+                  fanWidth += size;
+                }
+                final double startLeft = (constraints.maxWidth - fanWidth) / 2;
+                final List<double> lefts = <double>[];
+                double cursor = startLeft;
+                for (int index = 0; index < count; index += 1) {
+                  lefts.add(cursor);
+                  cursor += sizes[index] + gap;
+                }
                 return Stack(
                   clipBehavior: Clip.none,
                   children: <Widget>[
-                    for (int index = 0; index < covers.length; index += 1)
+                    for (int index = 0; index < count; index += 1)
                       Positioned(
-                        left: left + index * (size - overlap),
-                        top: covers.length == 1
-                            ? (86 - size) / 2
-                            : (index == 1 ? 10 : 16),
+                        left: lefts[index],
+                        top: (104 - sizes[index]) / 2,
                         child: Transform.rotate(
-                          angle: covers.length == 1
+                          angle: count == 1
                               ? 0
                               : (index == 0
-                                    ? -0.1
-                                    : index == 1
-                                    ? 0
-                                    : 0.1),
+                                    ? -0.05
+                                    : index == count - 1
+                                    ? 0.05
+                                    : 0),
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: borderColor, width: 3),
                               boxShadow: <BoxShadow>[
                                 BoxShadow(
@@ -225,9 +225,9 @@ class _CoverFan extends StatelessWidget {
                             ),
                             child: CommonCachedImage(
                               imageUrl: covers[index],
-                              width: index == 1 ? middleSize : size,
-                              height: index == 1 ? middleSize : size,
-                              borderRadius: BorderRadius.circular(12),
+                              width: sizes[index],
+                              height: sizes[index],
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                         ),
@@ -262,32 +262,6 @@ class _PlayButton extends StatelessWidget {
           Icons.play_arrow_rounded,
           size: 18,
           color: colorScheme.primary,
-        ),
-      ),
-    );
-  }
-}
-
-class _PlatformBadge extends StatelessWidget {
-  const _PlatformBadge({required this.platform});
-
-  final MusicChartPlatform platform;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Text(
-        platform.label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontSize: 10,
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w800,
         ),
       ),
     );

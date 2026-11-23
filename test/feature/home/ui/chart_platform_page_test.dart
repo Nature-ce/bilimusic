@@ -67,7 +67,7 @@ void main() {
 
     expect(find.widgetWithText(AppBar, '网易云'), findsOneWidget);
     expect(find.text('全部榜单'), findsOneWidget);
-    expect(find.textContaining('共 21 个榜单'), findsWidgets);
+    expect(find.textContaining('默认榜'), findsNothing);
     expect(find.text('热歌榜'), findsOneWidget);
     expect(find.text('飙升榜'), findsOneWidget);
     expect(find.text('新歌榜'), findsOneWidget);
