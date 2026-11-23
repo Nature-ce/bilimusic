@@ -114,6 +114,7 @@ class CommonSearchInput extends StatelessWidget {
                   focusNode: focusNode,
                   cursorColor: colorScheme.primary,
                   textInputAction: TextInputAction.search,
+                  magnifierConfiguration: TextMagnifierConfiguration.disabled,
                   onChanged: onChanged,
                   onSubmitted: (_) => onSubmitted(),
                   style: theme.textTheme.bodyMedium?.copyWith(

@@ -617,7 +617,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
             title: '没有结果？前往在线搜索试试',
             actions: <Widget>[
               TextButton.icon(
-                onPressed: () => context.go('/search'),
+                onPressed: () => context.push('/search'),
                 label: const Text('搜索'),
               ),
             ],

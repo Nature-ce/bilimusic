@@ -84,7 +84,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         horizontal: AppSpacing.md,
                         vertical: AppSpacing.sm - 1,
                       ),
-                      onTap: () => context.push('/search?from=/home'),
+                      onTap: () => context.push('/search'),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),

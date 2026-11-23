@@ -32,7 +32,6 @@ class SearchInputBar extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.query,
-    required this.onCancel,
     required this.onChanged,
     required this.onSubmitted,
     required this.onClear,
@@ -41,47 +40,22 @@ class SearchInputBar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String query;
-  final VoidCallback onCancel;
   final ValueChanged<String> onChanged;
   final VoidCallback onSubmitted;
   final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: CommonSearchInput(
-              controller: controller,
-              focusNode: focusNode,
-              query: query,
-              hintText: '搜索歌曲、歌手或视频',
-              onChanged: onChanged,
-              onSubmitted: onSubmitted,
-              onClear: onClear,
-            ),
-          ),
-          const SizedBox(width: 2),
-          InkWell(
-            onTap: onCancel,
-            borderRadius: BorderRadius.circular(999),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Text(
-                '取消',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: CommonSearchInput(
+        controller: controller,
+        focusNode: focusNode,
+        query: query,
+        hintText: '搜索歌曲、歌手或视频',
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        onClear: onClear,
       ),
     );
   }
