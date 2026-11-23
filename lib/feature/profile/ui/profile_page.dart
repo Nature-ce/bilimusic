@@ -15,7 +15,6 @@ import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.da
 import 'package:bilimusic/feature/profile/ui/components/followed_ups_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_playlist_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_stats_card.dart';
-import 'package:bilimusic/feature/profile/ui/components/profile_version_footer.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
 import 'package:bilimusic/feature/profile/ui/components/user_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/weekly_listening_card.dart';
@@ -227,7 +226,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               onTap: () => context.push('/profile/favorite-ups'),
             ),
             const SizedBox(height: 18),
-            ProfileVersionFooter(onTap: () => context.push('/settings/about')),
             const BottomPageSpacer(),
           ],
         ),

@@ -455,21 +455,22 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
             onPressed: _openSearch,
             icon: const Icon(Icons.search_rounded),
           ),
-          Builder(
-            builder: (BuildContext buttonContext) {
-              return IconButton(
-                tooltip: '歌单设置',
-                onPressed: () => unawaited(
-                  _openCollectionActionMenu(
-                    collection: collection,
-                    buttonContext: buttonContext,
-                    onMultiSelect: items.isEmpty ? null : _openSelectionMode,
+          if (!collection.isSystem || collection.isRemote)
+            Builder(
+              builder: (BuildContext buttonContext) {
+                return IconButton(
+                  tooltip: '歌单设置',
+                  onPressed: () => unawaited(
+                    _openCollectionActionMenu(
+                      collection: collection,
+                      buttonContext: buttonContext,
+                      onMultiSelect: items.isEmpty ? null : _openSelectionMode,
+                    ),
                   ),
-                ),
-                icon: const Icon(Icons.more_horiz_rounded),
-              );
-            },
-          ),
+                  icon: const Icon(Icons.more_horiz_rounded),
+                );
+              },
+            ),
         ],
       ],
       bottom: showLikedTabs
