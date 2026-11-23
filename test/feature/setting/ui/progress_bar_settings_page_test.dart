@@ -24,17 +24,19 @@ void main() {
     );
 
     expect(find.text('章节分隔样式'), findsOneWidget);
-    expect(find.text('竖线'), findsOneWidget);
+    expect(find.text('细线刻度'), findsOneWidget);
     expect(find.text('圆点'), findsOneWidget);
+    expect(find.text('分段色块'), findsOneWidget);
+    expect(find.text('不显示'), findsOneWidget);
     expect(find.text('预览'), findsOneWidget);
 
-    await tester.tap(find.text('圆点'));
+    await tester.tap(find.text('分段色块'));
     await tester.pumpAndSettle();
 
-    expect(store.values['player.chapter_marker_style'], 'dot');
+    expect(store.values['player.chapter_marker_style'], 'segment');
     expect(
       container.read(playerChapterMarkerStyleLogicProvider),
-      PlayerChapterMarkerStyle.dot,
+      PlayerChapterMarkerStyle.segment,
     );
     expect(tester.takeException(), isNull);
   });

@@ -19,7 +19,7 @@ class PlayerChapterMarkerStyleLogic extends _$PlayerChapterMarkerStyleLogic {
   PlayerChapterMarkerStyle build() {
     final AppSettingsStore? store = _settingsStore;
     if (store == null) {
-      return PlayerChapterMarkerStyle.line;
+      return PlayerChapterMarkerStyle.dot;
     }
     return PlayerChapterMarkerStyle.fromStorage(
       store.readString(HiveKeys.playerChapterMarkerStyle, defaultValue: ''),

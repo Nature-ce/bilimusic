@@ -78,6 +78,34 @@ class ChapterMarkerPainter extends CustomPainter {
           final double x = edgeInset + trackWidth * ratio;
           canvas.drawCircle(Offset(x, centerY), radius, paint);
         }
+      case PlayerChapterMarkerStyle.segment:
+        final double blockHeight = (size.height * 0.1).clamp(3.5, 6);
+        final double blockRadius = blockHeight / 2;
+        for (int index = 0; index < ratios.length; index += 1) {
+          final double startRatio = ratios[index];
+          final double endRatio = index + 1 < ratios.length
+              ? ratios[index + 1]
+              : 1;
+          final double left = edgeInset + trackWidth * startRatio + 1.5;
+          final double right = edgeInset + trackWidth * endRatio - 1.5;
+          if (right <= left) {
+            continue;
+          }
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTRB(
+                left,
+                centerY - blockHeight / 2,
+                right,
+                centerY + blockHeight / 2,
+              ),
+              Radius.circular(blockRadius),
+            ),
+            Paint()..color = color.withValues(alpha: index.isEven ? 0.5 : 0.22),
+          );
+        }
+      case PlayerChapterMarkerStyle.none:
+        break;
     }
   }
 

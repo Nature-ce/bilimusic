@@ -63,6 +63,8 @@ class ProgressBarSettingsPage extends ConsumerWidget {
     return switch (style) {
       PlayerChapterMarkerStyle.line => Icons.vertical_align_center_rounded,
       PlayerChapterMarkerStyle.dot => Icons.fiber_manual_record_rounded,
+      PlayerChapterMarkerStyle.segment => Icons.view_column_rounded,
+      PlayerChapterMarkerStyle.none => Icons.horizontal_rule_rounded,
     };
   }
 
@@ -70,6 +72,8 @@ class ProgressBarSettingsPage extends ConsumerWidget {
     return switch (style) {
       PlayerChapterMarkerStyle.line => SettingsTint.green,
       PlayerChapterMarkerStyle.dot => SettingsTint.blue,
+      PlayerChapterMarkerStyle.segment => SettingsTint.amber,
+      PlayerChapterMarkerStyle.none => SettingsTint.violet,
     };
   }
 }

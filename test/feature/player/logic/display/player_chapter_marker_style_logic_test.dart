@@ -18,7 +18,7 @@ void main() {
     );
   });
 
-  test('falls back to line when nothing is stored', () {
+  test('falls back to dot when nothing is stored', () {
     final _FakeSettingsStore store = _FakeSettingsStore('');
     final ProviderContainer container = ProviderContainer(
       overrides: [appSettingsStoreProvider.overrideWithValue(store)],
@@ -27,7 +27,7 @@ void main() {
 
     expect(
       container.read(playerChapterMarkerStyleLogicProvider),
-      PlayerChapterMarkerStyle.line,
+      PlayerChapterMarkerStyle.dot,
     );
   });
 

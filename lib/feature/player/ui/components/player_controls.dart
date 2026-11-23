@@ -50,7 +50,7 @@ class PlayerProgressSection extends StatefulWidget {
     required this.isReady,
     required this.onChanged,
     this.chapters = const <PlaybackChapter>[],
-    this.markerStyle = PlayerChapterMarkerStyle.line,
+    this.markerStyle = PlayerChapterMarkerStyle.dot,
   });
 
   final Duration position;

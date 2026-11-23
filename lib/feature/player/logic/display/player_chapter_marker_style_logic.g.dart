@@ -47,7 +47,7 @@ final class PlayerChapterMarkerStyleLogicProvider
 }
 
 String _$playerChapterMarkerStyleLogicHash() =>
-    r'df6fd8e9637e791fad99f5ef0fcdc6215aef6865';
+    r'259c9b2996b938193e1077ad1f8d84b6bf48f73a';
 
 abstract class _$PlayerChapterMarkerStyleLogic
     extends $Notifier<PlayerChapterMarkerStyle> {

@@ -33,7 +33,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('进度条'), findsOneWidget);
     expect(find.text('章节分隔样式'), findsOneWidget);
-    expect(find.text('当前：竖线'), findsOneWidget);
+    expect(find.text('当前：圆点'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
