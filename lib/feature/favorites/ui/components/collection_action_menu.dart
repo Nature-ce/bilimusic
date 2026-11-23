@@ -8,7 +8,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum CollectionAction { rename, delete, remove, sync, uploadToRemote }
+enum CollectionAction {
+  multiSelect,
+  rename,
+  delete,
+  remove,
+  sync,
+  uploadToRemote,
+}
 
 /// 歌单（收藏夹）操作菜单：我的页长按卡片、歌单详情页右上角都用它。
 Future<void> showFavoriteCollectionActionMenu({
@@ -16,8 +23,9 @@ Future<void> showFavoriteCollectionActionMenu({
   required WidgetRef ref,
   required FavoriteCollection collection,
   required Offset globalPosition,
+  VoidCallback? onMultiSelect,
 }) async {
-  if (collection.isSystem && !collection.isRemote) {
+  if (collection.isSystem && !collection.isRemote && onMultiSelect == null) {
     return;
   }
   final OverlayState overlay = Overlay.of(context);
@@ -34,6 +42,15 @@ Future<void> showFavoriteCollectionActionMenu({
     position: position,
     color: isDark ? null : Colors.white,
     items: <PopupMenuEntry<CollectionAction>>[
+      if (onMultiSelect != null)
+        PopupMenuItem<CollectionAction>(
+          value: CollectionAction.multiSelect,
+          child: ListTile(
+            leading: Icon(Icons.checklist_rounded),
+            title: Text('多选'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
       if (!collection.isSystem)
         PopupMenuItem<CollectionAction>(
           value: CollectionAction.rename,
@@ -88,6 +105,8 @@ Future<void> showFavoriteCollectionActionMenu({
   }
 
   switch (action) {
+    case CollectionAction.multiSelect:
+      onMultiSelect?.call();
     case CollectionAction.rename:
       await _showRenameCollectionDialog(
         context: context,

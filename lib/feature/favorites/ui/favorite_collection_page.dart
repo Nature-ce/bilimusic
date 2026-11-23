@@ -21,7 +21,6 @@ import 'package:bilimusic/feature/favorites/ui/components/collection_action_menu
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_button.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_search_field.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
-import 'package:bilimusic/feature/favorites/ui/components/favorites_metadata_toolbar_buttons.dart';
 import 'package:bilimusic/feature/favorites/ui/components/remote_collection_sync_status_bar.dart';
 import 'package:bilimusic/feature/home/ui/components/collection_detail_header.dart';
 import 'package:bilimusic/feature/home/ui/components/track_row_tile.dart';
@@ -142,6 +141,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
   Future<void> _openCollectionActionMenu({
     required FavoriteCollection collection,
     required BuildContext buttonContext,
+    VoidCallback? onMultiSelect,
   }) async {
     final RenderBox? box = buttonContext.findRenderObject() as RenderBox?;
     if (box == null) {
@@ -152,6 +152,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       ref: ref,
       collection: collection,
       globalPosition: box.localToGlobal(box.size.center(Offset.zero)),
+      onMultiSelect: onMultiSelect,
     );
     if (!mounted) {
       return;
@@ -425,27 +426,21 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
             onPressed: _openSearch,
             icon: const Icon(Icons.search_rounded),
           ),
-          IconButton(
-            tooltip: '多选',
-            onPressed: items.isEmpty ? null : _openSelectionMode,
-            icon: const Icon(Icons.checklist_rounded),
-          ),
-          if (!collection.isSpoken) MetadataBackfillButton(items: queueItems),
-          if (!collection.isSystem || collection.isRemote)
-            Builder(
-              builder: (BuildContext buttonContext) {
-                return IconButton(
-                  tooltip: '歌单设置',
-                  onPressed: () => unawaited(
-                    _openCollectionActionMenu(
-                      collection: collection,
-                      buttonContext: buttonContext,
-                    ),
+          Builder(
+            builder: (BuildContext buttonContext) {
+              return IconButton(
+                tooltip: '歌单设置',
+                onPressed: () => unawaited(
+                  _openCollectionActionMenu(
+                    collection: collection,
+                    buttonContext: buttonContext,
+                    onMultiSelect: items.isEmpty ? null : _openSelectionMode,
                   ),
-                  icon: const Icon(Icons.more_horiz_rounded),
-                );
-              },
-            ),
+                ),
+                icon: const Icon(Icons.more_horiz_rounded),
+              );
+            },
+          ),
         ],
       ],
       bottom: showLikedTabs
