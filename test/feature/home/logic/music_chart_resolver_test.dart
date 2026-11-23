@@ -1,7 +1,6 @@
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/net/bili_client.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
-import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
@@ -69,7 +68,7 @@ void main() {
       coverUrl: 'https://i2.hdslb.com/bfs/archive/a.jpg',
     );
     final MusicChartTrack track = MusicChartTrack(
-      chart: MusicChartCatalog.chartsFor(MusicChartPlatform.bilibili).first,
+      chart: MusicChartCatalog.defaultChart,
       rank: 1,
       title: '晴天',
       artist: '周杰伦',

@@ -27,7 +27,7 @@ class HotPlaylistController extends _$HotPlaylistController {
   Future<void> refresh() => _load(forceRefresh: true);
 
   Future<void> selectPlatform(MusicChartPlatform platform) async {
-    if (state.platform == platform || !platform.supportsPlaylists) {
+    if (state.platform == platform) {
       return;
     }
     state = state.copyWith(
@@ -46,8 +46,7 @@ class HotPlaylistController extends _$HotPlaylistController {
     }
     final List<List<HotPlaylist>> groups = <List<HotPlaylist>>[];
     Object? firstError;
-    for (final MusicChartPlatform platform
-        in MusicChartPlatform.playlistPlatforms) {
+    for (final MusicChartPlatform platform in MusicChartPlatform.values) {
       try {
         groups.add(
           await ref

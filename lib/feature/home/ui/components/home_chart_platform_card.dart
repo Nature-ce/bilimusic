@@ -59,20 +59,26 @@ class HomeChartPlatformCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: <Widget>[
-                    Flexible(
-                      child: Text(
-                        entry.chart.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.2,
-                        ),
+                    Expanded(
+                      child: Row(
+                        children: <Widget>[
+                          Flexible(
+                            child: Text(
+                              entry.chart.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          _PlayButton(onTap: onPlay),
+                        ],
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    _PlayButton(onTap: onPlay),
-                    const Spacer(),
                     Text(
                       entry.updatedAt == null
                           ? '加载中'

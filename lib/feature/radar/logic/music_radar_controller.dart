@@ -184,8 +184,7 @@ class MusicRadarController extends _$MusicRadarController {
       hotPlaylistRepositoryProvider,
     );
     final List<Future<_PlatformPool>> tasks = <Future<_PlatformPool>>[
-      for (final MusicChartPlatform platform
-          in MusicChartPlatform.playlistPlatforms)
+      for (final MusicChartPlatform platform in MusicChartPlatform.values)
         _gatherPlatform(
           repository,
           platform,

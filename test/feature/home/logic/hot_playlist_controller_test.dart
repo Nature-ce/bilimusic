@@ -39,7 +39,6 @@ class _FakeHotPlaylistRepository extends HotPlaylistRepository {
         _playlist(platform, 'k1'),
         _playlist(platform, 'k2'),
       ],
-      MusicChartPlatform.bilibili => const <HotPlaylist>[],
     };
   }
 }

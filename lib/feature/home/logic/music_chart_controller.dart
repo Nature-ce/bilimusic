@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bilimusic/feature/home/data/bili_music_chart_source.dart';
 import 'package:bilimusic/feature/home/data/music_chart_repository.dart';
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
@@ -13,19 +12,13 @@ part 'music_chart_controller.g.dart';
 
 @riverpod
 MusicChartRepository musicChartRepository(Ref ref) {
-  final BiliMusicChartSource biliSource = ref.read(
-    biliMusicChartSourceProvider,
-  );
-  return MusicChartRepository(
-    biliRecommendRequest: biliSource.fetchRecommend,
-    biliRankingRequest: biliSource.fetchMusicRanking,
-  );
+  return MusicChartRepository();
 }
 
-/// 首页排行榜：四个平台各加载自己的默认榜单，供卡片与完整列表共用。
+/// 首页排行榜：三个平台各加载自己的默认榜单，供卡片与完整列表共用。
 ///
 /// 之前一次只持有一个平台的榜单，首页只能竖着放一排平台 chip；
-/// 现在卡片要同时显示 4 个平台的前三名，所以按平台分开缓存。
+/// 现在卡片要同时显示 3 个平台的前三名，所以按平台分开缓存。
 @Riverpod(keepAlive: true)
 class MusicChartController extends _$MusicChartController {
   int _requestId = 0;

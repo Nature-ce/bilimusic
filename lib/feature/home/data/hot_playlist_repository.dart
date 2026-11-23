@@ -109,9 +109,6 @@ class HotPlaylistRepository {
     MusicChartPlatform platform, {
     bool forceRefresh = false,
   }) async {
-    if (!platform.supportsPlaylists) {
-      throw const HotPlaylistException('该平台暂无热门歌单');
-    }
     final _CachedPlaylists? cached = _playlistCache[platform];
     if (!forceRefresh && cached != null && !cached.isExpired) {
       return cached.playlists;
@@ -203,9 +200,6 @@ class HotPlaylistRepository {
       MusicChartPlatform.netease => _fetchNeteasePlaylists(page),
       MusicChartPlatform.tencent => _fetchTencentPlaylists(page),
       MusicChartPlatform.kugou => _fetchKugouPlaylists(page),
-      MusicChartPlatform.bilibili => throw const HotPlaylistException(
-        '该平台暂无热门歌单',
-      ),
     };
   }
 
@@ -235,9 +229,6 @@ class HotPlaylistRepository {
         playlist,
         offset: offset,
         limit: limit,
-      ),
-      MusicChartPlatform.bilibili => throw const HotPlaylistException(
-        '该平台暂无热门歌单',
       ),
     };
     _trackPageCache[cacheKey] = _CachedTrackPage(

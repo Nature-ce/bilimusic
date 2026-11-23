@@ -43,35 +43,14 @@ void main() {
   test('chart ids look like native chart identifiers', () {
     for (final MusicChartPlatform platform in MusicChartPlatform.values) {
       for (final MusicChart chart in MusicChartCatalog.chartsFor(platform)) {
-        if (platform == MusicChartPlatform.bilibili) {
-          expect(
-            chart.chartId,
-            matches(RegExp(r'^[a-z][a-z0-9-]*$')),
-            reason: '${chart.displayTitle} 的榜单 id 非法',
-          );
-        } else {
-          expect(
-            chart.chartId,
-            matches(RegExp(r'^\d+$')),
-            reason: '${chart.displayTitle} 的榜单 id 非法',
-          );
-        }
+        expect(
+          chart.chartId,
+          matches(RegExp(r'^\d+$')),
+          reason: '${chart.displayTitle} 的榜单 id 非法',
+        );
         expect(chart.name.trim(), isNotEmpty);
       }
     }
-  });
-
-  test('bilibili charts are listed for direct playback', () {
-    final List<MusicChart> charts = MusicChartCatalog.chartsFor(
-      MusicChartPlatform.bilibili,
-    );
-    final MusicChart recommend = charts.firstWhere(
-      (MusicChart chart) => chart.chartId == 'recommend',
-    );
-
-    expect(recommend.name, '推荐');
-    expect(recommend.displayTitle, 'B站推荐');
-    expect(charts.length, greaterThanOrEqualTo(2));
   });
 
   test('chart keys are unique across all platforms', () {

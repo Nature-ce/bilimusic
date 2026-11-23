@@ -206,8 +206,7 @@ HotPlaylistTrack _track({
 List<HotPlaylistTrack> _coldPool() {
   final List<HotPlaylistTrack> pool = <HotPlaylistTrack>[];
   int index = 0;
-  for (final MusicChartPlatform platform
-      in MusicChartPlatform.playlistPlatforms) {
+  for (final MusicChartPlatform platform in MusicChartPlatform.values) {
     for (int playlist = 1; playlist <= 2; playlist += 1) {
       for (int rank = 1; rank <= 12; rank += 1) {
         index += 1;

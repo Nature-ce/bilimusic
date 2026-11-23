@@ -656,16 +656,5 @@ void main() {
       expect(refreshed, isNotEmpty);
       expect(refreshed.first.name, '扩次元日语潮流神曲');
     });
-
-    test('bilibili is rejected', () async {
-      final HotPlaylistRepository repository = HotPlaylistRepository(
-        httpGet: (String url, _, _) async => _neteaseListFixture,
-      );
-
-      expect(
-        () => repository.fetchPlaylists(MusicChartPlatform.bilibili),
-        throwsA(isA<HotPlaylistException>()),
-      );
-    });
   });
 }
