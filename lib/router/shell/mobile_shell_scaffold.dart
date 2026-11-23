@@ -156,7 +156,11 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
     if (!ref.watch(homeBackToTopVisibilityProvider)) {
       return null;
     }
-    return const HomeBackToTopButton();
+    // 迷你播放器与底部导航会盖在 FAB 之上，抬高一点避免按钮被遮住导致点不到。
+    return const Padding(
+      padding: EdgeInsets.only(bottom: AppSpacing.sm + 4),
+      child: HomeBackToTopButton(),
+    );
   }
 
   Widget _animateChrome({

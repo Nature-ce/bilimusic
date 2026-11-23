@@ -4,6 +4,7 @@ import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
+import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_detail_state.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
@@ -54,6 +55,9 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
   bool _isPlayingAll = false;
   int _playAllResolved = 0;
   int _playAllTotal = 0;
+  bool _isDownloadingAll = false;
+  int _downloadResolved = 0;
+  int _downloadTotal = 0;
 
   HotPlaylist get _playlist =>
       widget.initialPlaylist ??
@@ -134,6 +138,73 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     }
   }
 
+  Future<void> _downloadAll(List<HotPlaylistTrack> tracks) async {
+    if (_isDownloadingAll || tracks.isEmpty) {
+      return;
+    }
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('下载整张歌单？'),
+        content: Text('将匹配并下载 ${tracks.length} 首歌曲，匹配过程需要一点时间，完成后会加入下载队列。'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('开始下载'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    setState(() {
+      _isDownloadingAll = true;
+      _downloadResolved = 0;
+      _downloadTotal = tracks.length;
+    });
+    final MusicChartResolver resolver = ref.read(musicChartResolverProvider);
+    final DownloadController downloadController = ref.read(
+      downloadControllerProvider.notifier,
+    );
+    int queued = 0;
+    try {
+      for (final HotPlaylistTrack track in tracks) {
+        if (!mounted) {
+          return;
+        }
+        PlayableItem? item;
+        try {
+          item = await resolver.resolve(track);
+        } on Object {
+          item = null;
+        }
+        if (!mounted) {
+          return;
+        }
+        if (item != null && await downloadController.download(item)) {
+          queued += 1;
+        }
+        setState(() {
+          _downloadResolved += 1;
+        });
+      }
+      ToastUtil.show(queued == 0 ? '没有匹配到可下载的 B 站视频' : '已加入下载队列 $queued 首');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloadingAll = false;
+          _downloadResolved = 0;
+          _downloadTotal = 0;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -202,10 +273,11 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
               onToggleFavorite: () => ref
                   .read(favoriteHotPlaylistsProvider.notifier)
                   .toggle(playlist),
-              refreshKey: const Key('hotPlaylistRefresh'),
-              onRefresh: () => ref
-                  .read(hotPlaylistDetailControllerProvider(playlist).notifier)
-                  .refresh(),
+              downloadKey: const Key('hotPlaylistDownload'),
+              onDownload: () => _downloadAll(state.tracks),
+              downloadBusy: _isDownloadingAll,
+              downloadResolved: _downloadResolved,
+              downloadTotal: _downloadTotal,
               busy: _isPlayingAll,
               resolved: _playAllResolved,
               total: _playAllTotal,

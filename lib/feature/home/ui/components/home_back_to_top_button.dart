@@ -29,11 +29,12 @@ class HomeBackToTopButton extends ConsumerWidget {
         if (!controller.hasClients) {
           return;
         }
-        controller.animateTo(
-          0,
-          duration: AppMotion.resolve(context, AppMotion.slow),
-          curve: AppMotion.standard,
-        );
+        final Duration duration = AppMotion.resolve(context, AppMotion.slow);
+        if (duration <= Duration.zero) {
+          controller.jumpTo(0);
+          return;
+        }
+        controller.animateTo(0, duration: duration, curve: AppMotion.standard);
       },
       child: const Icon(Icons.arrow_upward_rounded),
     );

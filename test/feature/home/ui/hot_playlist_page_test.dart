@@ -105,7 +105,7 @@ void main() {
     expect(find.text('晴天'), findsOneWidget);
     expect(find.text('04:29'), findsWidgets);
     expect(find.text('周杰伦'), findsWidgets);
-    expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.download_outlined), findsOneWidget);
   });
 
   testWidgets('uses a placeholder title when opened without metadata', (
@@ -140,7 +140,8 @@ void main() {
 
     expect(find.byKey(const Key('hotPlaylistPlayAll')), findsOneWidget);
     expect(find.byKey(const Key('hotPlaylistFavorite')), findsOneWidget);
-    expect(find.byKey(const Key('hotPlaylistRefresh')), findsOneWidget);
+    expect(find.byKey(const Key('hotPlaylistDownload')), findsOneWidget);
+    expect(find.byKey(const Key('hotPlaylistRefresh')), findsNothing);
     expect(find.text('播放全部'), findsOneWidget);
     expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
   });
@@ -157,6 +158,20 @@ void main() {
     await tester.tap(find.byKey(const Key('hotPlaylistFavorite')));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+  });
+
+  testWidgets('download button asks before queueing the whole playlist', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester);
+
+    await tester.tap(find.byKey(const Key('hotPlaylistDownload')));
+    await tester.pumpAndSettle();
+    expect(find.text('下载整张歌单？'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.text('下载整张歌单？'), findsNothing);
   });
 
   testWidgets('play-all resolves tracks and hands them to the player', (

@@ -113,7 +113,7 @@ class CollectionDetailHeader extends StatelessWidget {
   }
 }
 
-/// 详情页操作行：播放全部（主按钮）+ 收藏 + 刷新。
+/// 详情页操作行：播放全部（主按钮）+ 收藏 + 刷新 / 下载。
 class CollectionActionRow extends StatelessWidget {
   const CollectionActionRow({
     super.key,
@@ -123,8 +123,13 @@ class CollectionActionRow extends StatelessWidget {
     this.favoriteKey,
     this.isFavorite = false,
     this.onToggleFavorite,
-    required this.refreshKey,
-    required this.onRefresh,
+    this.refreshKey,
+    this.onRefresh,
+    this.downloadKey,
+    this.onDownload,
+    this.downloadBusy = false,
+    this.downloadResolved = 0,
+    this.downloadTotal = 0,
     this.busy = false,
     this.resolved = 0,
     this.total = 0,
@@ -137,8 +142,13 @@ class CollectionActionRow extends StatelessWidget {
   final Key? favoriteKey;
   final bool isFavorite;
   final VoidCallback? onToggleFavorite;
-  final Key refreshKey;
-  final VoidCallback onRefresh;
+  final Key? refreshKey;
+  final VoidCallback? onRefresh;
+  final Key? downloadKey;
+  final VoidCallback? onDownload;
+  final bool downloadBusy;
+  final int downloadResolved;
+  final int downloadTotal;
   final bool busy;
   final int resolved;
   final int total;
@@ -204,13 +214,32 @@ class CollectionActionRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm + 2),
         ],
-        _CircleAction(
-          actionKey: refreshKey,
-          icon: Icons.refresh_rounded,
-          iconColor: colorScheme.onSurfaceVariant,
-          tooltip: '刷新',
-          onTap: onRefresh,
-        ),
+        if (refreshKey != null && onRefresh != null) ...<Widget>[
+          _CircleAction(
+            actionKey: refreshKey!,
+            icon: Icons.refresh_rounded,
+            iconColor: colorScheme.onSurfaceVariant,
+            tooltip: '刷新',
+            onTap: onRefresh,
+          ),
+        ] else if (downloadKey != null && onDownload != null) ...<Widget>[
+          _CircleAction(
+            actionKey: downloadKey!,
+            icon: Icons.download_outlined,
+            iconColor: colorScheme.onSurfaceVariant,
+            tooltip: downloadBusy
+                ? '匹配中 $downloadResolved/$downloadTotal'
+                : '下载全部',
+            onTap: downloadBusy ? null : onDownload,
+            child: downloadBusy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
+          ),
+        ],
       ],
     );
   }
@@ -223,13 +252,15 @@ class _CircleAction extends StatelessWidget {
     required this.iconColor,
     required this.tooltip,
     required this.onTap,
+    this.child,
   });
 
   final Key actionKey;
   final IconData icon;
   final Color iconColor;
   final String tooltip;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +276,9 @@ class _CircleAction extends StatelessWidget {
           child: InkWell(
             key: actionKey,
             onTap: onTap,
-            child: Icon(icon, size: 20, color: iconColor),
+            child: Center(
+              child: child ?? Icon(icon, size: 20, color: iconColor),
+            ),
           ),
         ),
       ),

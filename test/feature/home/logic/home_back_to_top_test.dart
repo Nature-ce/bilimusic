@@ -136,6 +136,51 @@ void main() {
     expect(controller.offset, 0);
   });
 
+  testWidgets('the button still jumps to top when animations are disabled', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final ScrollController controller = ScrollController();
+    addTearDown(controller.dispose);
+    final ProviderContainer container = ProviderContainer(
+      overrides: [
+        homeScrollControllerProvider.overrideWith((ref) => controller),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Builder(
+            builder: (BuildContext context) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: Scaffold(
+                floatingActionButton: const HomeBackToTopButton(),
+                body: _FakeChartList(controller: controller),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.drag(find.byType(ListView), const Offset(0, -1200));
+    await tester.pumpAndSettle();
+    expect(controller.offset, greaterThan(480));
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    expect(controller.offset, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home page shows the back-to-top state after scrolling', (
     WidgetTester tester,
   ) async {
