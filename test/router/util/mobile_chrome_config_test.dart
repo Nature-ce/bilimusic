@@ -29,10 +29,15 @@ void main() {
     }
   });
 
-  test('详情页保留迷你播放器但隐藏底部导航', () {
-    final MobileChromeConfig chrome = MobileChromeConfig.resolve('/search');
+  test('搜索页全屏，详情页保留迷你播放器但隐藏底部导航', () {
+    final MobileChromeConfig search = MobileChromeConfig.resolve('/search');
 
-    expect(chrome.showBottomTabs, isFalse);
-    expect(chrome.showMiniPlayer, isTrue);
+    expect(search.showBottomTabs, isFalse);
+    expect(search.showMiniPlayer, isFalse);
+
+    final MobileChromeConfig detail = MobileChromeConfig.resolve('/comments');
+
+    expect(detail.showBottomTabs, isFalse);
+    expect(detail.showMiniPlayer, isTrue);
   });
 }

@@ -31,6 +31,15 @@ class _LoadedPlaylists extends HotPlaylistController {
         trackCount: 35,
         creator: '另一个UP主',
       ),
+      HotPlaylist(
+        platform: MusicChartPlatform.tencent,
+        id: '3',
+        name: '测试歌单 C',
+        coverUrl: '',
+        playCount: 12345,
+        trackCount: 20,
+        creator: '第三个UP主',
+      ),
     ],
   );
 }
@@ -77,9 +86,10 @@ void main() {
   ) async {
     await _pumpSection(tester, controller: _LoadedPlaylists.new);
 
-    // 前两张歌单会同时出现在「编辑甄选」大卡和下方网格里。
-    expect(find.text('测试歌单 A'), findsNWidgets(2));
-    expect(find.text('测试歌单 B'), findsNWidgets(2));
+    // 前两张歌单只出现在「编辑甄选」大卡里，网格从第三张开始，不重复。
+    expect(find.text('测试歌单 A'), findsOneWidget);
+    expect(find.text('测试歌单 B'), findsOneWidget);
+    expect(find.text('测试歌单 C'), findsOneWidget);
     expect(find.textContaining('1.2万'), findsWidgets);
     expect(find.textContaining('20 首'), findsOneWidget);
     expect(find.text('编辑甄选'), findsOneWidget);

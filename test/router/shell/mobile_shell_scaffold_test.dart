@@ -192,7 +192,7 @@ void main() {
     final GoRouter router = await _pumpShell(tester, glass: true);
     final Finder mini = find.byType(MiniPlayerGlassBar);
     final double start = tester.getRect(mini).top;
-    router.go('/search');
+    router.go('/profile/downloads');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 110));
     expect(find.byType(GlassTabBar), findsOneWidget);
@@ -239,7 +239,7 @@ void main() {
 
       controller.load();
       await tester.pumpAndSettle();
-      router.go('/search');
+      router.go('/profile/downloads');
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.home_outlined), findsNothing);
       expect(tester.getRect(find.byType(MiniPlayerBar)).bottom, 880);
@@ -320,7 +320,7 @@ Future<GoRouter> _pumpShell(
             '/home',
             '/radar',
             '/profile',
-            '/search',
+            '/profile/downloads',
             '/settings',
           ])
             StatefulShellBranch(

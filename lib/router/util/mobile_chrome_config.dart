@@ -34,8 +34,12 @@ class MobileChromeConfig {
       return fullScreen;
     }
 
-    if (path == '/comments' || path == '/search' || path.startsWith('/up')) {
+    if (path == '/comments' || path.startsWith('/up')) {
       return detail;
+    }
+
+    if (path == '/search') {
+      return fullScreen;
     }
 
     if (path == '/settings' || path.startsWith('/settings/')) {
