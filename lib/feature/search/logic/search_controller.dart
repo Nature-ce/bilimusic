@@ -120,6 +120,9 @@ class SearchPageController extends _$SearchPageController {
       _recordLoadedPage(state.type, page);
 
       state = _applyFirstPage(state, state.type, page);
+      if (state.type == SearchType.video) {
+        await _loadUsersForQuery(nextQuery, requestId);
+      }
     } on Object catch (error) {
       if (requestId != _searchRequestId) {
         return;
@@ -328,6 +331,28 @@ class SearchPageController extends _$SearchPageController {
   void clearHistory() {
     state = state.copyWith(recentKeywords: <String>[]);
     _historyStore.clear();
+  }
+
+  Future<void> _loadUsersForQuery(String keyword, int requestId) async {
+    try {
+      final SearchUserPageResult result = await _repository.searchUsers(
+        keyword,
+        page: 1,
+      );
+      if (requestId != _searchRequestId || state.submittedQuery != keyword) {
+        return;
+      }
+      state = state.copyWith(
+        userResultsPage: state.userResultsPage.withFirstPage(
+          result.items,
+          page: result.page,
+          hasMore: result.hasMore,
+        ),
+      );
+      _userLoaded = true;
+    } on Object {
+      return;
+    }
   }
 
   SearchState _applyFirstPage(

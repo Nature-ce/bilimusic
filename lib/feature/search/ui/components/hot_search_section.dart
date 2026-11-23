@@ -17,32 +17,10 @@ class HotSearchSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final AsyncValue<List<HotSearchItem>> hotSearch = ref.watch(
-      hotSearchControllerProvider,
-    );
-    final List<HotSearchItem> items =
-        hotSearch.value ?? const <HotSearchItem>[];
+    final List<HotSearchItem> items = ref.watch(hotSearchProvider);
 
-    if (hotSearch.hasValue && items.isEmpty) {
+    if (items.isEmpty) {
       return const SizedBox.shrink();
-    }
-
-    final List<Widget> rows;
-    if (hotSearch.hasError) {
-      rows = <Widget>[
-        _HotSearchErrorLine(
-          onTap: () => ref.read(hotSearchControllerProvider.notifier).retry(),
-        ),
-      ];
-    } else {
-      rows = <Widget>[
-        for (int index = 0; index < items.length; index++)
-          _HotSearchRow(
-            index: index,
-            item: items[index],
-            onTap: () => onSelectKeyword(items[index].keyword),
-          ),
-      ];
     }
 
     return Column(
@@ -61,7 +39,7 @@ class HotSearchSection extends ConsumerWidget {
             ),
             const Spacer(),
             Text(
-              '按今日热度',
+              '网易云 / QQ音乐 / 酷狗',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -71,7 +49,12 @@ class HotSearchSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 6),
-        ...rows,
+        for (int index = 0; index < items.length; index++)
+          _HotSearchRow(
+            index: index,
+            item: items[index],
+            onTap: () => onSelectKeyword(items[index].keyword),
+          ),
       ],
     );
   }
@@ -199,33 +182,6 @@ class _HotSearchBadge extends StatelessWidget {
           height: 1.2,
           fontWeight: FontWeight.w700,
           color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-class _HotSearchErrorLine extends StatelessWidget {
-  const _HotSearchErrorLine({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-        child: Text(
-          '热搜加载失败',
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w500,
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-          ),
         ),
       ),
     );

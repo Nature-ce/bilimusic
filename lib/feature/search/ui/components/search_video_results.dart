@@ -7,6 +7,8 @@ import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 import 'package:bilimusic/feature/search/domain/search_sort.dart';
+import 'package:bilimusic/feature/search/domain/search_user_item.dart';
+import 'package:bilimusic/feature/search/ui/components/search_related_users.dart';
 import 'package:bilimusic/feature/search/ui/components/search_results_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +18,7 @@ class SearchVideoResults extends StatelessWidget {
     super.key,
     required this.submittedQuery,
     required this.results,
+    required this.userResults,
     required this.isLoading,
     required this.isLoadingMore,
     required this.hasMore,
@@ -27,10 +30,12 @@ class SearchVideoResults extends StatelessWidget {
     required this.onPlayNext,
     required this.onEnqueue,
     required this.onChangeSort,
+    required this.onTapUser,
   });
 
   final String? submittedQuery;
   final List<SearchResultItem> results;
+  final List<SearchUserItem> userResults;
   final bool isLoading;
   final bool isLoadingMore;
   final bool hasMore;
@@ -42,6 +47,7 @@ class SearchVideoResults extends StatelessWidget {
   final Future<void> Function(SearchResultItem item) onPlayNext;
   final Future<void> Function(SearchResultItem item) onEnqueue;
   final Future<void> Function(SearchSort sort) onChangeSort;
+  final ValueChanged<SearchUserItem> onTapUser;
 
   @override
   Widget build(BuildContext context) {
@@ -85,17 +91,27 @@ class SearchVideoResults extends StatelessWidget {
     return Consumer(
       builder: (BuildContext context, WidgetRef ref, Widget? child) {
         final favoritesState = ref.watch(favoritesControllerProvider);
+        final bool hasUserResults = userResults.isNotEmpty;
+        final int userSectionCount = hasUserResults ? 1 : 0;
+        final int footerIndex = results.length + 1 + userSectionCount;
 
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverList.builder(
-            itemCount: results.length + 2,
+            itemCount: results.length + 2 + userSectionCount,
             itemBuilder: (BuildContext context, int index) {
               if (index == 0) {
                 return _SearchSortChips(sort: sort, onChangeSort: onChangeSort);
               }
 
-              if (index == results.length + 1) {
+              if (hasUserResults && index == 1) {
+                return SearchRelatedUsers(
+                  users: userResults,
+                  onTapUser: onTapUser,
+                );
+              }
+
+              if (index == footerIndex) {
                 return SearchResultFooter(
                   isLoadingMore: isLoadingMore,
                   hasMore: hasMore,
@@ -104,7 +120,8 @@ class SearchVideoResults extends StatelessWidget {
                 );
               }
 
-              final SearchResultItem item = results[index - 1];
+              final SearchResultItem item =
+                  results[index - 1 - userSectionCount];
               final PlayableItem playableItem = item.toPlayableItem();
               final bool isFavorite = favoritesState.isLikedVideoPage(
                 aid: item.aid,

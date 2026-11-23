@@ -36,6 +36,7 @@ class SearchResultsView extends StatelessWidget {
       sliver: SearchVideoResults(
         submittedQuery: state.submittedQuery,
         results: state.results,
+        userResults: state.userResults,
         isLoading: state.isLoadingFor(SearchType.video),
         isLoadingMore: state.isLoadingMoreFor(SearchType.video),
         hasMore: state.hasMoreFor(SearchType.video),
@@ -47,6 +48,7 @@ class SearchResultsView extends StatelessWidget {
         onPlayNext: onPlayNext,
         onEnqueue: onEnqueue,
         onChangeSort: onChangeSort,
+        onTapUser: onTapUser,
       ),
     );
   }

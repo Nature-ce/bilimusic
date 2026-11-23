@@ -9,49 +9,49 @@ part of 'hot_search_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(HotSearchController)
-final hotSearchControllerProvider = HotSearchControllerProvider._();
+@ProviderFor(hotSearch)
+final hotSearchProvider = HotSearchProvider._();
 
-final class HotSearchControllerProvider
-    extends $AsyncNotifierProvider<HotSearchController, List<HotSearchItem>> {
-  HotSearchControllerProvider._()
+final class HotSearchProvider
+    extends
+        $FunctionalProvider<
+          List<HotSearchItem>,
+          List<HotSearchItem>,
+          List<HotSearchItem>
+        >
+    with $Provider<List<HotSearchItem>> {
+  HotSearchProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'hotSearchControllerProvider',
+        name: r'hotSearchProvider',
         isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$hotSearchControllerHash();
+  String debugGetCreateSourceHash() => _$hotSearchHash();
 
   @$internal
   @override
-  HotSearchController create() => HotSearchController();
-}
+  $ProviderElement<List<HotSearchItem>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
 
-String _$hotSearchControllerHash() =>
-    r'570c23810bc4d6af19b8aa0d51a3428316d7df90';
-
-abstract class _$HotSearchController
-    extends $AsyncNotifier<List<HotSearchItem>> {
-  FutureOr<List<HotSearchItem>> build();
-  @$mustCallSuper
   @override
-  void runBuild() {
-    final ref =
-        this.ref as $Ref<AsyncValue<List<HotSearchItem>>, List<HotSearchItem>>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<HotSearchItem>>, List<HotSearchItem>>,
-              AsyncValue<List<HotSearchItem>>,
-              Object?,
-              Object?
-            >;
-    element.handleCreate(ref, build);
+  List<HotSearchItem> create(Ref ref) {
+    return hotSearch(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<HotSearchItem> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<HotSearchItem>>(value),
+    );
   }
 }
+
+String _$hotSearchHash() => r'2de7d1e421bcff32cd50c8b66995426d710a082f';
