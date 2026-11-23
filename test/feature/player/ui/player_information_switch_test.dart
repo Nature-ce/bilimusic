@@ -22,9 +22,6 @@ import 'package:bilimusic/feature/player/logic/display/player_display_settings_l
 import 'package:bilimusic/feature/player/logic/display/player_display_source_logic.dart';
 import 'package:bilimusic/feature/player/logic/lyrics/player_lyric_settings_logic.dart';
 import 'package:bilimusic/feature/player/logic/player_online_audience_controller.dart';
-import 'package:bilimusic/feature/player/ui/mini/mini_player_bar.dart';
-import 'package:bilimusic/feature/player/ui/mini/mini_player_content.dart';
-import 'package:bilimusic/feature/player/ui/mini/mini_player_glass_bar.dart';
 import 'package:bilimusic/feature/player/ui/components/player_artwork.dart';
 import 'package:bilimusic/feature/player/ui/components/player_cover_browser_page.dart';
 import 'package:bilimusic/feature/player/ui/components/player_controls.dart';
@@ -38,13 +35,13 @@ import 'package:bilimusic/feature/player/ui/components/player_top_bar.dart';
 import 'package:bilimusic/feature/player/ui/lyrics/player_lyric_page.dart';
 import 'package:bilimusic/feature/player/ui/desktop/desktop_player_bar.dart';
 import 'package:bilimusic/feature/player/ui/player_page.dart';
+import 'package:bilimusic/router/shell/components/mobile_bottom_bar.dart';
 import 'package:coverflow_carousel/coverflow_carousel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_lyric/flutter_lyric.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 const PlayableItem _item = PlayableItem(
   aid: 1,
@@ -62,113 +59,6 @@ final Metadata _metadata = Metadata(
 );
 
 void main() {
-  for (final double textScale in <double>[1, 2]) {
-    testWidgets(
-      'slim minibar fits text at scale $textScale and keeps actions',
-      (WidgetTester tester) async {
-        int openCalls = 0;
-        int toggleCalls = 0;
-        await _pumpPlayer(
-          tester,
-          _metadata,
-          textScaler: TextScaler.linear(textScale),
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.bottomCenter,
-              child: MiniPlayerBar(
-                state: const PlayerState(currentItem: _item),
-                onTap: () => openCalls++,
-                onTogglePlayback: () => toggleCalls++,
-              ),
-            ),
-          ),
-        );
-
-        final double height = tester.getSize(find.byType(MiniPlayerBar)).height;
-        expect(height, textScale == 1 ? 46 : greaterThan(46));
-        expect(
-          tester.getSize(find.byType(MiniPlayerArtwork)),
-          const Size(36, 36),
-        );
-        expect(
-          tester.getSize(find.byType(MiniPlayerPlaybackButton)),
-          const Size(44, 44),
-        );
-        await tester.tap(find.byType(IconButton));
-        expect(toggleCalls, 1);
-        expect(openCalls, 0);
-        await tester.tap(find.byType(MiniPlayerArtwork));
-        expect(openCalls, 1);
-        expect(tester.takeException(), isNull);
-      },
-    );
-  }
-
-  for (final double textScale in <double>[1, 2]) {
-    testWidgets(
-      'glass minibar inflates, resets and keeps actions at scale $textScale',
-      (WidgetTester tester) async {
-        int openCalls = 0;
-        int toggleCalls = 0;
-        await _pumpPlayer(
-          tester,
-          _metadata,
-          textScaler: TextScaler.linear(textScale),
-          home: GlassTheme(
-            data: GlassThemeData.simple(quality: GlassQuality.minimal),
-            child: Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: MiniPlayerGlassBar(
-                    state: const PlayerState(currentItem: _item),
-                    onTap: () => openCalls++,
-                    onTogglePlayback: () => toggleCalls++,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        final Finder artwork = find.byType(MiniPlayerArtwork);
-        final double restingWidth = tester.getRect(artwork).width;
-        final double restingHeight = tester
-            .getSize(find.byType(MiniPlayerGlassBar))
-            .height;
-        expect(restingHeight, textScale == 1 ? 44 : greaterThan(44));
-
-        final TestGesture press = await tester.startGesture(
-          tester.getCenter(artwork),
-        );
-        await tester.pumpAndSettle();
-        expect(tester.getRect(artwork).width, greaterThan(restingWidth));
-        expect(openCalls, 0);
-        await press.up();
-        await tester.pumpAndSettle();
-        expect(tester.getRect(artwork).width, closeTo(restingWidth, 0.01));
-        expect(openCalls, 1);
-
-        final TestGesture cancelledPress = await tester.startGesture(
-          tester.getCenter(artwork),
-        );
-        await tester.pumpAndSettle();
-        expect(tester.getRect(artwork).width, greaterThan(restingWidth));
-        await cancelledPress.cancel();
-        await tester.pumpAndSettle();
-        expect(tester.getRect(artwork).width, closeTo(restingWidth, 0.01));
-        expect(openCalls, 1);
-
-        await tester.tap(find.byType(IconButton));
-        await tester.pumpAndSettle();
-        expect(toggleCalls, 1);
-        expect(openCalls, 1);
-        expect(tester.takeException(), isNull);
-      },
-    );
-  }
-
   testWidgets(
     'cover double tap switches page and mini information without artwork',
     (WidgetTester tester) async {
@@ -307,7 +197,7 @@ void main() {
       );
       await tester.pump();
 
-      final Finder miniPlayer = find.byType(MiniPlayerContent);
+      final Finder miniPlayer = find.byType(MobileBottomBar);
       expect(
         find.descendant(of: miniPlayer, matching: find.text('Next song')),
         findsOneWidget,
@@ -1464,9 +1354,18 @@ Future<ProviderContainer> _pumpPlayer(
                     child: Consumer(
                       builder:
                           (BuildContext context, WidgetRef ref, Widget? child) {
-                            return MiniPlayerContent(
+                            return MobileBottomBar(
                               state: ref.watch(playerControllerProvider),
+                              showPlayer: true,
+                              showTabs: false,
+                              selectedIndex: 0,
+                              glass: false,
+                              isFavorite: false,
+                              onTabSelected: (_) {},
+                              onOpenPlayer: () {},
                               onTogglePlayback: () {},
+                              onOpenQueue: () {},
+                              onToggleFavorite: () {},
                             );
                           },
                     ),
@@ -1513,13 +1412,9 @@ void _expectInformation(
     find.descendant(of: headerWidget, matching: find.text(artist)),
     findsOneWidget,
   );
-  final Finder miniPlayer = find.byType(MiniPlayerContent);
+  final Finder miniPlayer = find.byType(MobileBottomBar);
   expect(
-    find.descendant(of: miniPlayer, matching: find.text(title)),
-    findsOneWidget,
-  );
-  expect(
-    find.descendant(of: miniPlayer, matching: find.text(artist)),
+    find.descendant(of: miniPlayer, matching: find.text('$title - $artist')),
     findsOneWidget,
   );
 }

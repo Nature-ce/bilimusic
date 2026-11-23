@@ -1,13 +1,15 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
+import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
+import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_display_info.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/display/player_display_provider.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
-import 'package:bilimusic/feature/player/ui/mini/mini_player_bar.dart';
 import 'package:bilimusic/feature/player/ui/mini/mini_player_content.dart';
-import 'package:bilimusic/feature/player/ui/mini/mini_player_glass_bar.dart';
 import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
+import 'package:bilimusic/router/shell/components/mobile_bottom_bar.dart';
 import 'package:bilimusic/router/shell/mobile_shell_scaffold.dart';
 import 'package:bilimusic/router/util/mobile_chrome_config.dart';
 import 'package:bilimusic/router/util/player_navigation.dart';
@@ -41,254 +43,343 @@ void main() {
 
   for (final bool glass in <bool>[false, true]) {
     for (final double inset in <double>[0, 34]) {
-      for (final double scale in <double>[1, 2]) {
-        testWidgets('overlay glass=$glass inset=$inset scale=$scale', (
-          WidgetTester tester,
-        ) async {
-          final GoRouter router = await _pumpShell(
-            tester,
-            glass: glass,
-            inset: inset,
-            scale: scale,
+      testWidgets(
+        'bottom bar composes player row and tabs glass=$glass inset=$inset',
+        (WidgetTester tester) async {
+          await _pumpShell(tester, glass: glass, inset: inset);
+          final Finder bar = find.byType(MobileBottomBar);
+          final _FakePlayerController controller = _controllerOf(tester);
+
+          expect(bar, findsOneWidget);
+          expect(
+            find.descendant(
+              of: bar,
+              matching: find.text('Test song - Test artist'),
+            ),
+            findsOneWidget,
           );
-          final Finder mini = find.byType(
-            glass ? MiniPlayerGlassBar : MiniPlayerBar,
-          );
-          final Finder tabs = glass
-              ? find.byType(GlassTabBar)
-              : find.ancestor(
-                  of: find.byIcon(Icons.home),
-                  matching: find.byType(ClipRRect),
-                );
-          final Rect miniRect = tester.getRect(mini);
-          final Rect tabsRect = tester.getRect(tabs);
-          expect(tabsRect.top - miniRect.bottom, closeTo(10, 0.01));
-          expect(tabsRect.height, glass ? 60 : 52);
-          expect(tabsRect.width, closeTo(420 * 0.85 - 128, 0.01));
-          if (scale == 1) {
-            expect(miniRect.height, glass ? 44 : 46);
+          for (final String label in <String>['首页', '刷歌', '我的']) {
             expect(
-              tester.getSize(find.byType(MiniPlayerArtwork)),
-              const Size(36, 36),
-            );
-            expect(
-              tester.getSize(find.byType(MiniPlayerPlaybackButton)),
-              const Size(44, 44),
+              find.descendant(of: bar, matching: find.text(label)),
+              findsOneWidget,
             );
           }
+          expect(find.byIcon(Icons.home), findsOneWidget);
+          expect(find.byIcon(Icons.home_outlined), findsNothing);
+          expect(find.byIcon(Icons.person_outline_rounded), findsOneWidget);
+          expect(find.byTooltip('播放'), findsOneWidget);
+          expect(find.byTooltip('播放队列'), findsOneWidget);
+          expect(find.byTooltip('我喜欢'), findsOneWidget);
+          expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
           expect(
-            tabsRect.bottom,
-            900 - (inset == 0 ? 10 : inset) - (glass ? 11 : 0),
+            tester.getSize(find.byType(MiniPlayerArtwork)),
+            const Size(36, 36),
           );
-          expect(tester.getRect(find.byKey(_viewportKey)).bottom, 900);
-          expect(_spacerHeight(tester), closeTo(900 - miniRect.top + 16, 0.01));
-          if (scale == 2) {
-            expect(miniRect.height, greaterThan(52));
+          expect(
+            tester.getSize(find.byType(LinearProgressIndicator)),
+            const Size(388, 2),
+          );
+          expect(tester.getSize(bar).height, 122 + inset);
+          expect(tester.getRect(bar).bottom, 900);
+          expect(_spacerHeight(tester), 138 + inset);
+
+          if (glass) {
+            final GlassPanel panel = tester.widget<GlassPanel>(
+              find.descendant(of: bar, matching: find.byType(GlassPanel)),
+            );
+            expect(panel.tone, GlassTone.frost);
+            expect(panel.shape, isA<LiquidVerticalRoundedSuperellipse>());
+            final LiquidVerticalRoundedSuperellipse shape =
+                panel.shape as LiquidVerticalRoundedSuperellipse;
+            expect(shape.topRadius, mobileBottomBarRadius);
+            expect(shape.bottomRadius, 0);
+          } else {
+            final DecoratedBox surface = tester.widget<DecoratedBox>(
+              find
+                  .descendant(of: bar, matching: find.byType(DecoratedBox))
+                  .first,
+            );
+            final BoxDecoration decoration =
+                surface.decoration as BoxDecoration;
+            expect(
+              decoration.borderRadius,
+              const BorderRadius.vertical(
+                top: Radius.circular(mobileBottomBarRadius),
+              ),
+            );
+            expect(decoration.border?.top.width, 0.8);
+            expect(
+              find.descendant(of: bar, matching: find.byType(GlassPanel)),
+              findsNothing,
+            );
           }
 
-          await tester.tap(find.byType(MiniPlayerPlaybackButton));
-          final _FakePlayerController controller =
-              ProviderScope.containerOf(
-                    tester.element(mini),
-                  ).read(playerControllerProvider.notifier)
-                  as _FakePlayerController;
-          expect(controller.toggleCalls, 1);
-          await tester.drag(find.byKey(_viewportKey), const Offset(0, -1500));
-          await tester.pumpAndSettle();
-          expect(
-            tester.getRect(find.byKey(_lastItemKey)).bottom,
-            lessThanOrEqualTo(miniRect.top - 16),
-          );
-
-          // 三个 Tab：首页 / 雷达 / 我的，点最右侧进入「我的」。
-          await tester.tapAt(
-            Offset(tabsRect.left + tabsRect.width * 5 / 6, tabsRect.center.dy),
-          );
-          await tester.pumpAndSettle();
-          expect(router.routeInformationProvider.value.uri.path, '/profile');
-          router.go('/home');
-          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('播放'));
           expect(controller.toggleCalls, 1);
           expect(tester.takeException(), isNull);
           await _disposeShell(tester);
-        });
-      }
+        },
+      );
     }
   }
 
-  for (final double inset in <double>[0, 34]) {
-    testWidgets('glass keeps top spacing and bottom paint room inset=$inset', (
-      WidgetTester tester,
-    ) async {
-      await _pumpShell(tester, glass: true, inset: inset);
-      final Finder content = find.byKey(
-        const ValueKey<String>('glass_tab_bar_gesture_region'),
-      );
-      final _FakePlayerController controller =
-          ProviderScope.containerOf(
-                tester.element(find.byType(MiniPlayerGlassBar)),
-              ).read(playerControllerProvider.notifier)
-              as _FakePlayerController;
-
-      for (final bool hasMiniPlayer in <bool>[true, false]) {
-        if (!hasMiniPlayer) {
-          controller.clear();
-          await tester.pumpAndSettle();
-        }
-        final Rect contentRect = tester.getRect(content);
-        expect(contentRect.height, 52);
-        final Rect tabsRect = tester.getRect(find.byType(GlassTabBar));
-        expect(contentRect.top - tabsRect.top, 4);
-        if (hasMiniPlayer) {
-          expect(
-            contentRect.top -
-                tester.getRect(find.byType(MiniPlayerGlassBar)).bottom,
-            14,
-          );
-        }
-        final Finder transitions = find.ancestor(
-          of: content,
-          matching: find.byType(SizeTransition),
-        );
-        expect(transitions, findsNWidgets(2));
-        for (final Element transition in transitions.evaluate()) {
-          final Rect clipRect = tester.getRect(
-            find.byElementPredicate((Element element) => element == transition),
-          );
-          expect(
-            clipRect.bottom - contentRect.bottom,
-            greaterThanOrEqualTo(15),
-          );
-        }
-        expect(tester.takeException(), isNull);
-      }
-      await _disposeShell(tester);
-    });
-  }
-
-  for (final Brightness brightness in Brightness.values) {
-    testWidgets('glass tint follows the $brightness theme', (tester) async {
-      await _pumpShell(tester, glass: true, brightness: brightness);
-      final BuildContext miniContext = tester.element(
-        find.byType(MiniPlayerGlassBar),
-      );
-      final LiquidGlassSettings miniSettings = InheritedLiquidGlass.ofOrDefault(
-        miniContext,
-      );
-      final LiquidGlassSettings tabSettings = tester
-          .widget<GlassTabBar>(find.byType(GlassTabBar))
-          .settings!;
-      expect(miniSettings.glassColor.a, greaterThan(0));
-      expect(tabSettings.glassColor, miniSettings.glassColor);
-      expect(tabSettings.thickness, 14);
-      expect(tabSettings.refractiveIndex, 1.15);
-      await _disposeShell(tester);
-    });
-  }
-
-  testWidgets('tabs animate out and back while the mini player moves', (
+  testWidgets('bottom bar keeps its fixed heights at 2x text scale', (
     WidgetTester tester,
   ) async {
-    final GoRouter router = await _pumpShell(tester, glass: true);
-    final Finder mini = find.byType(MiniPlayerGlassBar);
-    final double start = tester.getRect(mini).top;
+    await _pumpShell(tester, scale: 2);
+    final Finder bar = find.byType(MobileBottomBar);
+
+    expect(bar, findsOneWidget);
+    expect(tester.getSize(bar).height, 122);
+    expect(tester.getSize(find.byType(MiniPlayerArtwork)), const Size(36, 36));
+    expect(
+      tester.getSize(find.byType(LinearProgressIndicator)),
+      const Size(388, 2),
+    );
+    expect(
+      find.descendant(of: bar, matching: find.text('Test song - Test artist')),
+      findsOneWidget,
+    );
+    expect(_spacerHeight(tester), 138);
+    expect(tester.takeException(), isNull);
+    await _disposeShell(tester);
+  });
+
+  testWidgets('detail routes keep the player row and drop the tab row', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await _pumpShell(tester);
     router.go('/profile/downloads');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 110));
-    expect(find.byType(GlassTabBar), findsOneWidget);
-    final double middle = tester.getRect(mini).top;
-    expect(middle, greaterThan(start));
     await tester.pumpAndSettle();
-    expect(find.byType(GlassTabBar), findsNothing);
-    expect(tester.getRect(mini).top, greaterThan(middle));
+    final Finder bar = find.byType(MobileBottomBar);
+
+    expect(bar, findsOneWidget);
+    expect(find.byType(MiniPlayerArtwork), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    for (final String label in <String>['首页', '刷歌', '我的']) {
+      expect(find.text(label), findsNothing);
+    }
+    expect(tester.getSize(bar).height, 72);
+    expect(tester.getRect(bar).bottom, 900);
+    expect(_spacerHeight(tester), 88);
+    expect(tester.getRect(find.byKey(_viewportKey)).bottom, 900);
+    expect(tester.takeException(), isNull);
+    await _disposeShell(tester);
+  });
+
+  testWidgets('player page and full screen routes hide the whole bar', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await _pumpShell(tester, inset: 34);
+
+    expect(find.byType(MobileBottomBar), findsOneWidget);
+    expect(_spacerHeight(tester), 172);
+
+    markPlayerPageVisible();
+    await tester.pumpAndSettle();
+    expect(find.byType(MobileBottomBar), findsNothing);
+    expect(find.text('首页'), findsNothing);
+    expect(_spacerHeight(tester), 16);
+    expect(tester.getRect(find.byKey(_viewportKey)).bottom, 900);
+
+    markPlayerPageHidden();
+    await tester.pumpAndSettle();
+    expect(find.byType(MobileBottomBar), findsOneWidget);
+    expect(_spacerHeight(tester), 172);
+
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    expect(find.byType(MobileBottomBar), findsNothing);
+    expect(find.text('首页'), findsNothing);
+    expect(_spacerHeight(tester), 16);
+
     router.go('/home');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 110));
-    expect(tester.getRect(mini).top, greaterThan(start));
     await tester.pumpAndSettle();
-    expect(tester.getRect(mini).top, closeTo(start, 0.01));
+    expect(find.byType(MobileBottomBar), findsOneWidget);
+    expect(_spacerHeight(tester), 172);
     expect(tester.takeException(), isNull);
     await _disposeShell(tester);
   });
 
   testWidgets(
-    'chrome and spacing follow routes, playback and player visibility',
+    'appearance toggle swaps the bar material without moving layout',
     (WidgetTester tester) async {
-      final GoRouter router = await _pumpShell(tester);
-      final _FakePlayerController controller =
-          ProviderScope.containerOf(
-                tester.element(find.byType(MiniPlayerBar)),
-              ).read(playerControllerProvider.notifier)
-              as _FakePlayerController;
-      final _FakeAppearance appearance =
-          ProviderScope.containerOf(
-                tester.element(find.byType(MiniPlayerBar)),
-              ).read(appearanceSettingLogicProvider.notifier)
-              as _FakeAppearance;
-      final double normalSpacing = _spacerHeight(tester);
+      await _pumpShell(tester);
+      final Finder bar = find.byType(MobileBottomBar);
+      final _FakeAppearance appearance = _appearanceOf(tester);
+
+      expect(
+        find.descendant(of: bar, matching: find.byType(GlassPanel)),
+        findsNothing,
+      );
+      expect(tester.getSize(bar).height, 122);
+      expect(_spacerHeight(tester), 138);
+
       appearance.setGlass(true);
       await tester.pumpAndSettle();
-      expect(find.byType(MiniPlayerGlassBar), findsOneWidget);
-      expect(_spacerHeight(tester), normalSpacing + 17);
+      expect(bar, findsOneWidget);
+      expect(
+        find.descendant(of: bar, matching: find.byType(GlassPanel)),
+        findsOneWidget,
+      );
+      expect(tester.getSize(bar).height, 122);
+      expect(_spacerHeight(tester), 138);
+
       appearance.setGlass(false);
       await tester.pumpAndSettle();
-      controller.clear();
-      await tester.pumpAndSettle();
-      expect(find.byType(MiniPlayerBar), findsNothing);
-      expect(_spacerHeight(tester), 78);
-
-      controller.load();
-      await tester.pumpAndSettle();
-      router.go('/profile/downloads');
-      await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.home_outlined), findsNothing);
-      expect(tester.getRect(find.byType(MiniPlayerBar)).bottom, 880);
-      expect(_spacerHeight(tester), 82);
-      expect(tester.getRect(find.byKey(_viewportKey)).bottom, 900);
-
-      markPlayerPageVisible();
-      await tester.pumpAndSettle();
-      expect(find.byType(MiniPlayerBar), findsNothing);
-      expect(_spacerHeight(tester), 16);
-      markPlayerPageHidden();
-      await tester.pumpAndSettle();
-      expect(find.byType(MiniPlayerBar), findsOneWidget);
-
-      router.go('/settings');
-      await tester.pumpAndSettle();
-      expect(find.byType(MiniPlayerBar), findsNothing);
-      expect(_spacerHeight(tester), 16);
-      router.go('/home');
-      await tester.pumpAndSettle();
-      expect(find.byType(MiniPlayerBar), findsOneWidget);
-      expect(find.byIcon(Icons.home), findsOneWidget);
+      expect(
+        find.descendant(of: bar, matching: find.byType(GlassPanel)),
+        findsNothing,
+      );
+      expect(tester.getSize(bar).height, 122);
+      expect(_spacerHeight(tester), 138);
       expect(tester.takeException(), isNull);
       await _disposeShell(tester);
     },
   );
 
-  testWidgets('keyboard keeps the page usable and restores overlay spacing', (
+  testWidgets('tapping tabs switches branches and highlights the selection', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await _pumpShell(tester);
+
+    expect(find.byIcon(Icons.home), findsOneWidget);
+    expect(find.byIcon(Icons.person_rounded), findsNothing);
+
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/profile');
+    expect(find.byType(MobileBottomBar), findsOneWidget);
+    expect(find.byIcon(Icons.person_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.person_outline_rounded), findsNothing);
+    expect(find.byIcon(Icons.home), findsNothing);
+    expect(find.byIcon(Icons.home_outlined), findsOneWidget);
+    expect(_spacerHeight(tester), 138);
+
+    await tester.tap(find.text('首页'));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/home');
+    expect(find.byIcon(Icons.home), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _disposeShell(tester);
+  });
+
+  testWidgets('bottom page spacer follows the composed bar height', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await _pumpShell(tester);
+    final _FakePlayerController controller = _controllerOf(tester);
+    final Finder bar = find.byType(MobileBottomBar);
+
+    expect(tester.getSize(bar).height, 122);
+    expect(_spacerHeight(tester), 138);
+
+    controller.clear();
+    await tester.pumpAndSettle();
+    expect(bar, findsOneWidget);
+    expect(find.byType(MiniPlayerArtwork), findsNothing);
+    expect(find.text('首页'), findsOneWidget);
+    expect(tester.getSize(bar).height, 58);
+    expect(_spacerHeight(tester), 74);
+
+    controller.load();
+    await tester.pumpAndSettle();
+    expect(tester.getSize(bar).height, 122);
+    expect(_spacerHeight(tester), 138);
+
+    router.go('/profile/downloads');
+    await tester.pumpAndSettle();
+    expect(tester.getSize(bar).height, 72);
+    expect(_spacerHeight(tester), 88);
+
+    markPlayerPageVisible();
+    await tester.pumpAndSettle();
+    expect(bar, findsNothing);
+    expect(_spacerHeight(tester), 16);
+
+    markPlayerPageHidden();
+    await tester.pumpAndSettle();
+    expect(tester.getSize(bar).height, 72);
+    expect(_spacerHeight(tester), 88);
+
+    router.go('/home');
+    await tester.pumpAndSettle();
+    expect(tester.getSize(bar).height, 122);
+    expect(_spacerHeight(tester), 138);
+    expect(tester.takeException(), isNull);
+    await _disposeShell(tester);
+  });
+
+  testWidgets('keyboard keeps the page usable and restores the spacer', (
     WidgetTester tester,
   ) async {
     await _pumpShell(tester, inset: 34);
     final double spacing = _spacerHeight(tester);
+    expect(spacing, 172);
+
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
     tester.view.padding = FakeViewPadding.zero;
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
     expect(tester.getRect(find.byKey(_viewportKey)).bottom, 600);
+    expect(find.byType(MobileBottomBar), findsOneWidget);
+    await tester.drag(find.byKey(_viewportKey), const Offset(0, -1500));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.byKey(_lastItemKey)).bottom,
+      lessThanOrEqualTo(600),
+    );
     expect(tester.takeException(), isNull);
+
     tester.view.viewInsets = FakeViewPadding.zero;
     tester.view.padding = const FakeViewPadding(bottom: 34);
     await tester.pumpAndSettle();
     expect(_spacerHeight(tester), spacing);
     expect(tester.getRect(find.byKey(_viewportKey)).bottom, 900);
+    expect(tester.takeException(), isNull);
+    await _disposeShell(tester);
+  });
+
+  testWidgets('page content scrolls clear of the bottom bar', (
+    WidgetTester tester,
+  ) async {
+    await _pumpShell(tester);
+    final Rect barRect = tester.getRect(find.byType(MobileBottomBar));
+
+    await tester.drag(find.byKey(_viewportKey), const Offset(0, -1500));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.byKey(_lastItemKey)).bottom,
+      closeTo(barRect.top - 16, 0.01),
+    );
+
+    await tester.drag(find.byKey(_viewportKey), const Offset(0, 1500));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.byKey(_lastItemKey)).bottom,
+      greaterThan(barRect.bottom),
+    );
+    expect(tester.takeException(), isNull);
     await _disposeShell(tester);
   });
 }
 
 double _spacerHeight(WidgetTester tester) =>
     tester.getSize(find.byType(BottomPageSpacer)).height;
+
+_FakePlayerController _controllerOf(WidgetTester tester) {
+  return ProviderScope.containerOf(
+        tester.element(find.byType(MobileShellScaffold)),
+      ).read(playerControllerProvider.notifier)
+      as _FakePlayerController;
+}
+
+_FakeAppearance _appearanceOf(WidgetTester tester) {
+  return ProviderScope.containerOf(
+        tester.element(find.byType(MobileShellScaffold)),
+      ).read(appearanceSettingLogicProvider.notifier)
+      as _FakeAppearance;
+}
 
 Future<GoRouter> _pumpShell(
   WidgetTester tester, {
@@ -343,6 +434,7 @@ Future<GoRouter> _pumpShell(
         appearanceSettingLogicProvider.overrideWith(
           () => _FakeAppearance(glass),
         ),
+        favoritesControllerProvider.overrideWith(_FakeFavoritesController.new),
       ],
       child: MaterialApp.router(
         theme: ThemeData(brightness: brightness),
@@ -414,4 +506,9 @@ class _FakeAppearance extends AppearanceSettingLogic {
   bool build() => glass;
 
   void setGlass(bool value) => state = value;
+}
+
+class _FakeFavoritesController extends FavoritesController {
+  @override
+  FavoritesState build() => const FavoritesState();
 }

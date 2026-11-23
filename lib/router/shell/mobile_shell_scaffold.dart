@@ -1,15 +1,15 @@
-import 'package:bilimusic/common/util/color_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
+import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
 import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dart';
+import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
-import 'package:bilimusic/feature/player/ui/mini/mini_player_bar.dart';
-import 'package:bilimusic/feature/player/ui/mini/mini_player_glass_bar.dart';
+import 'package:bilimusic/feature/player/ui/components/player_queue_sheet.dart';
 import 'package:bilimusic/feature/player/ui/player_gestures.dart';
 import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/updater/logic/update_checker.dart';
+import 'package:bilimusic/router/shell/components/mobile_bottom_bar.dart';
 import 'package:bilimusic/router/util/mobile_branch_navigator_keys.dart';
 import 'package:bilimusic/router/util/mobile_chrome_config.dart';
 import 'package:bilimusic/router/util/player_navigation.dart';
@@ -18,7 +18,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 class MobileShellScaffold extends ConsumerStatefulWidget {
@@ -39,11 +38,7 @@ class MobileShellScaffold extends ConsumerStatefulWidget {
 }
 
 class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
-  static const Duration _animationDuration = Duration(milliseconds: 200);
   static const Curve _animationCurve = Curves.easeInOutCubic;
-
-  static const double _bottomBarCornerRadius = 40;
-  static const double _bottomBarHeight = 52;
 
   Offset? _miniPlayerDragOrigin;
 
@@ -92,6 +87,10 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
         widget.chrome.showMiniPlayer &&
         playerState.hasItem &&
         !isPlayerPageVisible;
+    final PlayableItem? currentItem = playerState.currentItem;
+    final bool isFavorite = currentItem == null
+        ? false
+        : ref.watch(favoritesControllerProvider).isLiked(currentItem);
 
     return GlassPage(
       child: Scaffold(
@@ -100,49 +99,19 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
         floatingActionButton: _buildHomeBackToTop(isPlayerPageVisible),
         bottomNavigationBar: _animateChrome(
           visible: showTabs || showMiniPlayer,
-          child: () => SafeArea(
-            top: false,
-            minimum: EdgeInsets.only(bottom: showTabs ? 10 : 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (showMiniPlayer)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildMiniPlayerGestures(
-                      useGlassBar
-                          ? MiniPlayerGlassBar(
-                              state: playerState,
-                              onTap: _openMiniPlayer,
-                              onTogglePlayback: _togglePlayback,
-                            )
-                          : MiniPlayerBar(
-                              state: playerState,
-                              onTap: _openMiniPlayer,
-                              onTogglePlayback: _togglePlayback,
-                            ),
-                    ),
-                  ),
-                _animateChrome(
-                  visible: showTabs,
-                  child: () => Padding(
-                    padding: EdgeInsets.only(
-                      top: showMiniPlayer ? 10 : 0,
-                      bottom: useGlassBar ? 8 : 0,
-                    ),
-                    child: FractionallySizedBox(
-                      widthFactor: 0.85,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 64),
-                        child: useGlassBar
-                            ? _buildGlassTabBar(context)
-                            : _buildFallbackTabBar(context),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          child: () => MobileBottomBar(
+            state: playerState,
+            showPlayer: showMiniPlayer,
+            showTabs: showTabs,
+            selectedIndex: widget.navigationShell.currentIndex,
+            glass: useGlassBar,
+            isFavorite: isFavorite,
+            onTabSelected: _selectBranch,
+            onOpenPlayer: _openMiniPlayer,
+            onTogglePlayback: _togglePlayback,
+            onOpenQueue: _openQueue,
+            onToggleFavorite: _toggleFavorite,
+            playerRowWrapper: _buildMiniPlayerGestures,
           ),
         ),
       ),
@@ -156,7 +125,7 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
     if (!ref.watch(homeBackToTopVisibilityProvider)) {
       return null;
     }
-    // 迷你播放器与底部导航会盖在 FAB 之上，抬高一点避免按钮被遮住导致点不到。
+    // 底栏会盖在 FAB 之上，抬高一点避免按钮被遮住导致点不到。
     return const Padding(
       padding: EdgeInsets.only(bottom: AppSpacing.sm + 4),
       child: HomeBackToTopButton(),
@@ -188,105 +157,6 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
         );
       },
       child: visible ? child() : const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildGlassTabBar(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    return GlassTabBar.bottom(
-      settings: LiquidGlassSettings(
-        thickness: 14,
-        refractiveIndex: 1.15,
-        lightIntensity: 0.35,
-        fresnelStrength: 0.4,
-        chromaticAberration: 0.05,
-        blur: 3,
-        saturation: 0.7,
-        ambientStrength: 1,
-        glassColor:
-            GlassThemeData.of(context).settingsFor(context)?.glassColor ??
-            const LiquidGlassSettings().glassColor,
-      ),
-      spacing: 4,
-      verticalPadding: 0,
-      barHeight: _bottomBarHeight,
-      horizontalPadding: 0,
-      unselectedIconColor: colorScheme.onSurfaceVariant,
-      selectedIconColor: colorScheme.primary,
-      indicatorColor: ColorUtil.getLight(
-        colorScheme.primary,
-      ).withValues(alpha: 0.2),
-      tabs: const <GlassTab>[
-        GlassTab(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedHome07, size: 20),
-          label: '首页',
-        ),
-        GlassTab(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedShuffleSquare, size: 20),
-          label: '刷歌',
-        ),
-        GlassTab(
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedUser, size: 20),
-          label: '我的',
-        ),
-      ],
-      selectedIndex: widget.navigationShell.currentIndex,
-      onTabSelected: _selectBranch,
-    );
-  }
-
-  Widget _buildFallbackTabBar(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(_bottomBarCornerRadius),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.08)),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: appShadowColor(context),
-            blurRadius: 30,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(_bottomBarCornerRadius),
-        child: SizedBox(
-          height: _bottomBarHeight,
-          child: Row(
-            children: <Widget>[
-              _BottomNavItem(
-                icon: Icons.home_outlined,
-                selectedIcon: Icons.home,
-                selected: widget.navigationShell.currentIndex == 0,
-                selectedColor: colorScheme.primary,
-                indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
-                onTap: () => _selectBranch(0),
-              ),
-              _BottomNavItem(
-                icon: Icons.play_circle_outline,
-                selectedIcon: Icons.play_circle,
-                selected: widget.navigationShell.currentIndex == 1,
-                selectedColor: colorScheme.primary,
-                indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
-                onTap: () => _selectBranch(1),
-              ),
-              _BottomNavItem(
-                icon: Icons.person_outlined,
-                selectedIcon: Icons.person,
-                selected: widget.navigationShell.currentIndex == 2,
-                selectedColor: colorScheme.primary,
-                indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
-                onTap: () => _selectBranch(2),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -344,51 +214,24 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
   void _togglePlayback() {
     ref.read(playerControllerProvider.notifier).togglePlayback();
   }
-}
 
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.selectedIcon,
-    required this.selected,
-    required this.selectedColor,
-    required this.indicatorColor,
-    required this.onTap,
-  });
+  Future<void> _toggleFavorite() async {
+    final PlayableItem? item = ref.read(playerControllerProvider).currentItem;
+    if (item == null) {
+      return;
+    }
+    await ref.read(favoritesControllerProvider.notifier).toggleLiked(item);
+  }
 
-  final IconData icon;
-  final IconData selectedIcon;
-  final bool selected;
-  final Color selectedColor;
-  final Color indicatorColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color unselectedColor = Theme.of(
-      context,
-    ).colorScheme.onSurfaceVariant;
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(40),
-        child: Center(
-          child: AnimatedContainer(
-            duration: _MobileShellScaffoldState._animationDuration,
-            curve: _MobileShellScaffoldState._animationCurve,
-            width: 64,
-            height: 32,
-            decoration: BoxDecoration(
-              color: selected ? indicatorColor : Colors.transparent,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(
-              selected ? selectedIcon : icon,
-              color: selected ? selectedColor : unselectedColor,
-            ),
-          ),
-        ),
-      ),
+  void _openQueue() {
+    final PlayerState state = ref.read(playerControllerProvider);
+    if (!state.hasQueue) {
+      return;
+    }
+    showPlayerQueueSheet(
+      context: context,
+      state: state,
+      glass: ref.read(appearanceSettingLogicProvider),
     );
   }
 }

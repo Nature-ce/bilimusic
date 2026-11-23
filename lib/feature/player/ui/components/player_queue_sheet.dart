@@ -2,6 +2,7 @@ import 'package:bilimusic/common/components/desktop/desktop_side_panel.dart';
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/queue_mode_icon.dart';
 import 'package:bilimusic/common/util/display_text.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -15,6 +16,7 @@ import 'package:scroll_to_index/scroll_to_index.dart';
 Future<void> showPlayerQueueSheet({
   required BuildContext context,
   required PlayerState state,
+  bool glass = true,
 }) async {
   if (!state.hasQueue) {
     return;
@@ -23,14 +25,28 @@ Future<void> showPlayerQueueSheet({
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: glass ? Colors.transparent : null,
     elevation: 0,
     barrierColor: Colors.black.withValues(alpha: 0.3),
+    clipBehavior: glass ? Clip.none : Clip.antiAlias,
+    shape: glass
+        ? null
+        : const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppRadius.xl),
+            ),
+          ),
     builder: (BuildContext context) {
+      if (!glass) {
+        return SafeArea(
+          top: false,
+          child: const _PlayerQueueSheet(glass: false),
+        );
+      }
       return GlassSheetPanel(
         tone: GlassTone.smoke,
         child: Flexible(
-          child: SafeArea(top: false, child: _PlayerQueueSheet()),
+          child: SafeArea(top: false, child: const _PlayerQueueSheet()),
         ),
       );
     },
@@ -60,7 +76,9 @@ Future<void> showDesktopPlayerQueuePanel({
 enum _QueueCloseTarget { navigator, sidePanel }
 
 class _PlayerQueueSheet extends ConsumerWidget {
-  const _PlayerQueueSheet();
+  const _PlayerQueueSheet({this.glass = true});
+
+  final bool glass;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -70,9 +88,19 @@ class _PlayerQueueSheet extends ConsumerWidget {
       minChildSize: 0.4,
       maxChildSize: 0.92,
       builder: (BuildContext context, ScrollController _) {
-        return _PlayerQueueContent(
+        final Widget content = _PlayerQueueContent(
           closeTarget: _QueueCloseTarget.navigator,
-          tone: GlassTone.smoke,
+          tone: glass ? GlassTone.smoke : null,
+        );
+        if (glass) {
+          return content;
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const GlassDragHandle(tone: GlassTone.frost),
+            Flexible(child: content),
+          ],
         );
       },
     );
