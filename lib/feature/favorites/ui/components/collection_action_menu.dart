@@ -1,0 +1,289 @@
+import 'package:bilimusic/common/components/login_required.dart';
+import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
+import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
+import 'package:bilimusic/feature/favorites/ui/components/collection_name_dialog.dart';
+import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+enum CollectionAction { rename, delete, remove, sync, uploadToRemote }
+
+/// 歌单（收藏夹）操作菜单：我的页长按卡片、歌单详情页右上角都用它。
+Future<void> showFavoriteCollectionActionMenu({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FavoriteCollection collection,
+  required Offset globalPosition,
+}) async {
+  if (collection.isSystem && !collection.isRemote) {
+    return;
+  }
+  final OverlayState overlay = Overlay.of(context);
+  final RenderBox overlayBox = overlay.context.findRenderObject()! as RenderBox;
+  final RelativeRect position = RelativeRect.fromRect(
+    Rect.fromPoints(globalPosition, globalPosition.translate(1, 1)),
+    Offset.zero & overlayBox.size,
+  );
+
+  HapticFeedback.lightImpact();
+  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  final CollectionAction? action = await showMenu<CollectionAction>(
+    context: context,
+    position: position,
+    color: isDark ? null : Colors.white,
+    items: <PopupMenuEntry<CollectionAction>>[
+      if (!collection.isSystem)
+        PopupMenuItem<CollectionAction>(
+          value: CollectionAction.rename,
+          child: ListTile(
+            leading: Icon(Icons.drive_file_rename_outline_rounded),
+            title: const Text('重命名'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      if (collection.isRemote)
+        PopupMenuItem<CollectionAction>(
+          value: CollectionAction.sync,
+          child: ListTile(
+            leading: Icon(Icons.sync_rounded),
+            title: Text('同步'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      if (collection.isRemote)
+        PopupMenuItem<CollectionAction>(
+          value: CollectionAction.remove,
+          child: ListTile(
+            leading: Icon(Icons.remove_circle_outline_rounded),
+            title: Text('解除绑定'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      if (!collection.isSystem && !collection.isRemote)
+        PopupMenuItem<CollectionAction>(
+          value: CollectionAction.uploadToRemote,
+          child: ListTile(
+            leading: Icon(Icons.cloud_upload_outlined),
+            title: Text('上传到 B 站并同步'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      if (!collection.isSystem)
+        PopupMenuItem<CollectionAction>(
+          value: CollectionAction.delete,
+          child: ListTile(
+            leading: Icon(Icons.delete_outline_rounded),
+            title: Text('删除'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      if (!collection.isSystem || collection.isRemote) const PopupMenuDivider(),
+    ],
+  );
+
+  if (action == null || !context.mounted) {
+    return;
+  }
+
+  switch (action) {
+    case CollectionAction.rename:
+      await _showRenameCollectionDialog(
+        context: context,
+        ref: ref,
+        collection: collection,
+      );
+    case CollectionAction.sync:
+      await _syncRemoteCollection(
+        context: context,
+        ref: ref,
+        collection: collection,
+      );
+    case CollectionAction.uploadToRemote:
+      await _uploadCollectionToRemote(
+        context: context,
+        ref: ref,
+        collection: collection,
+      );
+    case CollectionAction.delete:
+      await _showDeleteCollectionDialog(
+        context: context,
+        ref: ref,
+        collection: collection,
+      );
+    case CollectionAction.remove:
+      await _showRemoveRemoteCollectionDialog(
+        context: context,
+        ref: ref,
+        collection: collection,
+      );
+  }
+}
+
+Future<void> _syncRemoteCollection({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FavoriteCollection collection,
+}) async {
+  ToastUtil.show('正在同步“${collection.name}”…');
+  try {
+    await ref
+        .read(favoritesControllerProvider.notifier)
+        .syncRemoteCollectionIfStale(collection.id, force: true);
+    if (context.mounted) {
+      ToastUtil.show('同步完成');
+    }
+  } on Object {
+    if (context.mounted) {
+      ToastUtil.show('同步失败，请稍后重试');
+    }
+  }
+}
+
+Future<void> _uploadCollectionToRemote({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FavoriteCollection collection,
+}) async {
+  final bool isLoggedIn =
+      ref.read(biliSessionControllerProvider)?.isLoggedIn ?? false;
+  if (!isLoggedIn) {
+    LoginPrompt.show(context, reason: '上传到 B 站需要登录 B 站账号');
+    return;
+  }
+  ToastUtil.show('正在上传“${collection.name}”到 B 站…');
+  try {
+    final FavoriteCollection? uploaded = await ref
+        .read(favoritesControllerProvider.notifier)
+        .uploadLocalCollectionToRemote(collection.id);
+    if (context.mounted) {
+      ToastUtil.show(uploaded == null ? '上传失败，请稍后重试' : '已上传到 B 站，之后增删会双向同步');
+    }
+  } on Object catch (error) {
+    if (context.mounted) {
+      ToastUtil.show('上传失败：$error');
+    }
+  }
+}
+
+Future<void> _showRenameCollectionDialog({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FavoriteCollection collection,
+}) async {
+  final String? result = await showDialog<String>(
+    context: context,
+    useRootNavigator: true,
+    builder: (BuildContext context) {
+      return CollectionNameDialog(
+        title: '重命名歌单',
+        hintText: '请输入歌单名称',
+        confirmText: '保存',
+        initialValue: collection.name,
+      );
+    },
+  );
+  if (result == null || !context.mounted) {
+    return;
+  }
+
+  final String trimmedName = result.trim();
+  if (trimmedName.isEmpty) {
+    ToastUtil.show('歌单名称不能为空');
+    return;
+  }
+  if (trimmedName == collection.name.trim()) {
+    return;
+  }
+
+  final bool renamed = await ref
+      .read(favoritesControllerProvider.notifier)
+      .renameCollection(collectionId: collection.id, name: trimmedName);
+  if (context.mounted) {
+    ToastUtil.show(renamed ? '已重命名歌单' : '歌单名称已存在');
+  }
+}
+
+Future<void> _showDeleteCollectionDialog({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FavoriteCollection collection,
+}) async {
+  final bool? confirmed = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('删除歌单'),
+        content: Text(
+          collection.isRemote
+              ? '确认删除“${collection.name}”？这会同时删除 B 站收藏夹，无法恢复。'
+              : '确认删除“${collection.name}”？删除后无法恢复。',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('删除'),
+          ),
+        ],
+      );
+    },
+  );
+  if (confirmed != true) {
+    return;
+  }
+
+  final bool deleted = await ref
+      .read(favoritesControllerProvider.notifier)
+      .deleteCollection(collection.id);
+  if (context.mounted) {
+    ToastUtil.show(deleted ? '已删除歌单' : '删除失败');
+  }
+}
+
+Future<void> _showRemoveRemoteCollectionDialog({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FavoriteCollection collection,
+}) async {
+  if (!collection.isRemote) {
+    return;
+  }
+  final bool? confirmed = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('解除绑定'),
+        content: Text('确认解除“${collection.name}”与 App 的绑定？只会从列表移除，不会删除 B 站收藏夹。'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('解除绑定'),
+          ),
+        ],
+      );
+    },
+  );
+  if (confirmed != true) {
+    return;
+  }
+
+  final bool removed = await ref
+      .read(favoritesControllerProvider.notifier)
+      .removeRemoteCollection(collection.id);
+  if (context.mounted) {
+    ToastUtil.show(removed ? '已解除绑定' : '解除绑定失败');
+  }
+}

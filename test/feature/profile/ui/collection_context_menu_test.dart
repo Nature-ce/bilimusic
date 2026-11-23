@@ -166,7 +166,7 @@ void main() {
     }
   }
 
-  testWidgets('mobile playlist settings button opens the action menu', (
+  testWidgets('mobile playlist long-press opens the action menu', (
     WidgetTester tester,
   ) async {
     final DateTime now = DateTime(2026);
@@ -183,9 +183,9 @@ void main() {
       favorites: _Favorites(FavoritesState(collections: [collection])),
     );
 
-    expect(find.byTooltip('歌单设置'), findsOneWidget);
+    expect(find.byTooltip('歌单设置'), findsNothing);
 
-    await tester.tap(find.byTooltip('歌单设置'));
+    await tester.longPress(find.text('测试歌单'));
     await tester.pumpAndSettle();
 
     final Finder menuText = find.descendant(

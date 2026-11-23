@@ -17,6 +17,7 @@ import 'package:bilimusic/feature/favorites/domain/remote_collection_sync_state.
 import 'package:bilimusic/feature/favorites/logic/favorite_entry_search.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/favorites/logic/remote_collection_sync_controller.dart';
+import 'package:bilimusic/feature/favorites/ui/components/collection_action_menu.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_play_button.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_collection_search_field.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_entry_subtitle.dart';
@@ -136,6 +137,32 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       unawaited(_loadMoreRemoteItems());
     }
     return false;
+  }
+
+  Future<void> _openCollectionActionMenu({
+    required FavoriteCollection collection,
+    required BuildContext buttonContext,
+  }) async {
+    final RenderBox? box = buttonContext.findRenderObject() as RenderBox?;
+    if (box == null) {
+      return;
+    }
+    await showFavoriteCollectionActionMenu(
+      context: context,
+      ref: ref,
+      collection: collection,
+      globalPosition: box.localToGlobal(box.size.center(Offset.zero)),
+    );
+    if (!mounted) {
+      return;
+    }
+    final bool exists = ref
+        .read(favoritesControllerProvider)
+        .collections
+        .any((FavoriteCollection item) => item.id == collection.id);
+    if (!exists && context.mounted) {
+      Navigator.of(context).maybePop();
+    }
   }
 
   Future<void> _refresh(FavoriteCollection collection) async {
@@ -404,6 +431,21 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
             icon: const Icon(Icons.checklist_rounded),
           ),
           if (!collection.isSpoken) MetadataBackfillButton(items: queueItems),
+          if (!collection.isSystem || collection.isRemote)
+            Builder(
+              builder: (BuildContext buttonContext) {
+                return IconButton(
+                  tooltip: '歌单设置',
+                  onPressed: () => unawaited(
+                    _openCollectionActionMenu(
+                      collection: collection,
+                      buttonContext: buttonContext,
+                    ),
+                  ),
+                  icon: const Icon(Icons.more_horiz_rounded),
+                );
+              },
+            ),
         ],
       ],
       bottom: showLikedTabs

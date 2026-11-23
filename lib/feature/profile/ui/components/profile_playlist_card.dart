@@ -149,7 +149,6 @@ class ProfileCollectionGridCard extends StatelessWidget {
     required this.coverUrl,
     required this.onTap,
     required this.onLongPressStart,
-    required this.onMenuPressed,
     this.updatedAt,
   });
 
@@ -158,7 +157,6 @@ class ProfileCollectionGridCard extends StatelessWidget {
   final String? coverUrl;
   final VoidCallback onTap;
   final ValueChanged<LongPressStartDetails> onLongPressStart;
-  final ValueChanged<Offset> onMenuPressed;
   final DateTime? updatedAt;
 
   @override
@@ -205,34 +203,6 @@ class ProfileCollectionGridCard extends StatelessWidget {
                 ],
               ],
             ),
-          ),
-          Builder(
-            builder: (BuildContext buttonContext) {
-              return Tooltip(
-                message: '歌单设置',
-                child: InkResponse(
-                  radius: 14,
-                  onTap: () {
-                    final RenderBox? box =
-                        buttonContext.findRenderObject() as RenderBox?;
-                    if (box == null) {
-                      return;
-                    }
-                    onMenuPressed(
-                      box.localToGlobal(box.size.center(Offset.zero)),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: Icon(
-                      Icons.more_horiz_rounded,
-                      size: 18,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ],
       ),
