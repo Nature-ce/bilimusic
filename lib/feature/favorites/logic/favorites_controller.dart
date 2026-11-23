@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/common/logger.dart';
 import 'package:bilimusic/core/bili/session/bili_auth_required_exception.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
@@ -132,9 +131,8 @@ class FavoritesController extends _$FavoritesController {
   static const int _maxImportPages = 50;
 
   Future<FavoriteCollection?> importRemoteCollectionAsLocal(
-    FavoriteCollection remote, {
-    CollectionKind? kind,
-  }) async {
+    FavoriteCollection remote,
+  ) async {
     if (!remote.isRemote) {
       return null;
     }
@@ -176,7 +174,6 @@ class FavoritesController extends _$FavoritesController {
     final FavoriteCollection collection = FavoriteCollection(
       id: 'custom_${now.microsecondsSinceEpoch}',
       name: _uniqueLocalCollectionName(remote.name),
-      kind: kind ?? remote.kind,
       coverUrl: remote.coverUrl,
       isSystem: false,
       createdAt: now,
@@ -230,11 +227,10 @@ class FavoritesController extends _$FavoritesController {
     }
     final BiliSession session = _getSession();
     final List<FavoriteEntry> entries = state.itemsForCollection(collectionId);
-    final FavoriteCollection created =
-        (await _remoteRepository.createCollection(
-          session: session,
-          name: local.name,
-        )).copyWith(kind: local.kind);
+    final FavoriteCollection created = await _remoteRepository.createCollection(
+      session: session,
+      name: local.name,
+    );
     final String? remoteId = created.remoteId;
     if (remoteId == null || remoteId.isEmpty) {
       return null;
@@ -698,10 +694,7 @@ class FavoritesController extends _$FavoritesController {
     return state.collectionsForItem(item);
   }
 
-  Future<FavoriteCollection?> createCollection(
-    String name, {
-    CollectionKind kind = CollectionKind.music,
-  }) async {
+  Future<FavoriteCollection?> createCollection(String name) async {
     final String trimmedName = name.trim();
     if (trimmedName.isEmpty || _hasDuplicateCustomCollectionName(trimmedName)) {
       return null;
@@ -711,7 +704,6 @@ class FavoritesController extends _$FavoritesController {
     final FavoriteCollection collection = FavoriteCollection(
       id: 'custom_${now.microsecondsSinceEpoch}',
       name: trimmedName,
-      kind: kind,
       isSystem: false,
       createdAt: now,
       updatedAt: now,
@@ -721,20 +713,14 @@ class FavoritesController extends _$FavoritesController {
     return collection;
   }
 
-  Future<FavoriteCollection?> createRemoteCollection(
-    String name, {
-    CollectionKind kind = CollectionKind.music,
-  }) async {
+  Future<FavoriteCollection?> createRemoteCollection(String name) async {
     final String trimmedName = name.trim();
     if (trimmedName.isEmpty) {
       return null;
     }
 
-    final FavoriteCollection collection =
-        (await _remoteRepository.createCollection(
-          session: _getSession(),
-          name: trimmedName,
-        )).copyWith(kind: kind);
+    final FavoriteCollection collection = await _remoteRepository
+        .createCollection(session: _getSession(), name: trimmedName);
     await _remoteCache.bindCollection(collection);
     state = _loadState();
     return collection.copyWith(isManagedByApp: true);
@@ -813,31 +799,6 @@ class FavoritesController extends _$FavoritesController {
       }
     }
     return addedCount;
-  }
-
-  Future<bool> setCollectionKind({
-    required String collectionId,
-    required CollectionKind kind,
-  }) async {
-    final FavoriteCollection? collection = _collectionById(collectionId);
-    if (collection == null) {
-      return false;
-    }
-    if (collection.kind == kind) {
-      return true;
-    }
-    if (collection.isRemote) {
-      await _remoteCache.setCollectionKind(
-        collectionId: collectionId,
-        kind: kind,
-      );
-    } else {
-      await _repository.saveCollection(
-        collection.copyWith(kind: kind, updatedAt: DateTime.now()),
-      );
-    }
-    state = _loadState();
-    return true;
   }
 
   Future<bool> renameCollection({
@@ -923,7 +884,7 @@ class FavoritesController extends _$FavoritesController {
     required String collectionId,
   }) {
     final FavoriteCollection? collection = _collectionById(collectionId);
-    if (collection == null || collection.isSpoken) {
+    if (collection == null) {
       return;
     }
     ref

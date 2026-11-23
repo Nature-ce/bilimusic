@@ -38,8 +38,6 @@ abstract interface class PlayerSessionHost {
     required PlayerEngineProcessingState processingState,
   });
 
-  void suspendListening();
-
   void logPlayerEvent(String event, {Map<String, Object?>? details});
 
   void emitPlayerEvent(PlayerEventType type);
@@ -55,14 +53,6 @@ abstract interface class PlayerSessionHost {
   Future<void> stopAudioEngine();
 
   Future<void> pauseAudioEngine();
-
-  Future<Duration> resumeListeningPosition(
-    PlayableItem item, {
-    required Duration fallback,
-    required bool Function() isCurrent,
-  });
-
-  void beginListening(PlayableItem item, Duration position, Duration? duration);
 
   void recordRecentPlayback(PlayableItem item);
 
@@ -135,7 +125,6 @@ class PlayerSessionCoordinator {
       },
     );
 
-    _host.suspendListening();
     _host.resetEnginePlaybackSnapshot(
       processingState: PlayerEngineProcessingState.loading,
     );
@@ -177,22 +166,7 @@ class PlayerSessionCoordinator {
         return false;
       }
 
-      Duration startPosition = initialPosition;
-      if (entry.item.isSpoken) {
-        startPosition = await _host.resumeListeningPosition(
-          entry.item,
-          fallback: initialPosition,
-          isCurrent: () => _host.isCurrentGeneration(effectiveGeneration),
-        );
-        if (!_host.isCurrentGeneration(effectiveGeneration)) {
-          return false;
-        }
-        final Duration? duration = entry.audioStream.duration;
-        if (startPosition < Duration.zero ||
-            (duration != null && startPosition >= duration)) {
-          startPosition = Duration.zero;
-        }
-      }
+      final Duration startPosition = initialPosition;
       final Duration? loadedDuration = await _playbackLoader.setSourceForEntry(
         entry: entry,
         initialPosition: startPosition,
@@ -213,7 +187,6 @@ class PlayerSessionCoordinator {
       _setState(_state.copyWith(position: startPosition));
       await _host.enqueueAvailableParts(entry.availableParts);
       _host.scheduleChapterResolution();
-      _host.beginListening(entry.item, startPosition, _state.duration);
       if (entry.cachedFile != null) {
         unawaited(
           _completeCachedEntryParts(

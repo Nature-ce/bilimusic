@@ -328,9 +328,6 @@ class _FakeHost implements PlayerSessionHost {
   }) {}
 
   @override
-  void suspendListening() {}
-
-  @override
   void logPlayerEvent(String event, {Map<String, Object?>? details}) {}
 
   @override
@@ -355,22 +352,6 @@ class _FakeHost implements PlayerSessionHost {
 
   @override
   Future<void> pauseAudioEngine() async => calls.add('pauseEngine');
-
-  @override
-  Future<Duration> resumeListeningPosition(
-    PlayableItem item, {
-    required Duration fallback,
-    required bool Function() isCurrent,
-  }) async {
-    return fallback;
-  }
-
-  @override
-  void beginListening(
-    PlayableItem item,
-    Duration position,
-    Duration? duration,
-  ) {}
 
   @override
   void recordRecentPlayback(PlayableItem item) => calls.add('recent');

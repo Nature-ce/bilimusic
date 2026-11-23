@@ -22,9 +22,6 @@ class FavoriteCollectionAdapter extends TypeAdapter<FavoriteCollection> {
       source: fields[5] == null
           ? FavoriteCollectionSource.local
           : fields[5] as FavoriteCollectionSource,
-      kind: fields[11] == null
-          ? CollectionKind.music
-          : fields[11] as CollectionKind,
       isSystem: fields[2] == null ? false : fields[2] as bool,
       remoteId: fields[6] as String?,
       coverUrl: fields[7] as String?,
@@ -39,7 +36,7 @@ class FavoriteCollectionAdapter extends TypeAdapter<FavoriteCollection> {
   @override
   void write(BinaryWriter writer, FavoriteCollection obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -61,9 +58,7 @@ class FavoriteCollectionAdapter extends TypeAdapter<FavoriteCollection> {
       ..writeByte(9)
       ..write(obj.isManagedByApp)
       ..writeByte(10)
-      ..write(obj.lastSyncedAt)
-      ..writeByte(11)
-      ..write(obj.kind);
+      ..write(obj.lastSyncedAt);
   }
 
   @override
@@ -247,9 +242,6 @@ class PersistedPlayableItemAdapter extends TypeAdapter<PersistedPlayableItem> {
       title: fields[2] as String,
       author: fields[3] as String,
       coverUrl: fields[4] as String,
-      kind: fields[20] == null
-          ? CollectionKind.music
-          : fields[20] as CollectionKind,
       collectionId: fields[21] as String?,
       ownerMid: (fields[19] as num?)?.toInt(),
       cid: (fields[5] as num?)?.toInt(),
@@ -272,7 +264,7 @@ class PersistedPlayableItemAdapter extends TypeAdapter<PersistedPlayableItem> {
   @override
   void write(BinaryWriter writer, PersistedPlayableItem obj) {
     writer
-      ..writeByte(22)
+      ..writeByte(21)
       ..writeByte(0)
       ..write(obj.aid)
       ..writeByte(1)
@@ -313,8 +305,6 @@ class PersistedPlayableItemAdapter extends TypeAdapter<PersistedPlayableItem> {
       ..write(obj.replyCount)
       ..writeByte(19)
       ..write(obj.ownerMid)
-      ..writeByte(20)
-      ..write(obj.kind)
       ..writeByte(21)
       ..write(obj.collectionId);
   }
@@ -400,9 +390,6 @@ class RecentPlaybackEntryAdapter extends TypeAdapter<RecentPlaybackEntry> {
       title: fields[2] as String,
       author: fields[3] as String,
       coverUrl: fields[4] as String,
-      kind: fields[8] == null
-          ? CollectionKind.music
-          : fields[8] as CollectionKind,
       collectionId: fields[9] as String?,
       page: (fields[10] as num?)?.toInt(),
       cid: (fields[5] as num?)?.toInt(),
@@ -414,7 +401,7 @@ class RecentPlaybackEntryAdapter extends TypeAdapter<RecentPlaybackEntry> {
   @override
   void write(BinaryWriter writer, RecentPlaybackEntry obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.aid)
       ..writeByte(1)
@@ -431,8 +418,6 @@ class RecentPlaybackEntryAdapter extends TypeAdapter<RecentPlaybackEntry> {
       ..write(obj.pageTitle)
       ..writeByte(7)
       ..write(obj.playedAtEpochMs)
-      ..writeByte(8)
-      ..write(obj.kind)
       ..writeByte(9)
       ..write(obj.collectionId)
       ..writeByte(10)

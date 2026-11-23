@@ -54,7 +54,7 @@ final class PlayerDisplayProvider
   }
 }
 
-String _$playerDisplayHash() => r'8f2798cadf1a493c135d9b703920256b06d8a98f';
+String _$playerDisplayHash() => r'd82d62114ef05fe10a68b06e1610c1c5523c1e9b';
 
 @ProviderFor(playerQueueDisplay)
 final playerQueueDisplayProvider = PlayerQueueDisplayFamily._();
@@ -114,7 +114,7 @@ final class PlayerQueueDisplayProvider
 }
 
 String _$playerQueueDisplayHash() =>
-    r'dcada70be29e9c7a6b06f65e29238a70cf0424db';
+    r'ac27ab239a4f8049b44267375c360c383bd57028';
 
 final class PlayerQueueDisplayFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<PlayerDisplayInfo>, PlayableItem> {

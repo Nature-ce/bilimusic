@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/hive/hive_adapters.dart';
 import 'package:bilimusic/feature/favorites/data/favorites_remote_cache_repository.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
@@ -20,10 +19,6 @@ void main() {
   setUp(() async {
     tempDirectory = await Directory.systemTemp.createTemp('remote-favorites-');
     Hive.init(tempDirectory.path);
-    final CollectionKindAdapter kindAdapter = CollectionKindAdapter();
-    if (!Hive.isAdapterRegistered(kindAdapter.typeId)) {
-      Hive.registerAdapter(kindAdapter);
-    }
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(FavoriteCollectionAdapter());
     }
@@ -51,46 +46,6 @@ void main() {
   tearDown(() async {
     await Hive.close();
     await tempDirectory.delete(recursive: true);
-  });
-
-  test(
-    'kind stays local across binding, summary refresh, and page refresh',
-    () async {
-      final FavoriteCollection remote = _collection('remote:1');
-      await repository.bindCollection(remote);
-      await repository.setCollectionKind(
-        collectionId: remote.id,
-        kind: CollectionKind.spoken,
-      );
-      await repository.upsertCollection(remote.copyWith(name: 'refreshed'));
-      expect(collectionsBox.get(remote.id)!.kind, CollectionKind.spoken);
-      await repository.upsertCollectionItems(
-        collection: remote,
-        items: <FavoriteEntry>[_entry('aid:1')],
-      );
-      expect(collectionsBox.get(remote.id)!.kind, CollectionKind.spoken);
-      await repository.bindCollection(remote);
-      expect(collectionsBox.get(remote.id)!.kind, CollectionKind.spoken);
-      await collectionsBox.close();
-      collectionsBox = await Hive.openBox<FavoriteCollection>('collections');
-      expect(collectionsBox.get(remote.id)!.kind, CollectionKind.spoken);
-    },
-  );
-
-  test('removing and binding again resets kind with the collection', () async {
-    final FavoriteCollection remote = _collection('remote:1');
-    await repository.bindCollection(remote);
-    await repository.setCollectionKind(
-      collectionId: remote.id,
-      kind: CollectionKind.spoken,
-    );
-    await repository.deleteCollection(remote.id);
-    expect(repository.loadState().collections, isEmpty);
-    await repository.bindCollection(remote);
-    expect(
-      repository.loadState().collections.single.kind,
-      CollectionKind.music,
-    );
   });
 
   test('upserting a first page retains older memberships', () async {

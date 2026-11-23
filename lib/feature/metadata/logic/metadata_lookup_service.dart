@@ -47,7 +47,7 @@ class MetadataLookupService {
     bool Function()? isActive,
   }) async {
     void checkActive() {
-      if (item.isSpoken || isActive?.call() == false) {
+      if (isActive?.call() == false) {
         throw StateError('Metadata lookup is no longer active');
       }
     }
@@ -155,7 +155,7 @@ class MetadataLookupService {
     required MetingSearchItem searchItem,
     bool Function()? isActive,
   }) async {
-    if (item.isSpoken || isActive?.call() == false) {
+    if (isActive?.call() == false) {
       throw StateError('Metadata lookup is no longer active');
     }
     return buildMetadata(
@@ -172,7 +172,7 @@ class MetadataLookupService {
     required MetaLyrics? metaLyrics,
     bool Function()? isActive,
   }) async {
-    if (item.isSpoken || isActive?.call() == false) {
+    if (isActive?.call() == false) {
       throw StateError('Metadata lookup is no longer active');
     }
     String? albumArtUrl;

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/hive/hive_adapters.dart';
 import 'package:bilimusic/feature/player/data/player_queue_local_repository.dart';
 import 'package:bilimusic/feature/player/domain/persisted_playback_queue.dart';
@@ -25,9 +24,6 @@ void main() {
     if (!Hive.isAdapterRegistered(PlayerQueueModeAdapter().typeId)) {
       Hive.registerAdapter(PlayerQueueModeAdapter());
     }
-    if (!Hive.isAdapterRegistered(CollectionKindAdapter().typeId)) {
-      Hive.registerAdapter(CollectionKindAdapter());
-    }
     box = await Hive.openBox<PersistedPlaybackQueue>(
       playerQueueSnapshotBoxName,
     );
@@ -45,7 +41,7 @@ void main() {
     await tempDirectory.delete(recursive: true);
   });
 
-  test('mixed queue context and defaults survive Hive reopen', () async {
+  test('queue context and defaults survive Hive reopen', () async {
     const List<PlayableItem> items = <PlayableItem>[
       PlayableItem(
         aid: 1,
@@ -53,7 +49,6 @@ void main() {
         title: 'song',
         author: 'musician',
         coverUrl: '',
-        kind: CollectionKind.music,
         collectionId: 'music-collection',
         cid: 101,
         page: 2,
@@ -61,15 +56,14 @@ void main() {
       ),
       PlayableItem(
         aid: 2,
-        bvid: 'BVSPOKEN',
-        title: 'book',
-        author: 'reader',
+        bvid: 'BVSECOND',
+        title: 'second',
+        author: 'musician',
         coverUrl: '',
-        kind: CollectionKind.spoken,
-        collectionId: 'spoken-collection',
+        collectionId: 'second-collection',
         cid: 202,
         page: 3,
-        pageTitle: 'chapter three',
+        pageTitle: 'third page',
       ),
       PlayableItem(
         aid: 3,
@@ -95,7 +89,6 @@ void main() {
     final PersistedPlaybackQueue restored = repository.load()!;
     expect(restored, snapshot);
     expect(restored.queue.map((item) => item.toPlayableItem()), items);
-    expect(restored.queue.last.kind, CollectionKind.music);
     expect(restored.queue.last.collectionId, isNull);
     expect(restored.queue.last.page, isNull);
   });

@@ -185,7 +185,6 @@ class DownloadRepository {
       qualityLabel: stream.qualityLabel,
       bandwidth: stream.bandwidth,
       collectionId: item.collectionId,
-      kind: item.kind,
     );
     await _store.put(track.contentId, jsonEncode(track.toJson()));
     return track;

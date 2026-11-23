@@ -1,4 +1,3 @@
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 
 class DownloadedTrack {
@@ -20,7 +19,6 @@ class DownloadedTrack {
     this.qualityLabel,
     this.bandwidth,
     this.collectionId,
-    this.kind = CollectionKind.music,
   });
 
   final String contentId;
@@ -40,7 +38,6 @@ class DownloadedTrack {
   final String? qualityLabel;
   final int? bandwidth;
   final String? collectionId;
-  final CollectionKind kind;
 
   PlayableItem toPlayableItem() {
     return PlayableItem(
@@ -52,7 +49,6 @@ class DownloadedTrack {
       title: title,
       author: author,
       coverUrl: coverUrl,
-      kind: kind,
       collectionId: collectionId,
       durationText: durationMs == null ? null : _formatDuration(durationMs!),
     );
@@ -77,7 +73,6 @@ class DownloadedTrack {
       'qualityLabel': qualityLabel,
       'bandwidth': bandwidth,
       'collectionId': collectionId,
-      'kind': kind.name,
     };
   }
 
@@ -122,10 +117,6 @@ class DownloadedTrack {
       qualityLabel: value['qualityLabel'] as String?,
       bandwidth: readInt('bandwidth'),
       collectionId: value['collectionId'] as String?,
-      kind: CollectionKind.values.firstWhere(
-        (CollectionKind kind) => kind.name == value['kind'],
-        orElse: () => CollectionKind.music,
-      ),
     );
   }
 

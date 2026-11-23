@@ -30,9 +30,7 @@ class MetadataBackfillController extends _$MetadataBackfillController {
 
   // 加入收藏后入队；命中缓存的行会在 _drain 里被跳过。
   void enqueue(PlayableItem item) {
-    if (item.isSpoken ||
-        !item.hasIdentity ||
-        !_pendingContentIds.add(item.contentId)) {
+    if (!item.hasIdentity || !_pendingContentIds.add(item.contentId)) {
       return;
     }
     _pending.add(item);
@@ -53,9 +51,7 @@ class MetadataBackfillController extends _$MetadataBackfillController {
 
     int queued = 0;
     for (final PlayableItem item in items) {
-      if (item.isSpoken ||
-          !item.hasIdentity ||
-          _pendingContentIds.contains(item.contentId)) {
+      if (!item.hasIdentity || _pendingContentIds.contains(item.contentId)) {
         continue;
       }
       final Metadata? cached = await ref
@@ -92,12 +88,6 @@ class MetadataBackfillController extends _$MetadataBackfillController {
     try {
       while (_pending.isNotEmpty && !_cancelRequested) {
         final PlayableItem item = _pending.removeAt(0);
-        if (item.isSpoken) {
-          _pendingContentIds.remove(item.contentId);
-          _processed++;
-          _publish();
-          continue;
-        }
 
         try {
           final MetadataLookupService lookup = ref.read(

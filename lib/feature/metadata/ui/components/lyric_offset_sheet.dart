@@ -27,18 +27,12 @@ class _LyricOffsetSheet extends ConsumerWidget {
     final item = ref.watch(
       playerControllerProvider.select((value) => value.currentItem),
     );
-    final bool isSpoken = item?.isSpoken ?? false;
     final PlayerSubtitleState subtitleState = ref.watch(
       playerSubtitleControllerProvider,
     );
     final bool usesSubtitles =
         subtitleState.stableId == item?.stableId && subtitleState.usesSubtitles;
-    if (isSpoken && !usesSubtitles) {
-      return const SizedBox.shrink();
-    }
-    final MetadataState metadataState = isSpoken
-        ? const MetadataState()
-        : ref.watch(metadataControllerProvider);
+    final MetadataState metadataState = ref.watch(metadataControllerProvider);
     final int offsetMs = usesSubtitles
         ? subtitleState.offsetMs
         : resolveDisplayLyricOffsetMs(metadataState.metadata);

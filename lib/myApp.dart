@@ -5,7 +5,6 @@ import 'package:bilimusic/core/theme/app_theme.dart';
 import 'package:bilimusic/core/theme/theme_logic.dart';
 import 'package:bilimusic/core/theme/theme_ui_model.dart';
 import 'package:bilimusic/router/routers.dart';
-import 'package:bilimusic/feature/listening/ui/listening_progress_listener.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,10 +34,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         builder: (BuildContext context, Widget? child) {
           return Stack(
             children: <Widget>[
-              ListeningProgressListener(
-                navigatorKey: rootNavigatorKey,
-                child: child ?? const SizedBox.shrink(),
-              ),
+              child ?? const SizedBox.shrink(),
               if (kDebugMode) const DevOverlay(),
             ],
           );

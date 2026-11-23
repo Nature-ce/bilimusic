@@ -30,11 +30,7 @@ class PlayerSubtitleController extends _$PlayerSubtitleController {
   PlayerSubtitleState build() {
     ref.watch(
       playerControllerProvider.select(
-        (value) => (
-          value.currentItem?.stableId,
-          value.currentItem?.kind,
-          value.isSinglePart,
-        ),
+        (value) => (value.currentItem?.stableId, value.isSinglePart),
       ),
     );
     final bool preferAiLyrics = ref.watch(aiLyricsPreferenceLogicProvider);
@@ -99,9 +95,6 @@ class PlayerSubtitleController extends _$PlayerSubtitleController {
   }
 
   bool _prefersSubtitles(PlayableItem item, {required bool preferAiLyrics}) {
-    if (item.isSpoken) {
-      return true;
-    }
     if (!preferAiLyrics) {
       return false;
     }

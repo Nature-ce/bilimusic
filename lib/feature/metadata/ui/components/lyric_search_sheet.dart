@@ -11,7 +11,6 @@ import 'package:bilimusic/feature/meting/domain/meting_source_rule.dart';
 import 'package:bilimusic/feature/meting/logic/meting_source_preference_logic.dart';
 import 'package:bilimusic/feature/meting/ui/meting_source_rule_dialog.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
-import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,9 +19,6 @@ String resolveLyricSearchKeyword({
   required MetadataState metadataState,
   required PlayableItem? item,
 }) {
-  if (item?.isSpoken ?? false) {
-    return '';
-  }
   // 元数据没有可用歌词时，说明那套标题/歌手是匹配失败的产物，
   // 优先用视频标题本身去搜，避免拿错误的歌名把搜索带偏。
   if (metadataState.hasLyrics) {
@@ -115,14 +111,6 @@ class _LyricSearchSheetState extends ConsumerState<_LyricSearchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSpoken = ref.watch(
-      playerControllerProvider.select(
-        (value) => value.currentItem?.isSpoken ?? false,
-      ),
-    );
-    if (isSpoken) {
-      return const SizedBox.shrink();
-    }
     final MetadataState metadataState = ref.watch(metadataControllerProvider);
     final ThemeData theme = Theme.of(context);
     final EdgeInsets insets = MediaQuery.viewInsetsOf(context);
@@ -229,8 +217,7 @@ class _LyricSearchSheetState extends ConsumerState<_LyricSearchSheet> {
   }
 
   Future<String?> _loadPictureUrl(MetingSearchItem item) async {
-    if (!mounted ||
-        (ref.read(playerControllerProvider).currentItem?.isSpoken ?? false)) {
+    if (!mounted) {
       return null;
     }
     try {

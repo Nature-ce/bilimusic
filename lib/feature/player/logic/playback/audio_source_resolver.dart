@@ -45,7 +45,7 @@ String audioSourceCacheKey(
   final String partKey = item.cid == null || item.cid! <= 0
       ? ':page:${item.page ?? 1}'
       : '';
-  return '${item.stableId}$partKey:${preference.storageValue}:$overrideKey:${item.kind.name}:${item.collectionId ?? ''}';
+  return '${item.stableId}$partKey:${preference.storageValue}:$overrideKey:${item.collectionId ?? ''}';
 }
 
 abstract interface class AudioSourceResolver {

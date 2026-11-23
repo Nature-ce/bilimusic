@@ -29,8 +29,6 @@ types:
         index: 9
       lastSyncedAt:
         index: 10
-      kind:
-        index: 11
   FavoriteEntry:
     typeId: 2
     nextIndex: 13
@@ -127,8 +125,6 @@ types:
         index: 18
       ownerMid:
         index: 19
-      kind:
-        index: 20
       collectionId:
         index: 21
   PersistedPlaybackQueue:
@@ -167,8 +163,6 @@ types:
         index: 6
       playedAtEpochMs:
         index: 7
-      kind:
-        index: 8
       collectionId:
         index: 9
       page:

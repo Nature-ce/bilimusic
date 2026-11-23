@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/hive/hive_adapters.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/recent/data/recent_playback_local_repository.dart';
@@ -20,9 +19,6 @@ void main() {
     Hive.init(tempDirectory.path);
     if (!Hive.isAdapterRegistered(7)) {
       Hive.registerAdapter(RecentPlaybackEntryAdapter());
-    }
-    if (!Hive.isAdapterRegistered(CollectionKindAdapter().typeId)) {
-      Hive.registerAdapter(CollectionKindAdapter());
     }
     box = await Hive.openBox<RecentPlaybackEntry>(recentPlaybackBoxName);
     repository = RecentPlaybackLocalRepository(box);
@@ -58,17 +54,16 @@ void main() {
   });
 
   test('playable context and defaults survive Hive reopen', () async {
-    const PlayableItem spoken = PlayableItem(
+    const PlayableItem restoredItem = PlayableItem(
       aid: 2,
-      bvid: 'BVSPOKEN',
-      title: 'book',
+      bvid: 'BVCONTEXT',
+      title: 'second item',
       author: 'reader',
       coverUrl: '',
-      kind: CollectionKind.spoken,
-      collectionId: 'spoken-collection',
+      collectionId: 'favorite-collection',
       cid: 202,
       page: 3,
-      pageTitle: 'chapter three',
+      pageTitle: 'third page',
     );
     const RecentPlaybackEntry legacy = RecentPlaybackEntry(
       aid: 1,
@@ -80,7 +75,7 @@ void main() {
     );
     await repository.saveEntry(legacy);
     final RecentPlaybackEntry entry = RecentPlaybackEntry.fromPlayableItem(
-      spoken,
+      restoredItem,
       playedAtEpochMs: 2,
     );
     await repository.saveEntry(entry);
@@ -90,9 +85,8 @@ void main() {
 
     final List<RecentPlaybackEntry> restored = repository.load();
     expect(restored, <RecentPlaybackEntry>[entry, legacy]);
-    expect(restored.first.toPlayableItem(), spoken);
+    expect(restored.first.toPlayableItem(), restoredItem);
     final PlayableItem oldItem = restored.last.toPlayableItem();
-    expect(oldItem.kind, CollectionKind.music);
     expect(oldItem.collectionId, isNull);
     expect(oldItem.page, isNull);
   });

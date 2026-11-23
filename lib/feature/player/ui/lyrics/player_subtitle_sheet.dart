@@ -48,12 +48,8 @@ class _PlayerSubtitleSheet extends ConsumerWidget {
     final bool isCurrent =
         currentItem?.stableId == stableId && state.stableId == stableId;
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final bool isSpoken = currentItem?.isSpoken == true;
-    final MetadataState metadataState = isSpoken
-        ? const MetadataState()
-        : ref.watch(metadataControllerProvider);
+    final MetadataState metadataState = ref.watch(metadataControllerProvider);
     final LyricSource source = resolveLyricSource(
-      itemIsSpoken: isSpoken,
       hasMetingLyrics: metadataState.hasLyrics,
       subtitlesSelected: state.usesSubtitles,
       userSelected: state.userSelected,
@@ -81,7 +77,7 @@ class _PlayerSubtitleSheet extends ConsumerWidget {
                 child: Text('当前歌曲已变更，请重新打开字幕选择'),
               ),
             ListTile(
-              title: Text(isSpoken ? '关闭字幕' : 'Meting歌词'),
+              title: const Text('Meting歌词'),
               selected: metingSelected,
               trailing: metingSelected
                   ? Icon(Icons.check_rounded, color: colorScheme.primary)

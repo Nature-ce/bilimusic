@@ -33,8 +33,7 @@ MediaItem buildPlayerQueueMediaItem(
   Duration? duration,
   PlayerDisplayInfo? display,
 }) {
-  final PlayerDisplayInfo info =
-      !item.isSpoken && display?.stableId == item.stableId
+  final PlayerDisplayInfo info = display?.stableId == item.stableId
       ? display!
       : resolvePlayerDisplayInfo(
           item: item,

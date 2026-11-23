@@ -52,15 +52,11 @@ class PlayerLyricPage extends ConsumerWidget {
       ),
     );
     final PlayableItem? item = this.item;
-    final bool isSpoken = item?.isSpoken ?? false;
-    final MetadataState metadataState = isSpoken
-        ? const MetadataState()
-        : ref.watch(metadataControllerProvider);
+    final MetadataState metadataState = ref.watch(metadataControllerProvider);
     final PlayerSubtitleState subtitleState = ref.watch(
       playerSubtitleControllerProvider,
     );
     final LyricSource lyricSource = resolveLyricSource(
-      itemIsSpoken: isSpoken,
       hasMetingLyrics: metadataState.hasLyrics,
       subtitlesSelected:
           subtitleState.stableId == item?.stableId &&
@@ -97,26 +93,20 @@ class PlayerLyricPage extends ConsumerWidget {
           activeColor: ColorUtil.getAllShades(
             activeColor ?? Theme.of(context).colorScheme.primary,
           )[600]!,
-          onSearch: isSpoken
-              ? null
-              : () {
-                  ref
-                      .read(playerSubtitleControllerProvider.notifier)
-                      .useMeting();
-                  showManualLyricSearchSheet(
-                    context: context,
-                    initialKeyword: resolveLyricSearchKeyword(
-                      metadataState: metadataState,
-                      item: item,
-                    ),
-                  );
-                },
+          onSearch: () {
+            ref.read(playerSubtitleControllerProvider.notifier).useMeting();
+            showManualLyricSearchSheet(
+              context: context,
+              initialKeyword: resolveLyricSearchKeyword(
+                metadataState: metadataState,
+                item: item,
+              ),
+            );
+          },
           onSubtitles: canSelectSubtitles
               ? () => showPlayerSubtitleSheet(context)
               : null,
-          onOffset: isSpoken && !usesSubtitles
-              ? null
-              : () => showLyricOffsetSheet(context),
+          onOffset: () => showLyricOffsetSheet(context),
           onAppearance: () =>
               showPlayerLyricSettings(context, activeColor: activeColor),
           showTranslation: showTranslation,

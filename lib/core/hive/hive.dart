@@ -9,7 +9,6 @@ import 'package:bilimusic/feature/favorites/data/favorites_remote_cache_reposito
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_membership.dart';
-import 'package:bilimusic/feature/listening/data/listening_progress_local_repository.dart';
 import 'package:bilimusic/feature/metadata/data/metadata_cache_repository.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata.dart';
 import 'package:bilimusic/feature/player/data/player_queue_local_repository.dart';
@@ -17,6 +16,7 @@ import 'package:bilimusic/feature/player/domain/persisted_playback_queue.dart';
 import 'package:bilimusic/feature/recent/data/recent_playback_local_repository.dart';
 import 'package:bilimusic/feature/recent/domain/recent_playback_entry.dart';
 import 'package:bilimusic/feature/statistics/data/daily_listening_repository.dart';
+import 'package:bilimusic/feature/statistics/data/song_listening_repository.dart';
 import 'package:bilimusic/feature/statistics/data/statistics_local_repository.dart';
 import 'package:bilimusic/feature/up/data/favorite_up_local_repository.dart';
 import 'package:bilimusic/feature/favorites/data/favorited_season_local_repository.dart';
@@ -48,7 +48,6 @@ Future<void> initHive() async {
       ..registerAdapter(CollectionKindAdapter());
   }
   await Hive.openBox<String>(HiveBoxNames.prefs);
-  await Hive.openBox<String>(listeningProgressBoxName);
   await Hive.openBox<FavoriteCollection>(favoriteCollectionsBoxName);
   await Hive.openBox<FavoriteEntry>(favoriteEntriesBoxName);
   await Hive.openBox<FavoriteMembership>(favoriteMembershipsBoxName);
@@ -60,6 +59,7 @@ Future<void> initHive() async {
   await Hive.openBox<RecentPlaybackEntry>(recentPlaybackBoxName);
   await Hive.openBox<Map>(songStatisticsBoxName);
   await Hive.openBox<Map>(dailyListeningBoxName);
+  await Hive.openBox<Map>(songListeningBoxName);
   await Hive.openBox<FavoriteUp>(favoriteUpsBoxName);
   await Hive.openBox<FavoritedSeason>(favoritedSeasonsBoxName);
   await Hive.openLazyBox<Metadata>(metadataCacheBoxName);

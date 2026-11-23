@@ -106,10 +106,7 @@ class _DesktopPlayerPageState extends ConsumerState<DesktopPlayerPage> {
       playerControllerProvider.notifier,
     );
     final PlayableItem? item = state.currentItem ?? widget.initialItem;
-    final bool isSpoken = item?.isSpoken ?? false;
-    final MetadataState metadataState = isSpoken
-        ? const MetadataState()
-        : ref.watch(metadataControllerProvider);
+    final MetadataState metadataState = ref.watch(metadataControllerProvider);
     final PlayerSubtitleState subtitleState = ref.watch(
       playerSubtitleControllerProvider,
     );
@@ -152,7 +149,7 @@ class _DesktopPlayerPageState extends ConsumerState<DesktopPlayerPage> {
               bottom: 80,
               right: 20,
               child: _DesktopLyricToolRail(
-                onSearch: item == null || isSpoken
+                onSearch: item == null
                     ? null
                     : () {
                         ref
@@ -166,7 +163,7 @@ class _DesktopPlayerPageState extends ConsumerState<DesktopPlayerPage> {
                           ),
                         );
                       },
-                onOffset: item == null || (isSpoken && !usesSubtitles)
+                onOffset: item == null
                     ? null
                     : () => showLyricOffsetSheet(context),
                 onAppearance: () =>

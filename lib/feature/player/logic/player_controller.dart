@@ -9,7 +9,6 @@ import 'package:bilimusic/core/settings/app_settings_store.dart';
 import 'package:bilimusic/core/window/windows_taskbar_thumbnail_toolbar.dart';
 import 'package:bilimusic/feature/download/data/download_repository.dart';
 import 'package:bilimusic/feature/download/logic/downloaded_audio_source_resolver.dart';
-import 'package:bilimusic/feature/listening/logic/listening_progress_controller.dart';
 import 'package:bilimusic/feature/player/data/audio_cache_repository.dart';
 import 'package:bilimusic/feature/player/data/bili_chapter_repository.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
@@ -107,12 +106,6 @@ class PlayerController extends Notifier<PlayerState>
   _EnginePlaybackSnapshot _enginePlaybackSnapshot =
       const _EnginePlaybackSnapshot();
 
-  ListeningProgressController? _listening;
-
-  void _suspendListening() {
-    unawaited(_listening?.suspend());
-  }
-
   bool _isBound = false;
   bool _isDisposed = false;
   bool _isAdvancingQueue = false;
@@ -174,8 +167,6 @@ class PlayerController extends Notifier<PlayerState>
       return;
     }
     _nextGeneration();
-    await _listening?.suspend();
-    await _listening?.flush();
     try {
       await _persistQueueSnapshot();
       await _audioEngine.stop();
@@ -395,7 +386,6 @@ class PlayerController extends Notifier<PlayerState>
   @override
   Future<void> stop() async {
     final int generation = _nextGeneration();
-    _suspendListening();
     await _audioEngine.stop();
     if (!_isCurrentGeneration(generation)) {
       return;
@@ -425,7 +415,6 @@ class PlayerController extends Notifier<PlayerState>
     }
 
     final int generation = _nextGeneration();
-    _suspendListening();
     final PlayableItem startItem = items[startIndex.clamp(0, items.length - 1)];
     final List<PlayableItem> uniqueItems = _dedupeQueueItems(items);
     final int resolvedIndex = uniqueItems.indexWhere(
@@ -483,7 +472,6 @@ class PlayerController extends Notifier<PlayerState>
 
     final int currentIndex = state.currentQueueIndex!;
     final int generation = _nextGeneration();
-    _suspendListening();
     final List<PlayableItem> nextQueue = List<PlayableItem>.of(state.queue);
     final PlayableItem previousItem = nextQueue[currentIndex];
     _qualityOverrides.remove(previousItem.stableId);
@@ -664,7 +652,6 @@ class PlayerController extends Notifier<PlayerState>
     final int generation = _nextGeneration();
     final int? previousCurrentIndex = state.currentQueueIndex;
     final bool wasPlaying = state.isPlaying;
-    if (removal.removedCurrentItem) _suspendListening();
     final int? nextCurrentIndex = removal.nextCurrentIndex;
     state = state.copyWith(
       queue: List<PlayableItem>.unmodifiable(nextQueue),
@@ -709,7 +696,6 @@ class PlayerController extends Notifier<PlayerState>
 
   Future<void> clearQueue() async {
     _nextGeneration();
-    _suspendListening();
     _queueManager.resetForQueue(currentIndex: null);
     _qualityOverrides.clear();
     await _audioEngine.stop();
@@ -872,9 +858,7 @@ class PlayerController extends Notifier<PlayerState>
     state = state.copyWith(
       isPlaying: false,
       isBuffering: false,
-      position: restoredQueue[restoredIndex].isSpoken
-          ? state.position
-          : Duration(milliseconds: snapshot.resumePositionMs),
+      position: Duration(milliseconds: snapshot.resumePositionMs),
     );
     _publishPlaybackState();
     await _persistQueueSnapshot();
@@ -1213,9 +1197,6 @@ class PlayerController extends Notifier<PlayerState>
   }
 
   @override
-  void suspendListening() => _suspendListening();
-
-  @override
   void logPlayerEvent(String event, {Map<String, Object?>? details}) {
     _logPlayerEvent(event, details: details);
   }
@@ -1242,29 +1223,6 @@ class PlayerController extends Notifier<PlayerState>
 
   @override
   Future<void> pauseAudioEngine() => _audioEngine.pause();
-
-  @override
-  Future<Duration> resumeListeningPosition(
-    PlayableItem item, {
-    required Duration fallback,
-    required bool Function() isCurrent,
-  }) async {
-    _listening ??= ref.read(listeningProgressControllerProvider.notifier);
-    return _listening!.resumePosition(
-      item,
-      fallback: fallback,
-      isCurrent: isCurrent,
-    );
-  }
-
-  @override
-  void beginListening(
-    PlayableItem item,
-    Duration position,
-    Duration? duration,
-  ) {
-    _listening?.begin(item, position, duration);
-  }
 
   @override
   void recordRecentPlayback(PlayableItem item) {

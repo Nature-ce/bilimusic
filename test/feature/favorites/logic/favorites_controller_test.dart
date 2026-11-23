@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/favorites/data/bili_favorites_remote_repository.dart';
@@ -75,128 +74,76 @@ void main() {
 
   tearDown(() => container.dispose());
 
-  for (final CollectionKind kind in CollectionKind.values) {
-    test(
-      'creates a local ${kind.name} collection and preserves it on reload',
-      () async {
-        final FavoriteCollection? created = kind == CollectionKind.music
-            ? await controller.createCollection('  new local  ')
-            : await controller.createCollection('  new local  ', kind: kind);
-
-        expect(created, isNotNull);
-        expect(created!.name, 'new local');
-        expect(created.kind, kind);
-        expect(created.isLocal, isTrue);
-        expect(local.savedCollections.single, created);
-        expect(local.state.collections.last, created);
-        expect(
-          container
-              .read(favoritesControllerProvider)
-              .collections
-              .firstWhere((value) => value.id == created.id),
-          created,
-        );
-
-        await controller.reload();
-        expect(
-          container
-              .read(favoritesControllerProvider)
-              .collections
-              .firstWhere((value) => value.id == created.id),
-          created,
-        );
-      },
+  test('creates a local collection and preserves it on reload', () async {
+    final FavoriteCollection? created = await controller.createCollection(
+      '  new local  ',
     );
 
-    test(
-      'creates a remote ${kind.name} collection and preserves it on refresh',
-      () async {
-        remote.collections.add(collection);
-        final FavoriteCollection? created = kind == CollectionKind.music
-            ? await controller.createRemoteCollection('  new remote  ')
-            : await controller.createRemoteCollection(
-                '  new remote  ',
-                kind: kind,
-              );
-
-        expect(created, isNotNull);
-        expect(created!.name, 'new remote');
-        expect(created.kind, kind);
-        expect(created.isRemote, isTrue);
-        expect(created.isManagedByApp, isTrue);
-        expect(cache.boundCollections.single.kind, kind);
-        expect(cache.state.collections.last, created);
-        expect(remote.collections.last.kind, CollectionKind.music);
-        expect(
-          container
-              .read(favoritesControllerProvider)
-              .collections
-              .firstWhere((value) => value.id == created.id),
-          created,
-        );
-
-        await controller.refreshRemoteCollections();
-        await controller.reload();
-        expect(cache.state.collections.last.kind, kind);
-        expect(
-          container
-              .read(favoritesControllerProvider)
-              .collections
-              .firstWhere((value) => value.id == created.id)
-              .kind,
-          kind,
-        );
-      },
+    expect(created, isNotNull);
+    expect(created!.name, 'new local');
+    expect(created.isLocal, isTrue);
+    expect(local.savedCollections.single, created);
+    expect(local.state.collections.last, created);
+    expect(
+      container
+          .read(favoritesControllerProvider)
+          .collections
+          .firstWhere((value) => value.id == created.id),
+      created,
     );
-  }
+
+    await controller.reload();
+    expect(
+      container
+          .read(favoritesControllerProvider)
+          .collections
+          .firstWhere((value) => value.id == created.id),
+      created,
+    );
+  });
+
+  test('creates a remote collection and preserves it on refresh', () async {
+    remote.collections.add(collection);
+    final FavoriteCollection? created = await controller.createRemoteCollection(
+      '  new remote  ',
+    );
+
+    expect(created, isNotNull);
+    expect(created!.name, 'new remote');
+    expect(created.isRemote, isTrue);
+    expect(created.isManagedByApp, isTrue);
+    expect(cache.boundCollections.single, created);
+    expect(cache.state.collections.last, created);
+    expect(remote.collections.last.name, 'new remote');
+    expect(
+      container
+          .read(favoritesControllerProvider)
+          .collections
+          .firstWhere((value) => value.id == created.id),
+      created,
+    );
+
+    await controller.refreshRemoteCollections();
+    await controller.reload();
+    expect(cache.state.collections.last, created);
+    expect(
+      container
+          .read(favoritesControllerProvider)
+          .collections
+          .firstWhere((value) => value.id == created.id),
+      created,
+    );
+  });
 
   test(
-    'sets local, liked, and remote kind without requiring a session',
+    'metadata backfill carries the target collection context on every add path',
     () async {
-      (container.read(biliSessionControllerProvider.notifier) as _Session)
-          .signOut();
-      for (final String id in <String>['local', 'liked', collection.id]) {
-        expect(
-          await controller.setCollectionKind(
-            collectionId: id,
-            kind: CollectionKind.spoken,
-          ),
-          isTrue,
-        );
-        await controller.reload();
-        expect(
-          container
-              .read(favoritesControllerProvider)
-              .collections
-              .firstWhere((value) => value.id == id)
-              .kind,
-          CollectionKind.spoken,
-        );
-      }
-      expect(local.state.likedCollection.kind, CollectionKind.spoken);
-      expect(cache.state.collections.single.kind, CollectionKind.spoken);
-      expect(
-        await controller.setCollectionKind(
-          collectionId: 'missing',
-          kind: CollectionKind.spoken,
-        ),
-        isFalse,
-      );
-    },
-  );
-
-  test(
-    'spoken targets skip metadata on liked, single, batch, and remote adds',
-    () async {
-      for (final String id in <String>['local', 'liked', collection.id]) {
-        await controller.setCollectionKind(
-          collectionId: id,
-          kind: CollectionKind.spoken,
-        );
-      }
       expect(await controller.toggleLiked(item), isTrue);
       expect(
-        await controller.addToCollection(collectionId: 'local', item: item),
+        await controller.addToCollection(
+          collectionId: 'local',
+          item: item.copyWith(collectionId: 'source'),
+        ),
         isTrue,
       );
       expect(
@@ -216,26 +163,15 @@ void main() {
       final _NoopMetadataBackfill metadata =
           container.read(metadataBackfillControllerProvider.notifier)
               as _NoopMetadataBackfill;
-      expect(metadata.enqueued, isEmpty);
-    },
-  );
-
-  test(
-    'metadata backfill follows target kind rather than source kind',
-    () async {
-      final PlayableItem spokenSource = item.copyWith(
-        kind: CollectionKind.spoken,
-        collectionId: 'source',
+      expect(
+        metadata.enqueued.map((PlayableItem value) => value.collectionId),
+        <String>[
+          FavoriteCollection.likedCollectionId,
+          'local',
+          'local',
+          collection.id,
+        ],
       );
-      await controller.addToCollection(
-        collectionId: 'local',
-        item: spokenSource,
-      );
-      final _NoopMetadataBackfill metadata =
-          container.read(metadataBackfillControllerProvider.notifier)
-              as _NoopMetadataBackfill;
-      expect(metadata.enqueued.single.kind, CollectionKind.music);
-      expect(metadata.enqueued.single.collectionId, 'local');
     },
   );
 
@@ -333,7 +269,6 @@ void main() {
       name: '远程歌单',
       source: FavoriteCollectionSource.remote,
       remoteId: '9',
-      kind: CollectionKind.spoken,
       createdAt: now,
       updatedAt: now,
     );
@@ -346,7 +281,6 @@ void main() {
     expect(created, isNotNull);
     expect(created!.isLocal, isTrue);
     expect(created.isRemote, isFalse);
-    expect(created.kind, CollectionKind.spoken);
     expect(created.name, '远程歌单');
     expect(created.coverUrl, remoteCollection.coverUrl);
     expect(local.savedCollections.single.id, created.id);
@@ -603,27 +537,10 @@ class _MemoryRemoteCache implements FavoritesRemoteCacheRepository {
       collections: <FavoriteCollection>[
         ...state.collections.where((value) => value.id != collection.id),
         collection.copyWith(
-          kind: existing?.kind ?? collection.kind,
           isManagedByApp: existing?.isManagedByApp ?? collection.isManagedByApp,
           createdAt: existing?.createdAt ?? collection.createdAt,
           lastSyncedAt: existing?.lastSyncedAt,
         ),
-      ],
-    );
-  }
-
-  @override
-  Future<void> setCollectionKind({
-    required String collectionId,
-    required CollectionKind kind,
-  }) async {
-    state = state.copyWith(
-      collections: <FavoriteCollection>[
-        for (final FavoriteCollection collection in state.collections)
-          if (collection.id == collectionId)
-            collection.copyWith(kind: kind)
-          else
-            collection,
       ],
     );
   }

@@ -12,20 +12,14 @@ class PlayerDisplaySourceLogic extends _$PlayerDisplaySourceLogic {
   PlayerDisplaySource? build() {
     ref.watch(
       playerControllerProvider.select(
-        (state) => (
-          state.currentItem?.stableId,
-          state.currentItem?.kind,
-          state.currentItem?.collectionId,
-        ),
+        (state) =>
+            (state.currentItem?.stableId, state.currentItem?.collectionId),
       ),
     );
     return null;
   }
 
   void toggle() {
-    if (ref.read(playerControllerProvider).currentItem?.isSpoken ?? false) {
-      return;
-    }
     final PlayerDisplaySource current =
         state ??
         (ref.read(playerDisplaySettingsLogicProvider)

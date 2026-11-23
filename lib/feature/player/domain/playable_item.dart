@@ -1,4 +1,3 @@
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'playable_item.freezed.dart';
@@ -13,7 +12,6 @@ abstract class PlayableItem with _$PlayableItem {
     required String title,
     required String author,
     required String coverUrl,
-    @Default(CollectionKind.music) CollectionKind kind,
     String? collectionId,
     int? ownerMid,
     int? cid,
@@ -33,8 +31,6 @@ abstract class PlayableItem with _$PlayableItem {
   }) = _PlayableItem;
 
   bool get hasIdentity => aid > 0 || bvid.isNotEmpty;
-
-  bool get isSpoken => kind == CollectionKind.spoken;
 
   List<String> get lyricSearchTitles {
     final List<String> titles = <String>[];

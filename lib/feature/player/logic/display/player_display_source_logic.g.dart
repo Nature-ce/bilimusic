@@ -42,7 +42,7 @@ final class PlayerDisplaySourceLogicProvider
 }
 
 String _$playerDisplaySourceLogicHash() =>
-    r'a930d3a91dd6384c5d9fbe2545a539c5a1d33c38';
+    r'2f3fbf7f681888e55600ed4c795b5af0e91a2851';
 
 abstract class _$PlayerDisplaySourceLogic
     extends $Notifier<PlayerDisplaySource?> {

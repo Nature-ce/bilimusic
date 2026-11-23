@@ -12,11 +12,9 @@ PlayerDisplayInfo resolvePlayerDisplayInfo({
   if (item == null) {
     return PlayerDisplayInfo(source: source);
   }
-  if (item.isSpoken) {
-    source = PlayerDisplaySource.bilibili;
-  }
-  final Metadata? matchedMetadata =
-      !item.isSpoken && metadata?.stableId == item.stableId ? metadata : null;
+  final Metadata? matchedMetadata = metadata?.stableId == item.stableId
+      ? metadata
+      : null;
   final String title = matchedMetadata?.title?.trim() ?? '';
   final String artist = matchedMetadata?.artist?.trim() ?? '';
   final String coverUrl = matchedMetadata?.albumArtUrl?.trim() ?? '';

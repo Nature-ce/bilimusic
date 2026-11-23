@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/common/domain/meta_lyrics.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata_state.dart';
@@ -172,75 +171,65 @@ void main() {
     },
   );
 
-  for (final spoken in [false, true]) {
-    for (final horizontalPadding in [24.0, 52.0]) {
-      for (final tracks in <List<BiliSubtitleTrack>>[const [], _tracks]) {
-        for (final selectedTrackId in <String?>[null, 'zh']) {
-          if (tracks.isEmpty && selectedTrackId != null) continue;
-          testWidgets(
-            'toolbar aligns with lyrics at $horizontalPadding with only visible gaps '
-            '(spoken=$spoken, ${tracks.length} tracks, $selectedTrackId)',
-            (tester) async {
-              await _pumpPage(
-                tester,
-                tracks: tracks,
-                selectedTrackId: selectedTrackId,
-                item: _item.copyWith(
-                  kind: spoken ? CollectionKind.spoken : CollectionKind.music,
-                ),
-                horizontalPadding: horizontalPadding,
-              );
-              final tooltips = <String>[
-                if (!spoken) '手动匹配歌词',
-                if (!spoken || selectedTrackId != null) '歌词偏移',
-                if (!spoken && selectedTrackId == null) '隐藏译文',
-                'AI字幕',
-                '歌词外观',
-              ];
-              final buttons = tooltips
-                  .map(
-                    (tooltip) => find.ancestor(
-                      of: find.byTooltip(tooltip),
-                      matching: find.byType(IconButton),
-                    ),
-                  )
-                  .toList();
-              final rects = buttons.map(tester.getRect).toList();
-              final panel = tester.getRect(find.byType(PlayerLyricPanel));
-              final contentLeft = panel.left + horizontalPadding;
-              expect(rects.first.left, contentLeft);
-              final first = tester.widget<IconButton>(buttons.first);
+  for (final horizontalPadding in [24.0, 52.0]) {
+    for (final tracks in <List<BiliSubtitleTrack>>[const [], _tracks]) {
+      for (final selectedTrackId in <String?>[null, 'zh']) {
+        if (tracks.isEmpty && selectedTrackId != null) continue;
+        testWidgets(
+          'toolbar aligns with lyrics at $horizontalPadding with only visible gaps '
+          '(${tracks.length} tracks, $selectedTrackId)',
+          (tester) async {
+            await _pumpPage(
+              tester,
+              tracks: tracks,
+              selectedTrackId: selectedTrackId,
+              horizontalPadding: horizontalPadding,
+            );
+            final tooltips = <String>[
+              '手动匹配歌词',
+              '歌词偏移',
+              if (selectedTrackId == null) '隐藏译文',
+              'AI字幕',
+              '歌词外观',
+            ];
+            final buttons = tooltips
+                .map(
+                  (tooltip) => find.ancestor(
+                    of: find.byTooltip(tooltip),
+                    matching: find.byType(IconButton),
+                  ),
+                )
+                .toList();
+            final rects = buttons.map(tester.getRect).toList();
+            final panel = tester.getRect(find.byType(PlayerLyricPanel));
+            final contentLeft = panel.left + horizontalPadding;
+            expect(rects.first.left, contentLeft);
+            final first = tester.widget<IconButton>(buttons.first);
+            expect(tester.getRect(find.byWidget(first.icon)).left, contentLeft);
+            final preset = tester
+                .widget<LyricView>(find.byType(LyricView))
+                .preset!;
+            expect(
+              preset.padding,
+              EdgeInsets.symmetric(horizontal: horizontalPadding),
+            );
+            for (int index = 0; index < rects.length; index++) {
               expect(
-                tester.getRect(find.byWidget(first.icon)).left,
-                contentLeft,
+                rects[index].width,
+                greaterThanOrEqualTo(kMinInteractiveDimension),
               );
-              if (!spoken || selectedTrackId != null) {
-                final preset = tester
-                    .widget<LyricView>(find.byType(LyricView))
-                    .preset!;
-                expect(
-                  preset.padding,
-                  EdgeInsets.symmetric(horizontal: horizontalPadding),
-                );
+              expect(
+                rects[index].height,
+                greaterThanOrEqualTo(kMinInteractiveDimension),
+              );
+              if (index > 0) {
+                expect(rects[index].left - rects[index - 1].right, 20);
               }
-              for (int index = 0; index < rects.length; index++) {
-                expect(
-                  rects[index].width,
-                  greaterThanOrEqualTo(kMinInteractiveDimension),
-                );
-                expect(
-                  rects[index].height,
-                  greaterThanOrEqualTo(kMinInteractiveDimension),
-                );
-                if (index > 0) {
-                  expect(rects[index].left - rects[index - 1].right, 20);
-                }
-              }
-              expect(find.byType(IconButton), findsNWidgets(tooltips.length));
-              expect(tester.takeException(), isNull);
-            },
-          );
-        }
+            }
+            expect(find.byType(IconButton), findsNWidgets(tooltips.length));
+            expect(tester.takeException(), isNull);
+          },
+        );
       }
     }
   }

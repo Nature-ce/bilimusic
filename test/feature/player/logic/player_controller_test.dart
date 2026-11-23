@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/core/settings/app_settings_store.dart';
-import 'package:bilimusic/feature/listening/domain/listening_state.dart';
-import 'package:bilimusic/feature/listening/logic/listening_progress_controller.dart';
 import 'package:bilimusic/feature/player/data/audio_cache_repository.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/data/player_queue_local_repository.dart';
@@ -181,36 +178,6 @@ void main() {
     });
   }
 
-  test('superseding a spoken load invalidates its history request', () async {
-    _SessionBarrier(block: false);
-    final _PlaybackEngine engine = _PlaybackEngine();
-    final _PendingResume listening = _PendingResume();
-    final ProviderContainer container = _playbackContainer(
-      engine,
-      listening: listening,
-    );
-    addTearDown(container.dispose);
-    final PlayerController player = container.read(
-      playerControllerProvider.notifier,
-    );
-    final Future<void> loading = player.setQueue(<PlayableItem>[
-      _first.copyWith(kind: CollectionKind.spoken, cid: 1),
-    ], autoplay: false);
-    await listening.requestStarted.future;
-    expect(listening.isCurrent, isNotNull);
-    expect(listening.isCurrent!(), isTrue);
-
-    await player.setQueue(<PlayableItem>[_second], autoplay: false);
-    expect(listening.isCurrent!(), isFalse);
-    final List<String> latestSources = List<String>.of(engine.sources);
-    listening.position.complete(const Duration(seconds: 10));
-    await loading;
-
-    expect(engine.sources, latestSources);
-    expect(container.read(playerControllerProvider).currentItem, _second);
-    await player.shutdown();
-  });
-
   test(
     'enqueueAvailableParts inserts missing parts after current item',
     () async {
@@ -255,35 +222,6 @@ void main() {
   });
 }
 
-class _PendingResume extends ListeningProgressController {
-  final Completer<void> requestStarted = Completer<void>();
-  final Completer<Duration> position = Completer<Duration>();
-  bool Function()? isCurrent;
-
-  @override
-  ListeningState build() => const ListeningState();
-
-  @override
-  Future<Duration> resumePosition(
-    PlayableItem item, {
-    Duration fallback = Duration.zero,
-    bool Function()? isCurrent,
-  }) {
-    this.isCurrent = isCurrent;
-    requestStarted.complete();
-    return position.future;
-  }
-
-  @override
-  void begin(PlayableItem item, Duration position, Duration? duration) {}
-
-  @override
-  Future<void> suspend() async {}
-
-  @override
-  Future<void> flush() async {}
-}
-
 class _SessionBarrier {
   _SessionBarrier({bool block = true}) {
     const MethodChannel channel = MethodChannel('com.ryanheise.audio_session');
@@ -309,7 +247,6 @@ class _SessionBarrier {
 ProviderContainer _playbackContainer(
   _PlaybackEngine engine, {
   _SourceLookupCache? cache,
-  _PendingResume? listening,
 }) {
   const MethodChannel channel = MethodChannel(
     'dev.fluttercommunity.plus/connectivity',
@@ -323,8 +260,6 @@ ProviderContainer _playbackContainer(
   return ProviderContainer(
     overrides: [
       playerControllerProvider.overrideWith(() => _PlayingController(engine)),
-      if (listening != null)
-        listeningProgressControllerProvider.overrideWith(() => listening),
       appAudioHandlerProvider.overrideWithValue(AppAudioHandler()),
       appSettingsStoreProvider.overrideWithValue(_DefaultSettings()),
       biliSessionControllerProvider.overrideWith(_GuestSession.new),

@@ -52,7 +52,7 @@ class MetadataController extends _$MetadataController {
     });
     final PlayerState playerState = ref.read(playerControllerProvider);
     final PlayableItem? item = playerState.currentItem;
-    if (item != null && !item.isSpoken) {
+    if (item != null) {
       final int generation = _generation;
       unawaited(
         Future<void>.microtask(() async {
@@ -62,10 +62,7 @@ class MetadataController extends _$MetadataController {
         }),
       );
     }
-    return MetadataState(
-      stableId: item?.stableId,
-      isLoading: item != null && !item.isSpoken,
-    );
+    return MetadataState(stableId: item?.stableId, isLoading: item != null);
   }
 
   Future<void> retryCurrent() async {
@@ -78,7 +75,7 @@ class MetadataController extends _$MetadataController {
     final PlayableItem? item = playerState.currentItem;
     final String? stableId = item?.stableId;
     final Metadata? metadata = state.metadata;
-    if (item == null || item.isSpoken || state.stableId != stableId) {
+    if (item == null || state.stableId != stableId) {
       return;
     }
     if (metadata == null || metadata.stableId != stableId) {
@@ -102,7 +99,7 @@ class MetadataController extends _$MetadataController {
     final PlayableItem? item = playerState.currentItem;
     final String? stableId = item?.stableId;
     final Metadata? metadata = state.metadata;
-    if (item == null || item.isSpoken || state.stableId != stableId) {
+    if (item == null || state.stableId != stableId) {
       return;
     }
     if (metadata == null || metadata.stableId != stableId) {
@@ -125,7 +122,7 @@ class MetadataController extends _$MetadataController {
     final PlayerState playerState = ref.read(playerControllerProvider);
     final PlayableItem? item = playerState.currentItem;
     final String? stableId = item?.stableId;
-    if (item == null || item.isSpoken || state.stableId != stableId) {
+    if (item == null || state.stableId != stableId) {
       return;
     }
 
@@ -179,9 +176,7 @@ class MetadataController extends _$MetadataController {
     final PlayerState playerState = ref.read(playerControllerProvider);
     final PlayableItem? currentItem = playerState.currentItem;
     final String? stableId = currentItem?.stableId;
-    if (currentItem == null ||
-        currentItem.isSpoken ||
-        state.stableId != stableId) {
+    if (currentItem == null || state.stableId != stableId) {
       return;
     }
     final MetadataQueryContext context = _contextFor(currentItem);
@@ -250,7 +245,7 @@ class MetadataController extends _$MetadataController {
     bool ignoreCache = false,
   }) async {
     final int requestGeneration = ++_generation;
-    if (item == null || item.isSpoken) {
+    if (item == null) {
       state = MetadataState(stableId: item?.stableId);
       return;
     }
@@ -355,7 +350,7 @@ class MetadataController extends _$MetadataController {
       return null;
     }
     final PlayableItem? item = playerState.currentItem;
-    if (item == null || item.isSpoken) {
+    if (item == null) {
       return null;
     }
     return MetadataQueryContext.fromState(item: item, state: playerState);
@@ -412,11 +407,10 @@ class MetadataController extends _$MetadataController {
     }
     final PlayerState playerState = ref.read(playerControllerProvider);
     final PlayableItem? currentItem = playerState.currentItem;
-    if (currentItem == null || currentItem.isSpoken) {
+    if (currentItem == null) {
       return false;
     }
     if (currentItem.stableId != item.stableId ||
-        currentItem.kind != item.kind ||
         currentItem.collectionId != item.collectionId ||
         state.stableId != item.stableId) {
       return false;
@@ -446,9 +440,6 @@ class MetadataController extends _$MetadataController {
   }
 
   bool _shouldCacheMetadata(PlayableItem item) {
-    if (item.isSpoken) {
-      return false;
-    }
     return ref
         .read(favoritesControllerProvider)
         .collectionsForItem(item)

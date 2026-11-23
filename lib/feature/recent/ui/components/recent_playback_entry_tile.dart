@@ -1,5 +1,4 @@
 import 'package:bilimusic/common/components/cached_image.dart';
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/recent/domain/recent_playback_entry.dart';
@@ -52,9 +51,7 @@ class RecentPlaybackEntryTile extends StatelessWidget {
               height: _coverSize,
               fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(_coverRadius),
-              fallbackIcon: entry.kind == CollectionKind.spoken
-                  ? Icons.mic_none_rounded
-                  : Icons.music_note_rounded,
+              fallbackIcon: Icons.music_note_rounded,
               iconColor: colorScheme.primary,
               backgroundColor: colorScheme.primary.withValues(alpha: 0.14),
             ),

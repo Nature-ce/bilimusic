@@ -1,5 +1,4 @@
 import 'package:bilimusic/common/components/common_attach_menu.dart';
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
@@ -135,7 +134,6 @@ void main() {
                 .collections
                 .single;
             expect(created.name, '新的歌单');
-            expect(created.kind, CollectionKind.music);
             expect(favorites.createCalls, 1);
           } else {
             await tester.tap(find.text('从 B站收藏夹导入'));
@@ -154,7 +152,6 @@ void main() {
               expect(favorites.importLocalCalls, 0);
             } else {
               expect(favorites.importLocalCalls, 1);
-              expect(favorites.lastImportKind, isNull);
               expect(favorites.bindCalls, 0);
             }
           }
@@ -281,16 +278,12 @@ class _Favorites extends FavoritesController {
   Future<void> refreshRemoteCollections() async {}
 
   @override
-  Future<FavoriteCollection?> createCollection(
-    String name, {
-    CollectionKind kind = CollectionKind.music,
-  }) async {
+  Future<FavoriteCollection?> createCollection(String name) async {
     createCalls++;
     final DateTime now = DateTime(2026);
     final FavoriteCollection collection = FavoriteCollection(
       id: 'new_local',
       name: name,
-      kind: kind,
       createdAt: now,
       updatedAt: now,
     );
@@ -299,14 +292,10 @@ class _Favorites extends FavoritesController {
   }
 
   @override
-  Future<FavoriteCollection?> createRemoteCollection(
-    String name, {
-    CollectionKind kind = CollectionKind.music,
-  }) async {
+  Future<FavoriteCollection?> createRemoteCollection(String name) async {
     createCalls++;
     final FavoriteCollection collection = _remoteCollection.copyWith(
       name: name,
-      kind: kind,
     );
     state = state.copyWith(collections: [...state.collections, collection]);
     return collection;
@@ -322,20 +311,16 @@ class _Favorites extends FavoritesController {
   );
 
   int importLocalCalls = 0;
-  CollectionKind? lastImportKind;
 
   @override
   Future<FavoriteCollection?> importRemoteCollectionAsLocal(
-    FavoriteCollection remote, {
-    CollectionKind? kind,
-  }) async {
+    FavoriteCollection remote,
+  ) async {
     importLocalCalls++;
-    lastImportKind = kind;
     final DateTime now = DateTime(2026);
     final FavoriteCollection collection = FavoriteCollection(
       id: 'custom_imported',
       name: remote.name,
-      kind: kind ?? remote.kind,
       createdAt: now,
       updatedAt: now,
     );

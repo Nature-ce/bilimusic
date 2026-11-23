@@ -90,7 +90,7 @@ final class PlayerSubtitleControllerProvider
 }
 
 String _$playerSubtitleControllerHash() =>
-    r'4a85a7fa834f37dc2e74be146979811cf33a40b8';
+    r'c9777f60a417149eaf6736a918cdf5fd37b7bf6e';
 
 abstract class _$PlayerSubtitleController
     extends $Notifier<PlayerSubtitleState> {

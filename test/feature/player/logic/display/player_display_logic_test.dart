@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/hive/hive_adapters.dart';
 import 'package:bilimusic/feature/metadata/data/metadata_cache_repository.dart';
 import 'package:bilimusic/core/hive/hive_keys.dart';
@@ -226,45 +225,6 @@ void main() {
       expect(preview.source, PlayerDisplaySource.bilibili);
     },
   );
-
-  test('spoken current and same-id queue preview bypass music cache', () async {
-    container.listen(playerDisplayProvider, (_, _) {}, fireImmediately: true);
-    final player =
-        container.read(playerControllerProvider.notifier)
-            as _FakePlayerController;
-    final spoken = _item.copyWith(kind: CollectionKind.spoken);
-    final spokenPreview = await container.read(
-      playerQueueDisplayProvider(spoken).future,
-    );
-    expect(spokenPreview.title, _item.title);
-    expect(spokenPreview.source, PlayerDisplaySource.bilibili);
-    expect(spokenPreview.canToggleSource, isFalse);
-    player.show(spoken);
-    await container.pump();
-    expect(container.read(playerDisplayProvider).title, _item.title);
-    expect(
-      container.read(playerDisplayProvider).source,
-      PlayerDisplaySource.bilibili,
-    );
-    container.read(playerDisplaySourceLogicProvider.notifier).toggle();
-    expect(container.read(playerDisplaySourceLogicProvider), isNull);
-    final next = spoken.copyWith(bvid: 'next-spoken');
-    await container
-        .read(metadataCacheRepositoryProvider)
-        .putCachedMetadata(
-          item: next,
-          metadata: Metadata(
-            stableId: next.stableId,
-            title: 'Wrong cached music',
-          ),
-        );
-    final preview = await container.read(
-      playerQueueDisplayProvider(next).future,
-    );
-    expect(preview.title, next.title);
-    expect(preview.source, PlayerDisplaySource.bilibili);
-    expect(preview.canToggleSource, isFalse);
-  });
 
   test('single part playback shows the Bilibili display by default', () async {
     container.listen(playerDisplayProvider, (_, _) {}, fireImmediately: true);

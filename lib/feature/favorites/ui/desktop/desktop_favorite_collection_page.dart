@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/desktop/desktop_tab_switcher.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/logger.dart';
 import 'package:bilimusic/common/util/player_util.dart';
@@ -311,7 +312,7 @@ class _DesktopFavoriteCollectionPageState
 
     if (collection == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('歌单')),
+        appBar: const PageAppBar(title: Text('歌单')),
         body: const StatusView(icon: Icons.folder_off_outlined, title: '歌单不存在'),
       );
     }
@@ -474,7 +475,6 @@ class _DesktopFavoriteCollectionPageState
     List<FavoriteEntry> visibleItems,
     List<PlayableItem> queueItems,
   ) {
-    final bool isSpoken = collection.isSpoken;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
       child: _selectionMode
@@ -499,10 +499,8 @@ class _DesktopFavoriteCollectionPageState
                     onClear: _clearSearchQuery,
                   ),
                 ),
-                if (!isSpoken) ...<Widget>[
-                  const SizedBox(width: 8),
-                  MetadataBackfillButton(items: queueItems),
-                ],
+                const SizedBox(width: 8),
+                MetadataBackfillButton(items: queueItems),
                 if (collection.isRemote) ...<Widget>[
                   const SizedBox(width: 8),
                   Tooltip(

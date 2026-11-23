@@ -1,18 +1,14 @@
 /// 决定歌词面板该渲染「正规歌词」还是「B 站字幕」。
 ///
-/// 参考 QQ音乐：正规歌词（LRC）优先，字幕只在没有歌词、口播类内容，
+/// 参考 QQ音乐：正规歌词（LRC）优先，字幕只在没有歌词、
 /// 或用户主动挑选字幕轨时启用。这样 Meting 命中正确歌词时不会被 AI 字幕顶掉。
 bool shouldRenderSubtitleLyrics({
-  required bool itemIsSpoken,
   required bool hasMetingLyrics,
   required bool subtitlesSelected,
   required bool userSelected,
 }) {
   if (!subtitlesSelected) {
     return false;
-  }
-  if (itemIsSpoken) {
-    return true;
   }
   if (userSelected) {
     return true;
@@ -49,13 +45,11 @@ enum LyricSource { meting, subtitle, none }
 /// 面板渲染、字幕弹窗的勾选状态、工具栏按钮都走这一个函数，
 /// 避免出现「面板显示 Meting、弹窗勾着 AI 字幕」这种不一致。
 LyricSource resolveLyricSource({
-  required bool itemIsSpoken,
   required bool hasMetingLyrics,
   required bool subtitlesSelected,
   required bool userSelected,
 }) {
   final bool useSubtitles = shouldRenderSubtitleLyrics(
-    itemIsSpoken: itemIsSpoken,
     hasMetingLyrics: hasMetingLyrics,
     subtitlesSelected: subtitlesSelected,
     userSelected: userSelected,

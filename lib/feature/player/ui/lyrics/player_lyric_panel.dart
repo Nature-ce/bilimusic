@@ -88,14 +88,11 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final MetadataState metadataState = widget.item?.isSpoken == true
-        ? const MetadataState()
-        : ref.watch(metadataControllerProvider);
+    final MetadataState metadataState = ref.watch(metadataControllerProvider);
     final PlayerSubtitleState subtitles = ref.watch(
       playerSubtitleControllerProvider,
     );
     final bool useSubtitles = shouldRenderSubtitleLyrics(
-      itemIsSpoken: widget.item?.isSpoken == true,
       hasMetingLyrics: metadataState.hasLyrics,
       subtitlesSelected:
           subtitles.stableId == widget.item?.stableId &&
@@ -151,30 +148,6 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
         ? subtitles.errorMessage
         : null;
 
-    if (item.isSpoken && !useSubtitles) {
-      if (subtitleLoading) {
-        return _PlayerLyricPanelStatus(
-          key: ValueKey<String>('subtitle-loading-$itemKey'),
-          variant: widget.variant,
-          title: '正在加载字幕',
-          message: '正在获取当前视频的字幕。',
-          icon: Icons.subtitles_outlined,
-          isLoading: true,
-        );
-      }
-      if (subtitleError != null) {
-        return _PlayerLyricPanelStatus(
-          key: ValueKey<String>('subtitle-error-$itemKey'),
-          variant: widget.variant,
-          title: '字幕加载失败',
-          message: subtitleError,
-          icon: Icons.error_outline_rounded,
-          actionLabel: subtitles.hasTracks ? '选择字幕' : '重试',
-          onAction: () => _retrySubtitles(context, itemKey),
-        );
-      }
-    }
-
     final bool manualMatch = metadataState.metadata?.isManualMatch ?? false;
     final bool instrumental =
         !manualMatch &&
@@ -184,9 +157,7 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
               description: item.description,
             ));
 
-    if (!item.isSpoken &&
-        !useSubtitles &&
-        (instrumental || !metadataState.hasLyrics)) {
+    if (!useSubtitles && (instrumental || !metadataState.hasLyrics)) {
       if (subtitleLoading) {
         return _PlayerLyricPanelStatus(
           key: ValueKey<String>('subtitle-loading-$itemKey'),

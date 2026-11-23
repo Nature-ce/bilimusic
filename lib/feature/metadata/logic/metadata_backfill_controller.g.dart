@@ -44,7 +44,7 @@ final class MetadataBackfillControllerProvider
 }
 
 String _$metadataBackfillControllerHash() =>
-    r'2c3babb9a79440b139530afa9e766e7b33d1c115';
+    r'5ca5199664d2f31d8b4d729e963e59539c0cd4e6';
 
 abstract class _$MetadataBackfillController
     extends $Notifier<MetadataBackfillState> {

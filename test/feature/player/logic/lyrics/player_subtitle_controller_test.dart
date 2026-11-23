@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:bilimusic/common/domain/collection_kind.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/player/data/bili_subtitle_repository.dart';
@@ -85,23 +84,6 @@ void main() {
     },
   );
 
-  test('spoken items automatically load subtitles after discovery', () async {
-    final spoken = _item.copyWith(kind: CollectionKind.spoken);
-    final fixture = _Fixture(item: spoken);
-    expect(fixture.value.isDiscovering, isTrue);
-    expect(fixture.value.selectedTrackId, isNull);
-
-    await fixture.discover();
-    expect(fixture.repository.discoveredItems, [spoken]);
-    expect(fixture.repository.loadedTracks, ['zh']);
-    expect(fixture.value.tracks, _tracks);
-    expect(fixture.value.isDiscovering, isFalse);
-    expect(fixture.value.selectedTrackId, 'zh');
-    expect(fixture.value.pendingTrackId, isNull);
-    expect(fixture.value.lines, _lines);
-    expect(fixture.value.usesSubtitles, isTrue);
-  });
-
   test('single-part music prefers AI subtitles when enabled', () async {
     final fixture = _Fixture(preferAiLyrics: true);
     expect(fixture.value.selectedTrackId, isNull);
@@ -180,12 +162,10 @@ void main() {
   for (final allTranslated in [false, true]) {
     test(
       allTranslated
-          ? 'spoken items use the first track when all tracks are translated'
-          : 'spoken items prefer the first original over an earlier translation',
+          ? 'uses the first track when all tracks are translated'
+          : 'prefers the first original over an earlier translation',
       () async {
-        final fixture = _Fixture(
-          item: _item.copyWith(kind: CollectionKind.spoken),
-        );
+        final fixture = _Fixture(preferAiLyrics: true);
         final tracks = [
           _tracks.last.copyWith(isTranslated: true),
           _tracks.first.copyWith(isTranslated: allTranslated),
@@ -205,11 +185,9 @@ void main() {
 
   for (final fails in [false, true]) {
     test(
-      'spoken items leave subtitles unset when discovery ${fails ? 'fails' : 'has no tracks'}',
+      'leaves subtitles unset when discovery ${fails ? 'fails' : 'has no tracks'}',
       () async {
-        final fixture = _Fixture(
-          item: _item.copyWith(kind: CollectionKind.spoken),
-        );
+        final fixture = _Fixture(preferAiLyrics: true);
         fixture.repository.discover = (_) async {
           if (fails) throw StateError('unavailable');
           return const [];
@@ -228,11 +206,9 @@ void main() {
     );
 
     test(
-      'spoken items leave subtitles unset when the automatic download ${fails ? 'fails' : 'is empty'}',
+      'leaves subtitles unset when the automatic download ${fails ? 'fails' : 'is empty'}',
       () async {
-        final fixture = _Fixture(
-          item: _item.copyWith(kind: CollectionKind.spoken),
-        );
+        final fixture = _Fixture(preferAiLyrics: true);
         fixture.repository.load = (_) async {
           if (fails) throw StateError('unavailable');
           return const [];
@@ -250,68 +226,38 @@ void main() {
     );
   }
 
-  test(
-    'switching modes with the same stable id reevaluates subtitles',
-    () async {
-      final fixture = _Fixture();
-      await fixture.discover();
-      final spoken = _item.copyWith(kind: CollectionKind.spoken);
-      expect(spoken.stableId, _item.stableId);
-      fixture.player.setItem(spoken);
+  for (final fails in [false, true]) {
+    test(
+      'a new item rejects stale automatic subtitle ${fails ? 'errors' : 'lines'} before provider flush',
+      () async {
+        final fixture = _Fixture(preferAiLyrics: true);
+        final pending = Completer<List<BiliSubtitleLine>>();
+        fixture.repository.load = (_) => pending.future;
+        await fixture.discover();
+        expect(fixture.value.pendingTrackId, 'zh');
+        final next = _item.copyWith(cid: 20);
+        fixture.repository.load = (_) async => _lines;
+        fixture.player.setItem(next);
+        if (fails) {
+          pending.completeError(StateError('old item failure'));
+        } else {
+          pending.complete([_lines.first.copyWith(text: 'Stale subtitle')]);
+        }
 
-      await fixture.discover();
-      expect(fixture.value.stableId, _item.stableId);
-      expect(fixture.repository.loadedTracks, ['zh']);
-      expect(fixture.value.selectedTrackId, 'zh');
-      fixture.controller.adjustOffset(200);
-      fixture.player.setItem(_item);
-
-      await fixture.discover();
-      expect(fixture.repository.discoveredItems, [_item, spoken, _item]);
-      expect(fixture.repository.loadedTracks, ['zh']);
-      expect(fixture.value.selectedTrackId, isNull);
-      expect(fixture.value.pendingTrackId, isNull);
-      expect(fixture.value.lines, isEmpty);
-      expect(fixture.value.offsetMs, 0);
-      expect(fixture.value.usesSubtitles, isFalse);
-    },
-  );
-
-  for (final changesItem in [false, true]) {
-    for (final fails in [false, true]) {
-      test(
-        'a new ${changesItem ? 'item' : 'mode with the same stable id'} rejects stale automatic subtitle ${fails ? 'errors' : 'lines'} before provider flush',
-        () async {
-          final spoken = _item.copyWith(kind: CollectionKind.spoken);
-          final fixture = _Fixture(item: spoken);
-          final pending = Completer<List<BiliSubtitleLine>>();
-          fixture.repository.load = (_) => pending.future;
-          await fixture.discover();
-          expect(fixture.value.pendingTrackId, 'zh');
-          final next = changesItem ? spoken.copyWith(cid: 20) : _item;
-          fixture.repository.load = (_) async => _lines;
-          fixture.player.setItem(next);
-          if (fails) {
-            pending.completeError(StateError('old item failure'));
-          } else {
-            pending.complete([_lines.first.copyWith(text: 'Stale subtitle')]);
-          }
-
-          await fixture.discover();
-          expect(fixture.repository.discoveredItems, [spoken, next]);
-          expect(fixture.value.stableId, next.stableId);
-          expect(fixture.value.selectedTrackId, changesItem ? 'zh' : isNull);
-          expect(fixture.value.pendingTrackId, isNull);
-          expect(fixture.value.lines, changesItem ? _lines : isEmpty);
-          expect(fixture.value.errorMessage, isNull);
-          expect(fixture.value.usesSubtitles, changesItem);
-        },
-      );
-    }
+        await fixture.discover();
+        expect(fixture.repository.discoveredItems, [_item, next]);
+        expect(fixture.value.stableId, next.stableId);
+        expect(fixture.value.selectedTrackId, 'zh');
+        expect(fixture.value.pendingTrackId, isNull);
+        expect(fixture.value.lines, _lines);
+        expect(fixture.value.errorMessage, isNull);
+        expect(fixture.value.usesSubtitles, isTrue);
+      },
+    );
   }
 
-  test('closing spoken subtitles invalidates the automatic download', () async {
-    final fixture = _Fixture(item: _item.copyWith(kind: CollectionKind.spoken));
+  test('closing automatic subtitles invalidates the download', () async {
+    final fixture = _Fixture(preferAiLyrics: true);
     final pending = Completer<List<BiliSubtitleLine>>();
     fixture.repository.load = (_) => pending.future;
     await fixture.discover();
