@@ -1,23 +1,25 @@
 import 'package:bilimusic/feature/search/domain/hot_search_item.dart';
-import 'package:bilimusic/feature/search/logic/hot_search_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const Color _hotSearchFirstRankColor = Color(0xFFF04438);
 const Color _hotSearchSecondRankColor = Color(0xFFF2731F);
 const Color _hotSearchHotBadgeColor = Color(0xFFF2731F);
 const Color _hotSearchNewBadgeColor = Color(0xFFF04438);
 
-class HotSearchSection extends ConsumerWidget {
-  const HotSearchSection({super.key, required this.onSelectKeyword});
+class HotSearchSection extends StatelessWidget {
+  const HotSearchSection({
+    super.key,
+    required this.items,
+    required this.onSelectKeyword,
+  });
 
+  final List<HotSearchItem> items;
   final ValueChanged<String> onSelectKeyword;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final List<HotSearchItem> items = ref.watch(hotSearchProvider);
 
     if (items.isEmpty) {
       return const SizedBox.shrink();
@@ -28,14 +30,15 @@ class HotSearchSection extends ConsumerWidget {
       children: <Widget>[
         Text(
           '热搜',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontSize: 17,
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.2,
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+            letterSpacing: -0.2,
             color: colorScheme.onSurface,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
         for (int index = 0; index < items.length; index++)
           _HotSearchRow(
             index: index,
@@ -81,9 +84,9 @@ class _HotSearchRow extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 7),
           child: Row(
             children: <Widget>[
               SizedBox(
