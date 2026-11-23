@@ -336,39 +336,35 @@ class _RadarHeroCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: () => context.go('/radar'),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                    label: const Text('开始听'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md + 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm + 2),
-                    FilledButton.icon(
-                      onPressed: () => context.go('/radar'),
-                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                      label: const Text('开始听'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md + 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),

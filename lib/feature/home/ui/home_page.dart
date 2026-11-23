@@ -1,6 +1,8 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
+import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/search_bar.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
+import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
@@ -72,9 +74,22 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: PlatformUtil.isDesktop
           ? null
           : AppBar(
-              toolbarHeight: 48,
-              title: CommonSearchBar(
-                onTap: () => context.push('/search?from=/home'),
+              toolbarHeight: 56,
+              title: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: CommonSearchBar(
+                      hintText: '搜索歌曲 / UP主 / 视频',
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm - 1,
+                      ),
+                      onTap: () => context.push('/search?from=/home'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  const _HomeAvatarButton(),
+                ],
               ),
             ),
       body: RefreshIndicator(
@@ -95,6 +110,45 @@ class _HomePageState extends ConsumerState<HomePage> {
             const BottomPageSpacer(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomeAvatarButton extends ConsumerWidget {
+  const _HomeAvatarButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final String face =
+        ref.watch(biliSessionControllerProvider)?.face?.trim() ?? '';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(99),
+      onTap: () => context.go('/profile'),
+      child: SizedBox(
+        width: 32,
+        height: 32,
+        child: face.isEmpty
+            ? CircleAvatar(
+                backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.8,
+                ),
+                child: Icon(
+                  Icons.person_outline_rounded,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              )
+            : CommonCachedImage(
+                imageUrl: face,
+                width: 32,
+                height: 32,
+                fit: BoxFit.cover,
+                borderRadius: BorderRadius.circular(99),
+              ),
       ),
     );
   }

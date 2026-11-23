@@ -28,7 +28,7 @@ class HotPlaylistSection extends ConsumerWidget {
         children: <Widget>[
           if (state.playlists.isNotEmpty) ...<Widget>[
             _FeatureRow(
-              playlists: state.playlists,
+              playlists: state.playlists.take(2).toList(growable: false),
               onTap: (HotPlaylist playlist) =>
                   _handlePlaylistTap(context, playlist),
             ),
@@ -78,7 +78,7 @@ class HotPlaylistSection extends ConsumerWidget {
             const StatusView(icon: Icons.queue_music_rounded, title: '暂无热门歌单')
           else
             _HotPlaylistGrid(
-              playlists: state.playlists,
+              playlists: state.playlists.skip(2).toList(growable: false),
               onPlaylistTap: (HotPlaylist playlist) =>
                   _handlePlaylistTap(context, playlist),
             ),
