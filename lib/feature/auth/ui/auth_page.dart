@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'dart:ui' as ui;
 
@@ -96,7 +97,7 @@ class _AuthPageState extends ConsumerState<AuthPage>
     });
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: PageAppBar(
         title: const Text('登录'),
         elevation: 0,
         backgroundColor: Colors.transparent,

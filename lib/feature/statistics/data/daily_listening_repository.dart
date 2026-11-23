@@ -64,6 +64,34 @@ class DailyListeningRepository {
     );
   }
 
+  DateTime weekStartOf([DateTime? now]) {
+    final DateTime today = _startOfDay(now ?? DateTime.now());
+    return today.subtract(Duration(days: today.weekday - 1));
+  }
+
+  List<DailyListening> readDays(DateTime start, {int count = 7}) {
+    final DateTime first = _startOfDay(start);
+    return <DailyListening>[
+      for (int index = 0; index < count; index += 1)
+        read(first.add(Duration(days: index))),
+    ];
+  }
+
+  int listenedDaysInRow([DateTime? now]) {
+    final DateTime today = _startOfDay(now ?? DateTime.now());
+    final bool listenedToday = read(today).listenedMs > 0;
+    int days = 0;
+    int offset = listenedToday ? 0 : 1;
+    while (offset < 366) {
+      if (read(today.subtract(Duration(days: offset))).listenedMs <= 0) {
+        break;
+      }
+      days += 1;
+      offset += 1;
+    }
+    return days;
+  }
+
   Future<void> _write(DateTime day, DailyListening value) {
     return _box.put(_key(day), <String, Object?>{
       'listenedMs': value.listenedMs,

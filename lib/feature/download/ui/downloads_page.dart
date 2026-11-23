@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
@@ -44,7 +45,7 @@ class _DownloadsPageState extends ConsumerState<DownloadsPage> {
         _exitManageMode();
       },
       child: Scaffold(
-        appBar: AppBar(
+        appBar: PageAppBar(
           title: const Text('下载'),
           actions: <Widget>[
             if (_manageMode)

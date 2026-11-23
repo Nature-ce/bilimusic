@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/core/theme/theme_catalog.dart';
 import 'package:bilimusic/core/theme/theme_logic.dart';
@@ -22,7 +23,7 @@ class ThemeSettingsPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('外观设置')),
+      appBar: PageAppBar(title: const Text('外观设置')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[

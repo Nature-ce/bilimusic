@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/feature/meting/domain/meting_server.dart';
 import 'package:bilimusic/feature/meting/domain/meting_source_preference.dart';
@@ -28,7 +29,7 @@ class PlayerSettingsPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('播放器设置')),
+      appBar: PageAppBar(title: const Text('播放器设置')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[

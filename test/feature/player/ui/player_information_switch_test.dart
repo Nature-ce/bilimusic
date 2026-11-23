@@ -716,7 +716,7 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.drag(find.byType(PageView).last, const Offset(200, 0));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('返回播放器'));
+      await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
       expect(find.byType(PlayerCoverBrowserPage), findsNothing);
       expect(player.queueSelections, isEmpty);

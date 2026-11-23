@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/core/cache/cache_util.dart';
 import 'package:bilimusic/feature/comment/domain/comment_item.dart';
 import 'package:flutter/material.dart';
@@ -158,7 +159,7 @@ class _CommentPictureGalleryPageState extends State<CommentPictureGalleryPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
+      appBar: PageAppBar(
         backgroundColor: Colors.transparent,
         title: Text("${currentIndex + 1} / ${widget.pictures.length}"),
         titleTextStyle: const TextStyle(color: Colors.white),

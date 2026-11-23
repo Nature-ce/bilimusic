@@ -1,4 +1,3 @@
-import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/components/user_avatar.dart';
 import 'package:bilimusic/feature/up/domain/favorite_up.dart';
@@ -21,65 +20,79 @@ class FavoriteUpList extends ConsumerWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      itemCount: ups.length + 1,
-      separatorBuilder: (BuildContext context, int index) {
-        if (index >= ups.length - 1) {
-          return const SizedBox.shrink();
-        }
-        return const SizedBox(height: 6);
-      },
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 24),
+      itemCount: ups.length,
       itemBuilder: (BuildContext context, int index) {
-        if (index == ups.length) {
-          return const BottomPageSpacer();
-        }
-        return _FavoriteUpTile(up: ups[index]);
+        return _FavoriteUpRow(up: ups[index]);
       },
     );
   }
 }
 
-class _FavoriteUpTile extends ConsumerWidget {
-  const _FavoriteUpTile({required this.up});
+class _FavoriteUpRow extends ConsumerWidget {
+  const _FavoriteUpRow({required this.up});
 
   final FavoriteUp up;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      leading: UserAvatar(
-        avatarUrl: up.avatarUrl,
-        officialType: up.officialType,
-        useCache: true,
-      ),
-      title: Text(
-        up.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      subtitle: Text(
-        'UID ${up.mid}',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-      trailing: IconButton(
-        tooltip: '取消收藏',
-        icon: const Icon(Icons.favorite_rounded),
-        color: colorScheme.primary,
-        onPressed: () {
-          ref.read(favoriteUpControllerProvider.notifier).remove(up.mid);
-        },
-      ),
+    return InkWell(
       onTap: () => context.push('/up/${up.mid}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        child: Row(
+          children: <Widget>[
+            UserAvatar(
+              avatarUrl: up.avatarUrl,
+              officialType: up.officialType,
+              useCache: true,
+              radius: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    up.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.2,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'UID ${up.mid}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.2,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: '取消收藏',
+              icon: const Icon(Icons.favorite_rounded, size: 20),
+              color: colorScheme.primary,
+              onPressed: () {
+                ref.read(favoriteUpControllerProvider.notifier).remove(up.mid);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

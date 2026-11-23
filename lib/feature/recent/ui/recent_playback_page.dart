@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
@@ -25,7 +26,7 @@ class RecentPlaybackPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: PageAppBar(
         title: const Text(_sourceLabel),
         actions: entries.isEmpty
             ? null

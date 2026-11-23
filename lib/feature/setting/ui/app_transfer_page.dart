@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/components/url_text_input.dart';
 import 'package:bilimusic/common/util/format_util.dart';
@@ -63,7 +64,7 @@ class _AppTransferPageState extends ConsumerState<AppTransferPage> {
         !_isImportingWebDav;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('数据导入导出')),
+      appBar: PageAppBar(title: const Text('数据导入导出')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[

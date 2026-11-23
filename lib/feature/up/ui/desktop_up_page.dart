@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/app_back_button.dart';
 import 'package:bilimusic/common/components/login_required.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/components/video_card.dart';
@@ -118,10 +119,7 @@ class _DesktopUpPageState extends ConsumerState<DesktopUpPage>
             pinned: false,
             floating: true,
             snap: true,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+            leading: const AppBackButton(),
           ),
           SliverToBoxAdapter(
             child: Center(

@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
@@ -123,7 +124,7 @@ class _SettingPageState extends ConsumerState<SettingPage> {
         : '未登录';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: PageAppBar(title: const Text('设置')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[

@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
@@ -159,7 +160,7 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     );
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: PageAppBar(
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
       body: RefreshIndicator(

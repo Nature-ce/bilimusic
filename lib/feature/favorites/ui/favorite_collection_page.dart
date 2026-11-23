@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/logger.dart';
 import 'package:bilimusic/common/util/display_text.dart';
@@ -380,7 +381,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
   }) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     if (_searchActive) {
-      return AppBar(
+      return PageAppBar(
         titleSpacing: 0,
         title: FavoriteCollectionSearchField(
           controller: _searchController,
@@ -401,7 +402,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
 
     if (_selectionMode) {
       final bool hasSelection = _selectedItemIds.isNotEmpty;
-      return AppBar(
+      return PageAppBar(
         leading: IconButton(
           tooltip: '退出多选',
           onPressed: _exitSelectionMode,
@@ -442,7 +443,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       );
     }
 
-    return AppBar(
+    return PageAppBar(
       title: Text(
         collection.name,
         maxLines: 1,
@@ -721,7 +722,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
 
   Widget _buildMissingCollectionPage() {
     return Scaffold(
-      appBar: AppBar(title: const Text('歌单')),
+      appBar: PageAppBar(title: const Text('歌单')),
       body: const StatusView(icon: Icons.folder_off_outlined, title: '歌单不存在'),
     );
   }

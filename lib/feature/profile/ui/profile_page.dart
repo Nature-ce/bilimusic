@@ -122,7 +122,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             const SizedBox(height: 14),
             WeeklyListeningCard(
               summary: weeklyListening,
-              onReportTap: () => context.push('/profile/recent'),
+              onReportTap: () => context.push('/profile/report'),
             ),
             const SizedBox(height: 14),
             _ProfileSectionHeader(onAddPressed: _handleAddPressed),

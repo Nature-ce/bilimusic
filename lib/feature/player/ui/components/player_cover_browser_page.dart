@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:bilimusic/common/components/app_back_button.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_display_info.dart';
 import 'package:bilimusic/feature/player/logic/display/player_cover_color_provider.dart';
@@ -115,13 +116,7 @@ class _PlayerCoverBrowserPageState
           PositionedDirectional(
             top: 0,
             start: 0,
-            child: SafeArea(
-              child: IconButton(
-                tooltip: '返回播放器',
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-            ),
+            child: SafeArea(child: const AppBackButton()),
           ),
         ],
       ),

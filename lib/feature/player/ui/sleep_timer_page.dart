@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/feature/player/logic/sleep_timer_controller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -85,7 +86,7 @@ class _SleepTimerPageState extends ConsumerState<SleepTimerPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
+      appBar: PageAppBar(
         backgroundColor: colorScheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,

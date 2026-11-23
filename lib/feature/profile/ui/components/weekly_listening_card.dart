@@ -24,7 +24,7 @@ class WeeklyListeningCard extends StatelessWidget {
         : '本周听了 0 分钟';
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: <Color>[
@@ -88,7 +88,7 @@ class WeeklyListeningCard extends StatelessWidget {
                 Text(
                   '${summary.weekSongs}',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 26,
                     height: 1.1,
                     fontWeight: FontWeight.w800,
                     color: colorScheme.onSurface,
@@ -146,8 +146,8 @@ class WeeklyListeningCard extends StatelessWidget {
 class _WeeklyListeningBars extends StatelessWidget {
   const _WeeklyListeningBars({required this.days});
 
-  static const double _barAreaHeight = 44;
-  static const double _barWidth = 14;
+  static const double _barAreaHeight = 60;
+  static const double _barWidth = 30;
   static const double _minBarHeight = 4;
 
   final List<DailyListening> days;
@@ -168,22 +168,23 @@ class _WeeklyListeningBars extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.bottomCenter,
                     child: Container(
+                      key: ValueKey<String>('weekly-listening-bar-$index'),
                       width: _barWidth,
                       height: _barHeight(_listenedMsAt(index), maxListenedMs),
                       decoration: BoxDecoration(
                         color: _isPeak(_listenedMsAt(index), maxListenedMs)
                             ? colorScheme.primary
-                            : colorScheme.primary.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(6),
+                            : colorScheme.primary.withValues(alpha: 0.28),
+                        borderRadius: BorderRadius.circular(9),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   _weekdayLabels[index],
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 11,
                     height: 1.2,
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurfaceVariant,

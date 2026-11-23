@@ -4,6 +4,7 @@ import 'package:bilimusic/common/logger.dart';
 import 'package:bilimusic/feature/player/domain/player_event.dart';
 import 'package:bilimusic/feature/player/logic/player_event_hub.dart';
 import 'package:bilimusic/feature/statistics/data/daily_listening_repository.dart';
+import 'package:bilimusic/feature/statistics/data/song_listening_repository.dart';
 import 'package:bilimusic/feature/statistics/data/statistics_local_repository.dart';
 import 'package:bilimusic/feature/statistics/domain/playback_tracking_state.dart';
 import 'package:bilimusic/feature/statistics/domain/song_statistics.dart';
@@ -19,18 +20,34 @@ DailyListeningRepository dailyListeningRepository(Ref ref) {
 }
 
 @Riverpod(keepAlive: true)
+StatisticsLocalRepository statisticsLocalRepository(Ref ref) {
+  return StatisticsLocalRepository(Hive.box<Map>(songStatisticsBoxName));
+}
+
+@Riverpod(keepAlive: true)
+SongListeningDailyRepository songListeningDailyRepository(Ref ref) {
+  return SongListeningDailyRepository(Hive.box<Map>(songListeningBoxName));
+}
+
+@Riverpod(keepAlive: true)
 StatisticsTracker statisticsTracker(Ref ref) {
   final StatisticsTracker tracker = StatisticsTracker(
     ref.read(playerEventHubProvider).events,
-    StatisticsLocalRepository(Hive.box<Map>(songStatisticsBoxName)),
+    ref.read(statisticsLocalRepositoryProvider),
     dailyRepository: ref.read(dailyListeningRepositoryProvider),
+    songRepository: ref.read(songListeningDailyRepositoryProvider),
   );
   ref.onDispose(tracker.dispose);
   return tracker;
 }
 
 class StatisticsTracker with WidgetsBindingObserver {
-  StatisticsTracker(this._events, this._repository, {this.dailyRepository}) {
+  StatisticsTracker(
+    this._events,
+    this._repository, {
+    this.dailyRepository,
+    this.songRepository,
+  }) {
     _subscription = _events.listen(_onEvent);
     WidgetsBinding.instance.addObserver(this);
   }
@@ -38,6 +55,7 @@ class StatisticsTracker with WidgetsBindingObserver {
   final Stream<PlayerEvent> _events;
   final StatisticsLocalRepository _repository;
   final DailyListeningRepository? dailyRepository;
+  final SongListeningDailyRepository? songRepository;
   final AppLogger _logger = AppLogger('Statistics');
   late final StreamSubscription<PlayerEvent> _subscription;
   Future<void> _eventQueue = Future<void>.value();
@@ -232,6 +250,13 @@ class StatisticsTracker with WidgetsBindingObserver {
       'committed $stableId: playCount $oldPlayCount->${next.playCount}, '
       '+${_tracking.playedMs}ms, total=${next.totalPlayedMs}',
     );
+    await _recordDailySong(
+      now: now,
+      stableId: stableId,
+      statistics: next,
+      listenedMs: _tracking.playedMs,
+      plays: qualifies && !_tracking.counted ? 1 : 0,
+    );
     if (resetAttempt) {
       _resetAttempt();
     } else {
@@ -239,6 +264,32 @@ class StatisticsTracker with WidgetsBindingObserver {
         playedMs: 0,
         counted: _tracking.counted || qualifies,
       );
+    }
+  }
+
+  Future<void> _recordDailySong({
+    required DateTime now,
+    required String stableId,
+    required SongStatistics statistics,
+    required int listenedMs,
+    required int plays,
+  }) async {
+    final SongListeningDailyRepository? songs = songRepository;
+    if (songs == null) {
+      return;
+    }
+    try {
+      await songs.record(
+        now,
+        stableId: stableId,
+        title: statistics.title,
+        author: statistics.author,
+        coverUrl: statistics.coverUrl,
+        listenedMs: listenedMs,
+        plays: plays,
+      );
+    } on Object catch (error, stackTrace) {
+      _logger.e('daily song record failed for $stableId', error, stackTrace);
     }
   }
 

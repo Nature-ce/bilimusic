@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/statistics/domain/song_statistics.dart';
@@ -19,7 +20,7 @@ class SongStatisticsPage extends ConsumerWidget {
     final ColorScheme colors = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('单曲统计')),
+      appBar: PageAppBar(title: const Text('单曲统计')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),

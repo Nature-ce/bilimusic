@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/video_card.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
@@ -36,7 +37,7 @@ class CollectionDetailPage extends ConsumerWidget {
         .toSet();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('合集')),
+      appBar: PageAppBar(title: const Text('合集')),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object error, StackTrace stackTrace) => StatusView(

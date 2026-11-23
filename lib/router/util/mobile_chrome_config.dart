@@ -46,6 +46,10 @@ class MobileChromeConfig {
       return fullScreen;
     }
 
+    if (path == '/profile/favorite-ups' || path == '/profile/report') {
+      return fullScreen;
+    }
+
     if (path.startsWith('/profile/favorites/') ||
         path == '/profile/downloads' ||
         path == '/profile/recent') {

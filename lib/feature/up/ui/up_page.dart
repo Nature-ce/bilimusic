@@ -1,4 +1,6 @@
+import 'package:bilimusic/common/components/app_back_button.dart';
 import 'package:bilimusic/common/components/login_required.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/up/domain/up_page_state.dart';
@@ -62,12 +64,7 @@ class _UpPageState extends ConsumerState<UpPage>
     if (!(ref.watch(biliSessionControllerProvider)?.isLoggedIn ?? false)) {
       return Scaffold(
         backgroundColor: colorScheme.surface,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-        ),
+        appBar: PageAppBar(leading: const AppBackButton()),
         body: const LoginRequiredView(description: 'UP 主空间需要登录 B 站账号'),
       );
     }
@@ -118,10 +115,7 @@ class _UpPageState extends ConsumerState<UpPage>
                             collapseMode: CollapseMode.parallax,
                             centerTitle: true,
                           ),
-                          leading: IconButton(
-                            icon: const Icon(Icons.arrow_back),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
+                          leading: const AppBackButton(),
                         ),
                         SliverToBoxAdapter(
                           child: UpProfileHeader(

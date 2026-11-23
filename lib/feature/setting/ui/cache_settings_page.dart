@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/cache/cache_util.dart';
@@ -173,7 +174,7 @@ class _CacheSettingsPageState extends State<CacheSettingsPage> {
     final bool interactive = !_isLoading && !_isClearing;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('缓存管理')),
+      appBar: PageAppBar(title: const Text('缓存管理')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[

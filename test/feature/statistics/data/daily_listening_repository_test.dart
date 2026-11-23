@@ -68,4 +68,48 @@ void main() {
     expect(summary.weekSongs, 0);
     expect(summary.listenedText, '不到 1 分钟');
   });
+
+  test('reads week start and a range of days', () {
+    final DateTime weekStart = repository.weekStartOf(
+      DateTime(2026, 11, 22, 21, 30),
+    );
+
+    expect(weekStart, DateTime(2026, 11, 16));
+    expect(repository.readDays(weekStart), hasLength(7));
+    expect(
+      repository
+          .readDays(weekStart, count: 3)
+          .map((DailyListening day) => day.listenedMs),
+      <int>[0, 0, 0],
+    );
+  });
+
+  test('counts consecutive listening days', () async {
+    final DateTime today = DateTime(2026, 11, 22);
+    await repository.addListenedMs(today, 60000);
+    await repository.addListenedMs(
+      today.subtract(const Duration(days: 1)),
+      60000,
+    );
+    await repository.addListenedMs(
+      today.subtract(const Duration(days: 2)),
+      60000,
+    );
+    await repository.addListenedMs(
+      today.subtract(const Duration(days: 4)),
+      60000,
+    );
+
+    expect(repository.listenedDaysInRow(today), 3);
+  });
+
+  test('streak falls back to yesterday when today is empty', () async {
+    final DateTime today = DateTime(2026, 11, 22);
+    await repository.addListenedMs(
+      today.subtract(const Duration(days: 1)),
+      60000,
+    );
+
+    expect(repository.listenedDaysInRow(today), 1);
+  });
 }

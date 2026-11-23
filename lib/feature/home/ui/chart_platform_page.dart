@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
@@ -64,7 +65,7 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.platform.label)),
+      appBar: PageAppBar(title: Text(widget.platform.label)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: <Widget>[

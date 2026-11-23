@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/feature/setting/domain/hotkey_action.dart';
 import 'package:bilimusic/feature/setting/domain/hotkey_binding.dart';
@@ -31,7 +32,7 @@ class HotkeySettingsPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: PageAppBar(
         title: const Text('快捷键设置'),
         actions: <Widget>[
           TextButton(

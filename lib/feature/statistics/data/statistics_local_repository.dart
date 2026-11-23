@@ -33,6 +33,57 @@ class StatisticsLocalRepository {
     return matches.length == 1 ? read(matches.single) : null;
   }
 
+  int countFirstPlayedBetween(int startEpochMs, int endEpochMs) {
+    int count = 0;
+    for (final Map value in _box.values) {
+      final int? firstPlayedAt = (value['firstPlayedAtEpochMs'] as num?)
+          ?.toInt();
+      if (firstPlayedAt != null &&
+          firstPlayedAt >= startEpochMs &&
+          firstPlayedAt < endEpochMs) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  List<SongStatistics> songsLastPlayedBetween(
+    int startEpochMs,
+    int endEpochMs, {
+    int limit = 5,
+  }) {
+    final List<SongStatistics> matches = <SongStatistics>[];
+    for (final MapEntry<dynamic, Map> entry in _box.toMap().entries) {
+      final Object? key = entry.key;
+      final Map value = entry.value;
+      final int? lastPlayedAt = (value['lastPlayedAtEpochMs'] as num?)?.toInt();
+      if (key is! String ||
+          lastPlayedAt == null ||
+          lastPlayedAt < startEpochMs ||
+          lastPlayedAt >= endEpochMs) {
+        continue;
+      }
+      matches.add(
+        SongStatistics(
+          stableId: key,
+          title: value['title'] as String? ?? '',
+          author: value['author'] as String? ?? '',
+          coverUrl: value['coverUrl'] as String? ?? '',
+          playCount: (value['playCount'] as num?)?.toInt() ?? 0,
+          totalPlayedMs: (value['totalPlayedMs'] as num?)?.toInt() ?? 0,
+          firstPlayedAtEpochMs: (value['firstPlayedAtEpochMs'] as num?)
+              ?.toInt(),
+          lastPlayedAtEpochMs: lastPlayedAt,
+        ),
+      );
+    }
+    matches.sort(
+      (SongStatistics left, SongStatistics right) =>
+          right.totalPlayedMs.compareTo(left.totalPlayedMs),
+    );
+    return matches.take(limit).toList(growable: false);
+  }
+
   Future<void> write(SongStatistics statistics) =>
       _box.put(statistics.stableId, <String, Object?>{
         'title': statistics.title,

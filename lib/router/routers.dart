@@ -21,6 +21,7 @@ import 'package:bilimusic/feature/radar/ui/shuffle_page.dart';
 import 'package:bilimusic/feature/recent/ui/desktop/desktop_recent_playback_page.dart';
 import 'package:bilimusic/feature/recent/ui/recent_playback_page.dart';
 import 'package:bilimusic/feature/search/ui/search_page.dart';
+import 'package:bilimusic/feature/statistics/ui/listening_report_page.dart';
 import 'package:bilimusic/feature/statistics/ui/song_statistics_page.dart';
 import 'package:bilimusic/feature/setting/ui/about_settings_page.dart';
 import 'package:bilimusic/feature/setting/ui/cache_settings_page.dart';
@@ -155,6 +156,10 @@ final List<Map<String, dynamic>> mobileTabs = [
               ? const DesktopRecentPlaybackPage()
               : const RecentPlaybackPage();
         },
+      ),
+      GoRoute(
+        path: 'report',
+        builder: (context, state) => const ListeningReportPage(),
       ),
       GoRoute(
         path: 'downloads',

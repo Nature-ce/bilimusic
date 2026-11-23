@@ -1,5 +1,4 @@
 import 'package:bilimusic/common/components/cached_avatar.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_card_surface.dart';
 import 'package:bilimusic/feature/up/domain/favorite_up.dart';
@@ -9,16 +8,16 @@ class FollowedUpsCard extends StatelessWidget {
   const FollowedUpsCard({super.key, required this.ups, required this.onTap});
 
   static const int _previewCount = 3;
-  static const double _avatarSize = 24;
-  static const double _avatarOverlap = 13;
+  static const double _avatarSize = 28;
+  static const double _avatarOverlap = 12;
+  static const double _avatarRingWidth = 1.5;
 
   final List<FavoriteUp> ups;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final List<FavoriteUp> preview = ups
         .take(_previewCount)
         .toList(growable: false);
@@ -28,7 +27,7 @@ class FollowedUpsCard extends StatelessWidget {
 
     return ProfileCardSurface(
       onTap: onTap,
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      padding: const EdgeInsets.fromLTRB(14, 11, 10, 11),
       child: Row(
         children: <Widget>[
           SizedBox(
@@ -51,9 +50,7 @@ class FollowedUpsCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            child: Row(
               children: <Widget>[
                 Text(
                   '关注的 UP 主',
@@ -66,12 +63,19 @@ class FollowedUpsCard extends StatelessWidget {
                     color: colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${ups.length} 位 · 查看 / 管理',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.meta(theme, fontSize: 11.5),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${ups.length} 位 · 查看 / 管理',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.2,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -96,14 +100,15 @@ class _FollowedUpAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(1.5),
+      padding: const EdgeInsets.all(FollowedUpsCard._avatarRingWidth),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: appCardSurfaceColor(context),
       ),
       child: CommonCachedAvatar(
         imageUrl: avatarUrl,
-        size: FollowedUpsCard._avatarSize - 3,
+        size:
+            FollowedUpsCard._avatarSize - FollowedUpsCard._avatarRingWidth * 2,
         backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
         fallbackIcon: Icons.person_rounded,
         iconColor: colorScheme.primary,

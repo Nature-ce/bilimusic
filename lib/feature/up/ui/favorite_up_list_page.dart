@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/feature/up/ui/components/favorite_up_list.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,9 @@ class FavoriteUpListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: PlatformUtil.isMobile ? AppBar(title: const Text('收藏UP主')) : null,
+      appBar: PlatformUtil.isMobile
+          ? const PageAppBar(title: Text('收藏UP主'))
+          : null,
       body: const FavoriteUpList(),
     );
   }

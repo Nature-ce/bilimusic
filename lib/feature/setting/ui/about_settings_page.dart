@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:bilimusic/feature/updater/domain/update_source.dart';
@@ -43,7 +44,7 @@ class _AboutSettingsPageState extends ConsumerState<AboutSettingsPage> {
     final UpdateSource updateSource = ref.watch(updateSourceLogicProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('关于')),
+      appBar: PageAppBar(title: const Text('关于')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: <Widget>[

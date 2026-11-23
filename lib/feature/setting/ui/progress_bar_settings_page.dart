@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/player/domain/playback_chapter.dart';
@@ -26,7 +27,7 @@ class ProgressBarSettingsPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('进度条设置')),
+      appBar: PageAppBar(title: const Text('进度条设置')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: <Widget>[
