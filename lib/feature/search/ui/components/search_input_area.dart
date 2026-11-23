@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
+import 'package:bilimusic/common/components/search_bar.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/search/ui/components/highlight_text.dart';
 import 'package:bilimusic/feature/search/ui/components/hot_search_section.dart';
@@ -27,81 +28,20 @@ class SearchInputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final bool hasFocus = focusNode.hasFocus;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Container(
-              height: 42,
-              padding: const EdgeInsets.only(left: 14, right: 4),
-              decoration: BoxDecoration(
-                color: appCardSurfaceColor(context),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: colorScheme.primary.withValues(
-                    alpha: hasFocus ? 0.72 : 0.42,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.search_rounded,
-                    size: 19,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      cursorColor: colorScheme.primary,
-                      textInputAction: TextInputAction.search,
-                      onChanged: onChanged,
-                      onSubmitted: (_) => onSubmitted(),
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.onSurface,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: '搜索歌曲、歌手或视频',
-                        hintStyle: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.85,
-                          ),
-                        ),
-                        filled: false,
-                        isDense: true,
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 9),
-                      ),
-                    ),
-                  ),
-                  if (query.isNotEmpty)
-                    InkResponse(
-                      onTap: onClear,
-                      radius: 16,
-                      child: Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Icon(
-                          Icons.cancel_rounded,
-                          size: 17,
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.7,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+            child: CommonSearchInput(
+              controller: controller,
+              focusNode: focusNode,
+              query: query,
+              hintText: '搜索歌曲、歌手或视频',
+              onChanged: onChanged,
+              onSubmitted: onSubmitted,
+              onClear: onClear,
             ),
           ),
           const SizedBox(width: 2),
@@ -109,11 +49,11 @@ class SearchInputBar extends StatelessWidget {
             onTap: onCancel,
             borderRadius: BorderRadius.circular(999),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               child: Text(
                 '取消',
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: colorScheme.onSurfaceVariant,
                 ),

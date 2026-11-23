@@ -104,7 +104,7 @@ void main() {
     expect(find.text('已下载 1 首 · 占用 4 B'), findsOneWidget);
     expect(find.text('夜曲'), findsOneWidget);
     expect(find.text('4 B · 已完成'), findsOneWidget);
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsNothing);
 
     await tester.longPress(find.text('夜曲'));
     await tester.pumpAndSettle();

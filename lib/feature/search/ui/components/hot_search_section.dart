@@ -26,27 +26,14 @@ class HotSearchSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Text(
-              '热搜',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '网易云 / QQ音乐 / 酷狗',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
+        Text(
+          '热搜',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+            color: colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 6),
         for (int index = 0; index < items.length; index++)

@@ -23,14 +23,13 @@ class DownloadedTrackTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final Widget trailing = selectionMode
+    final Widget? trailing = selectionMode
         ? Checkbox(
             value: selected,
             visualDensity: VisualDensity.compact,
             onChanged: (bool? _) => onToggleSelection(),
           )
-        : Icon(Icons.check_rounded, size: 22, color: colorScheme.primary);
+        : null;
 
     return DownloadListRow(
       coverUrl: track.coverUrl,

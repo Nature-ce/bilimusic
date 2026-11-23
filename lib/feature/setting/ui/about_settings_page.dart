@@ -1,5 +1,4 @@
 import 'package:bilimusic/common/components/page_app_bar.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:bilimusic/feature/updater/domain/update_source.dart';
 import 'package:bilimusic/feature/updater/logic/update_checker.dart';
@@ -18,7 +17,6 @@ class AboutSettingsPage extends ConsumerStatefulWidget {
 
 class _AboutSettingsPageState extends ConsumerState<AboutSettingsPage> {
   bool _checking = false;
-  DateTime? _lastCheckedAt;
 
   Future<void> _handleCheck() async {
     if (_checking) {
@@ -33,7 +31,6 @@ class _AboutSettingsPageState extends ConsumerState<AboutSettingsPage> {
       if (mounted) {
         setState(() {
           _checking = false;
-          _lastCheckedAt = DateTime.now();
         });
       }
     }
@@ -49,11 +46,6 @@ class _AboutSettingsPageState extends ConsumerState<AboutSettingsPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: <Widget>[
           const _AppHero(),
-          _UpdateBanner(
-            checking: _checking,
-            lastCheckedAt: _lastCheckedAt,
-            onTap: _handleCheck,
-          ),
           SettingsGroup(
             title: '更新',
             children: <Widget>[
@@ -178,122 +170,6 @@ class _AppHero extends StatelessWidget {
           },
         ),
       ],
-    );
-  }
-}
-
-class _UpdateBanner extends StatelessWidget {
-  const _UpdateBanner({
-    required this.checking,
-    required this.lastCheckedAt,
-    required this.onTap,
-  });
-
-  final bool checking;
-  final DateTime? lastCheckedAt;
-  final Future<void> Function() onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    final DateTime? lastChecked = lastCheckedAt;
-    final String subtitle = checking
-        ? '正在检查新版本…'
-        : lastChecked == null
-        ? '点击检查是否有新版本'
-        : '上次检查：${lastChecked.hour.toString().padLeft(2, '0')}:${lastChecked.minute.toString().padLeft(2, '0')}';
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 14),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        clipBehavior: Clip.antiAlias,
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.16),
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                colorScheme.primary.withValues(alpha: 0.1),
-                colorScheme.primary.withValues(alpha: 0.04),
-              ],
-            ),
-          ),
-          child: InkWell(
-            onTap: checking ? null : onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: colorScheme.primary,
-                      boxShadow: <BoxShadow>[
-                        BoxShadow(
-                          color: colorScheme.primary.withValues(alpha: 0.22),
-                          spreadRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          '检查更新',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (checking)
-                    SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: colorScheme.primary,
-                      ),
-                    )
-                  else
-                    Text(
-                      '检查',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
