@@ -40,7 +40,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('还没有下载的歌曲'), findsOneWidget);
+    expect(find.text('还没有下载内容'), findsOneWidget);
+    expect(find.text('去播放器里点下载，离线也能随时听'), findsOneWidget);
   });
 
   testWidgets('lists downloaded tracks', (WidgetTester tester) async {
@@ -100,10 +101,18 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.textContaining('已下载'), findsNothing);
+    expect(find.text('已下载 1 首 · 占用 4 B'), findsOneWidget);
     expect(find.text('夜曲'), findsOneWidget);
-    expect(find.textContaining('周杰伦'), findsOneWidget);
-    expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+    expect(find.text('4 B · 已完成'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+
+    await tester.longPress(find.text('夜曲'));
+    await tester.pumpAndSettle();
+    expect(find.text('删除下载'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.text('删除下载'), findsNothing);
   });
 }
 

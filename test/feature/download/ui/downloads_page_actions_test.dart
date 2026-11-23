@@ -85,6 +85,15 @@ Future<_FakeDownloads> _pumpPage(
   return controller;
 }
 
+Future<void> _dismissToasts(WidgetTester tester) async {
+  final Future<void> dismiss = SmartDialog.dismiss(
+    status: SmartStatus.allToast,
+  );
+  await tester.pumpAndSettle();
+  await dismiss;
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('shows storage summary and failure count', (
     WidgetTester tester,
@@ -98,8 +107,10 @@ void main() {
       ),
     );
 
-    expect(find.text('共 1 首 · 1.0 MB'), findsOneWidget);
-    expect(find.text('1 项失败'), findsOneWidget);
+    expect(find.text('已下载 1 首 · 占用 1.0 MB'), findsOneWidget);
+    expect(find.text('1.0 MB'), findsOneWidget);
+    expect(find.text('晴天'), findsOneWidget);
+    expect(find.text('下载失败 · 点击重试'), findsOneWidget);
   });
 
   testWidgets('failed task can be retried or dismissed', (
@@ -113,9 +124,10 @@ void main() {
     );
 
     expect(find.text('晴天'), findsOneWidget);
-    expect(find.textContaining('网络错误'), findsOneWidget);
+    expect(find.text('下载失败 · 点击重试'), findsOneWidget);
+    expect(find.textContaining('网络错误'), findsNothing);
 
-    await tester.tap(find.text('重试'));
+    await tester.tap(find.text('晴天'));
     await tester.pump();
     expect(controller.retried, <String>['bvid:BV2:page:1']);
 
@@ -123,8 +135,7 @@ void main() {
     await tester.pump();
     expect(controller.dismissed, <String>['bvid:BV2:page:1']);
 
-    await tester.pump(const Duration(seconds: 4));
-    await tester.pumpAndSettle();
+    await _dismissToasts(tester);
   });
 
   testWidgets('batch mode deletes the selected downloads', (
@@ -138,16 +149,19 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byTooltip('批量管理'));
+    await tester.tap(find.text('管理'));
     await tester.pumpAndSettle();
 
+    expect(find.text('完成'), findsOneWidget);
     expect(find.byType(Checkbox), findsOneWidget);
     await tester.tap(find.byType(Checkbox));
     await tester.pumpAndSettle();
     expect(find.text('已选 1 项'), findsOneWidget);
 
-    await tester.tap(find.text('删除'));
+    await tester.tap(find.text('删除所选'));
     await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+
     await tester.tap(
       find.descendant(
         of: find.byType(AlertDialog),
@@ -157,9 +171,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.removed, <String>['bvid:BV1:page:1']);
+    expect(find.text('删除所选'), findsNothing);
+    expect(find.text('管理'), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 4));
-    await tester.pumpAndSettle();
+    await _dismissToasts(tester);
   });
 
   testWidgets('empty state stays when nothing is downloaded', (
@@ -167,6 +182,7 @@ void main() {
   ) async {
     await _pumpPage(tester, const DownloadState());
 
-    expect(find.text('还没有下载的歌曲'), findsOneWidget);
+    expect(find.text('还没有下载内容'), findsOneWidget);
+    expect(find.text('去播放器里点下载，离线也能随时听'), findsOneWidget);
   });
 }
