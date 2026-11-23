@@ -1,16 +1,98 @@
+import 'dart:async';
+
 import 'package:bilimusic/common/components/status_view.dart';
-import 'package:bilimusic/common/components/user_avatar.dart';
+import 'package:bilimusic/feature/statistics/logic/statistics_tracker.dart';
 import 'package:bilimusic/feature/up/domain/favorite_up.dart';
+import 'package:bilimusic/feature/up/domain/favorite_up_update.dart';
 import 'package:bilimusic/feature/up/logic/favorite_up_controller.dart';
+import 'package:bilimusic/feature/up/logic/favorite_up_update_controller.dart';
+import 'package:bilimusic/feature/up/ui/components/favorite_up_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class FavoriteUpList extends ConsumerWidget {
+class FavoriteUpList extends ConsumerStatefulWidget {
   const FavoriteUpList({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FavoriteUpList> createState() => _FavoriteUpListState();
+}
+
+class _FavoriteUpListState extends ConsumerState<FavoriteUpList> {
+  static const double _horizontalPadding = 16;
+  static const double _chipGap = 8;
+  static const double _maxContentWidth = 640;
+
+  FavoriteUpFilter _filter = FavoriteUpFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureFresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant FavoriteUpList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _ensureFresh();
+  }
+
+  void _ensureFresh() {
+    final List<FavoriteUp> ups = ref.read(favoriteUpControllerProvider);
+    if (ups.isEmpty) {
+      return;
+    }
+    unawaited(
+      ref.read(favoriteUpUpdateControllerProvider.notifier).ensureFresh(ups),
+    );
+  }
+
+  void _openUp(FavoriteUp up) {
+    context.push('/up/${up.mid}');
+  }
+
+  Future<void> _showUpActions(FavoriteUp up) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext sheetContext) {
+        final ColorScheme colorScheme = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.person_outline_rounded),
+                title: const Text('查看主页'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openUp(up);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.heart_broken_rounded,
+                  color: colorScheme.error,
+                ),
+                title: Text('取消收藏', style: TextStyle(color: colorScheme.error)),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  unawaited(
+                    ref
+                        .read(favoriteUpControllerProvider.notifier)
+                        .remove(up.mid),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final List<FavoriteUp> ups = ref.watch(favoriteUpControllerProvider);
 
     if (ups.isEmpty) {
@@ -20,75 +102,58 @@ class FavoriteUpList extends ConsumerWidget {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 24),
-      itemCount: ups.length,
-      itemBuilder: (BuildContext context, int index) {
-        return _FavoriteUpRow(up: ups[index]);
-      },
+    final Map<int, FavoriteUpUpdate> updates = ref.watch(
+      favoriteUpUpdateControllerProvider,
     );
-  }
-}
+    final Map<String, int> playedMsByAuthor = ref
+        .watch(statisticsLocalRepositoryProvider)
+        .totalPlayedMsByAuthor();
+    final List<FavoriteUp> visible = filterFavoriteUps(
+      ups: ups,
+      filter: _filter,
+      updates: updates,
+      playedMsByAuthor: playedMsByAuthor,
+    );
 
-class _FavoriteUpRow extends ConsumerWidget {
-  const _FavoriteUpRow({required this.up});
-
-  final FavoriteUp up;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: () => context.push('/up/${up.mid}'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        child: Row(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+        child: Column(
           children: <Widget>[
-            UserAvatar(
-              avatarUrl: up.avatarUrl,
-              officialType: up.officialType,
-              useCache: true,
-              radius: 22,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                _horizontalPadding,
+                12,
+                _horizontalPadding,
+                0,
+              ),
+              child: Row(
                 children: <Widget>[
-                  Text(
-                    up.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.2,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
+                  for (final FavoriteUpFilter filter
+                      in FavoriteUpFilter.values) ...<Widget>[
+                    if (filter != FavoriteUpFilter.values.first)
+                      const SizedBox(width: _chipGap),
+                    FavoriteUpFilterChip(
+                      label: filter.label,
+                      selected: filter == _filter,
+                      onTap: () => setState(() => _filter = filter),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'UID ${up.mid}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.2,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
-            IconButton(
-              tooltip: '取消收藏',
-              icon: const Icon(Icons.favorite_rounded, size: 20),
-              color: colorScheme.primary,
-              onPressed: () {
-                ref.read(favoriteUpControllerProvider.notifier).remove(up.mid);
-              },
+            Expanded(
+              child: visible.isEmpty
+                  ? const StatusView(
+                      icon: Icons.schedule_rounded,
+                      title: '今天还没有关注的 UP 主更新',
+                    )
+                  : FavoriteUpGrid(
+                      ups: visible,
+                      updates: updates,
+                      onTap: _openUp,
+                      onLongPress: _showUpActions,
+                    ),
             ),
           ],
         ),

@@ -72,6 +72,38 @@ class BiliUpRepository {
     );
   }
 
+  Future<List<DateTime>> fetchLatestPublishTimes({
+    required int mid,
+    int count = 5,
+  }) async {
+    final Map<String, dynamic> json;
+    try {
+      json = await _client.getJson(
+        '/x/space/wbi/arc/search',
+        queryParameters: <String, dynamic>{
+          'mid': mid,
+          'pn': 1,
+          'ps': count,
+          'order': 'pubdate',
+        },
+        requiresWbi: true,
+      );
+    } on Object catch (error) {
+      throw BiliUpException('Failed to load publish times: $error');
+    }
+    final Map<String, dynamic> data = _asMap(json['data']);
+    final Map<String, dynamic> list = _asMap(data['list']);
+    final List<int> seconds =
+        asListOfMaps(list['vlist'])
+            .map((Map<String, dynamic> item) => _readInt(item['created']) ?? 0)
+            .where((int value) => value > 0)
+            .toList(growable: false)
+          ..sort((int left, int right) => right.compareTo(left));
+    return seconds
+        .map((int value) => DateTime.fromMillisecondsSinceEpoch(value * 1000))
+        .toList(growable: false);
+  }
+
   Future<UpCollectionPageResult> fetchCollections({
     required int mid,
     required int page,

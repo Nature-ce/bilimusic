@@ -84,6 +84,22 @@ class StatisticsLocalRepository {
     return matches.take(limit).toList(growable: false);
   }
 
+  Map<String, int> totalPlayedMsByAuthor() {
+    final Map<String, int> totals = <String, int>{};
+    for (final Map value in _box.values) {
+      final String author = (value['author'] as String? ?? '').trim();
+      if (author.isEmpty) continue;
+      final int playedMs = (value['totalPlayedMs'] as num?)?.toInt() ?? 0;
+      if (playedMs <= 0) continue;
+      totals.update(
+        author,
+        (int current) => current + playedMs,
+        ifAbsent: () => playedMs,
+      );
+    }
+    return totals;
+  }
+
   Future<void> write(SongStatistics statistics) =>
       _box.put(statistics.stableId, <String, Object?>{
         'title': statistics.title,
