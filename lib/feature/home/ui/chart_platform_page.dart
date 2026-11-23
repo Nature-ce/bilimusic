@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bilimusic/common/components/cached_image.dart';
-import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/domain/music_chart.dart';
@@ -9,7 +8,6 @@ import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
-import 'package:bilimusic/feature/home/logic/collection_play_all.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,8 +23,6 @@ class ChartPlatformPage extends ConsumerStatefulWidget {
 }
 
 class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
-  bool _isPlayingAll = false;
-
   @override
   void initState() {
     super.initState();
@@ -49,34 +45,6 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
 
   void _openChart(MusicChart chart) {
     context.push('/home/charts/${widget.platform.name}/${chart.chartId}');
-  }
-
-  Future<void> _playChart(MusicChart chart) async {
-    if (_isPlayingAll) {
-      return;
-    }
-    final MusicChartEntry? entry = ref
-        .read(musicChartControllerProvider)
-        .entryOf(widget.platform);
-    final List<MusicChartTrack> tracks =
-        entry?.tracks ?? const <MusicChartTrack>[];
-    if (tracks.isEmpty) {
-      ToastUtil.show('榜单还没加载完');
-      return;
-    }
-    setState(() => _isPlayingAll = true);
-    try {
-      await CollectionPlayAllRunner(
-        context: context,
-        ref: ref,
-        sourceLabel: chart.name,
-        isActive: () => mounted,
-      ).run(tracks);
-    } finally {
-      if (mounted) {
-        setState(() => _isPlayingAll = false);
-      }
-    }
   }
 
   @override
@@ -157,9 +125,7 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
     return _DefaultChartCard(
       chart: chart,
       entry: entry,
-      playing: _isPlayingAll,
       onTap: () => _openChart(chart),
-      onPlay: () => _playChart(chart),
     );
   }
 }
@@ -168,23 +134,17 @@ class _DefaultChartCard extends StatelessWidget {
   const _DefaultChartCard({
     required this.chart,
     required this.entry,
-    required this.playing,
     required this.onTap,
-    required this.onPlay,
   });
 
   final MusicChart chart;
   final MusicChartEntry entry;
-  final bool playing;
   final VoidCallback onTap;
-  final VoidCallback onPlay;
 
   static String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     final List<String> covers = <String>[
       for (final MusicChartTrack track in entry.topTracks)
         if (track.coverUrl.trim().isNotEmpty) track.coverUrl.trim(),
@@ -196,54 +156,62 @@ class _DefaultChartCard extends StatelessWidget {
 
     return Container(
       decoration: appElevatedCardDecoration(context),
+      clipBehavior: Clip.antiAlias,
+      height: 160,
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _DefaultChartCover(
-                  coverUrl: covers.isEmpty ? '' : covers.first,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              _DefaultChartCover(coverUrl: covers.isEmpty ? '' : covers.first),
+              const ColoredBox(color: Color(0x42000000)),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 12,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: <Widget>[
                     Expanded(
-                      child: Row(
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              chart.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
-                              ),
+                      child: Text(
+                        chart.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          height: 1.15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                          color: Colors.white,
+                          shadows: <Shadow>[
+                            Shadow(
+                              color: Color(0x8C000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 3),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          _ChartPlayButton(playing: playing, onTap: onPlay),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Text(
                       updatedLabel,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        height: 1.2,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xF2FFFFFF),
+                        shadows: <Shadow>[
+                          Shadow(color: Color(0x73000000), blurRadius: 8),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -261,68 +229,22 @@ class _DefaultChartCover extends StatelessWidget {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final String url = coverUrl.trim();
     if (url.isEmpty) {
-      return Container(
-        height: 140,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          color: colorScheme.primary.withValues(alpha: 0.06),
-        ),
+      return ColoredBox(
+        color: colorScheme.primary.withValues(alpha: 0.08),
         child: Center(
           child: Icon(
             Icons.album_outlined,
+            size: 32,
             color: colorScheme.primary.withValues(alpha: 0.45),
           ),
         ),
       );
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: CommonCachedImage(
-        imageUrl: url,
-        width: double.infinity,
-        height: 140,
-        fit: BoxFit.cover,
-      ),
-    );
-  }
-}
-
-class _ChartPlayButton extends StatelessWidget {
-  const _ChartPlayButton({required this.playing, required this.onTap});
-
-  final bool playing;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return InkResponse(
-      onTap: playing ? null : onTap,
-      radius: 20,
-      child: Container(
-        width: 26,
-        height: 26,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: colorScheme.primary.withValues(alpha: playing ? 0.06 : 0.12),
-          shape: BoxShape.circle,
-        ),
-        child: playing
-            ? SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: colorScheme.primary,
-                ),
-              )
-            : Icon(
-                Icons.play_arrow_rounded,
-                size: 18,
-                color: colorScheme.primary,
-              ),
-      ),
+    return CommonCachedImage(
+      imageUrl: url,
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
     );
   }
 }

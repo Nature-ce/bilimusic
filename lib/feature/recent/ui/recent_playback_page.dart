@@ -33,11 +33,7 @@ class RecentPlaybackPage extends ConsumerWidget {
         .map((RecentPlaybackEntry item) => item.toPlayableItem())
         .toList(growable: false);
 
-    final Color pageBackground = theme.brightness == Brightness.light
-        ? Colors.white
-        : theme.scaffoldBackgroundColor;
     return Scaffold(
-      backgroundColor: pageBackground,
       appBar: AppBar(
         title: const Text(_sourceLabel),
         actions: items.isEmpty
