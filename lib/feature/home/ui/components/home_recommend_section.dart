@@ -173,7 +173,7 @@ class _QuickActions extends StatelessWidget {
           Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              onTap: () => context.go(item.route),
+              onTap: () => context.push(item.route),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 child: Column(
@@ -350,7 +350,7 @@ class _RadarHeroCard extends ConsumerWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton.icon(
-                    onPressed: () => context.go('/radar'),
+                    onPressed: () => context.push('/radar'),
                     icon: const Icon(Icons.play_arrow_rounded, size: 18),
                     label: const Text('开始听'),
                     style: FilledButton.styleFrom(
