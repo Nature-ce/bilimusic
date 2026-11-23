@@ -212,8 +212,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       '/home/playlist/${playlist.platform.name}/${playlist.id}',
                       extra: playlist,
                     ),
-                    onLongPressStart: (LongPressStartDetails details) =>
-                        _showFavoritePlaylistActions(playlist),
                   ),
                 );
               }),
@@ -245,69 +243,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     } on Object {
       return const <FavoriteUp>[];
     }
-  }
-
-  Future<void> _showFavoritePlaylistActions(HotPlaylist playlist) async {
-    final _FavoritePlaylistAction? action =
-        await showModalBottomSheet<_FavoritePlaylistAction>(
-          context: context,
-          showDragHandle: true,
-          useRootNavigator: true,
-          builder: (BuildContext sheetContext) {
-            final ColorScheme colorScheme = Theme.of(sheetContext).colorScheme;
-            return SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  ListTile(
-                    leading: const Icon(Icons.queue_music_rounded),
-                    title: const Text('打开歌单'),
-                    subtitle: Text(
-                      '${playlist.trackCount} 首 · ${playlist.platform.label}',
-                    ),
-                    onTap: () => Navigator.of(
-                      sheetContext,
-                    ).pop(_FavoritePlaylistAction.open),
-                  ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.heart_broken_rounded,
-                      color: colorScheme.error,
-                    ),
-                    title: Text(
-                      '取消收藏',
-                      style: TextStyle(color: colorScheme.error),
-                    ),
-                    onTap: () => Navigator.of(
-                      sheetContext,
-                    ).pop(_FavoritePlaylistAction.remove),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            );
-          },
-        );
-    if (!mounted || action == null) {
-      return;
-    }
-    switch (action) {
-      case _FavoritePlaylistAction.open:
-        context.push(
-          '/home/playlist/${playlist.platform.name}/${playlist.id}',
-          extra: playlist,
-        );
-      case _FavoritePlaylistAction.remove:
-        await _removeFavoritePlaylist(playlist);
-    }
-  }
-
-  Future<void> _removeFavoritePlaylist(HotPlaylist playlist) async {
-    await ref.read(favoriteHotPlaylistsProvider.notifier).toggle(playlist);
-    if (!mounted) {
-      return;
-    }
-    _showMessage('已取消收藏“${playlist.name}”');
   }
 
   Future<void> _showCreateCollectionDialog(BuildContext context) async {
@@ -516,8 +451,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 }
 
 enum _AddAction { localCreate, remoteImport }
-
-enum _FavoritePlaylistAction { open, remove }
 
 enum _RemoteImportMode { localCopy, bindAndSync }
 

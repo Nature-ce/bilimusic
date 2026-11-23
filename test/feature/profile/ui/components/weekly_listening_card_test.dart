@@ -47,9 +47,10 @@ void main() {
     await _pumpCard(tester, _summary());
 
     expect(find.text('本周听了 42 分钟'), findsOneWidget);
-    expect(find.text('42'), findsOneWidget);
-    expect(find.textContaining('比上周多 8 首'), findsOneWidget);
     expect(find.text('查看报告 ›'), findsOneWidget);
+    expect(find.text('首'), findsNothing);
+    expect(find.text('42'), findsNothing);
+    expect(find.textContaining('比上周多'), findsNothing);
 
     for (int index = 0; index < 7; index += 1) {
       final Finder bar = find.byKey(

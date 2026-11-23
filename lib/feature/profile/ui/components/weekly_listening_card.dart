@@ -79,45 +79,8 @@ class WeeklyListeningCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (hasData)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: <Widget>[
-                Text(
-                  '${summary.weekSongs}',
-                  style: TextStyle(
-                    fontSize: 26,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                    color: colorScheme.onSurface,
-                    fontFeatures: const <FontFeature>[
-                      FontFeature.tabularFigures(),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  '首',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    height: 1.2,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (summary.hasLastWeekData)
-                  Text(
-                    ' · ${_deltaLabel(summary.songsDelta)}',
-                    style: AppTextStyles.meta(
-                      theme,
-                      fontSize: 12,
-                    ).copyWith(fontWeight: FontWeight.w600),
-                  ),
-              ],
-            )
-          else
+          if (!hasData) ...<Widget>[
+            const SizedBox(height: 8),
             Text(
               '本周还没听歌',
               style: AppTextStyles.meta(
@@ -125,21 +88,12 @@ class WeeklyListeningCard extends StatelessWidget {
                 fontSize: 12,
               ).copyWith(fontWeight: FontWeight.w600),
             ),
+          ],
           const SizedBox(height: 12),
           _WeeklyListeningBars(days: summary.days),
         ],
       ),
     );
-  }
-
-  String _deltaLabel(int delta) {
-    if (delta > 0) {
-      return '比上周多 $delta 首';
-    }
-    if (delta < 0) {
-      return '比上周少 ${delta.abs()} 首';
-    }
-    return '与上周持平';
   }
 }
 

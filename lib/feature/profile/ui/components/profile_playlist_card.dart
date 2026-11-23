@@ -11,7 +11,6 @@ class ProfilePlaylistCard extends StatelessWidget {
     required this.trackCount,
     required this.coverUrl,
     required this.onTap,
-    required this.onLongPressStart,
     this.isRemote = false,
     this.badgeLabel,
     this.updatedAt,
@@ -21,7 +20,6 @@ class ProfilePlaylistCard extends StatelessWidget {
   final int trackCount;
   final String? coverUrl;
   final VoidCallback onTap;
-  final ValueChanged<LongPressStartDetails> onLongPressStart;
   final bool isRemote;
   final String? badgeLabel;
   final DateTime? updatedAt;
@@ -40,70 +38,64 @@ class ProfilePlaylistCard extends StatelessWidget {
       color: appCardSurfaceColor(context),
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
-      child: GestureDetector(
-        onLongPressStart: onLongPressStart,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ProfilePlaylistCover(
-                  coverUrl: coverUrl,
-                  trackCount: trackCount,
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _ProfilePlaylistCover(coverUrl: coverUrl, trackCount: trackCount),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: <Widget>[
+                        Flexible(
+                          child: Text(
+                            '$trackCount 首',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.meta(theme, fontSize: 11),
+                          ),
+                        ),
+                        if (showSourceBadge) ...<Widget>[
+                          const SizedBox(width: 4),
+                          _PlaylistSourceBadge(
+                            label: badgeLabel ?? 'B站',
+                            colorScheme: colorScheme,
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (updatedLabel != null) ...<Widget>[
+                      const SizedBox(height: 3),
                       Text(
-                        title,
+                        updatedLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          height: 1.25,
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.onSurface,
-                        ),
+                        style: AppTextStyles.meta(theme, fontSize: 10.5),
                       ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              '$trackCount 首',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.meta(theme, fontSize: 11),
-                            ),
-                          ),
-                          if (showSourceBadge) ...<Widget>[
-                            const SizedBox(width: 4),
-                            _PlaylistSourceBadge(
-                              label: badgeLabel ?? 'B站',
-                              colorScheme: colorScheme,
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (updatedLabel != null) ...<Widget>[
-                        const SizedBox(height: 3),
-                        Text(
-                          updatedLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.meta(theme, fontSize: 10.5),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
