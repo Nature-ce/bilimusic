@@ -1,6 +1,8 @@
 import 'package:bilimusic/common/components/login_required.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/ui/components/collection_name_dialog.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
@@ -36,67 +38,57 @@ Future<void> showFavoriteCollectionActionMenu({
   );
 
   HapticFeedback.lightImpact();
-  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  final ThemeData theme = Theme.of(context);
+  final ColorScheme colorScheme = theme.colorScheme;
+
   final CollectionAction? action = await showMenu<CollectionAction>(
     context: context,
     position: position,
-    color: isDark ? null : Colors.white,
+    useRootNavigator: true,
+    color: appCardSurfaceColor(context),
+    surfaceTintColor: Colors.transparent,
+    elevation: 8,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      side: BorderSide(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+      ),
+    ),
+    constraints: const BoxConstraints(minWidth: 196, maxWidth: 236),
     items: <PopupMenuEntry<CollectionAction>>[
       if (onMultiSelect != null)
-        PopupMenuItem<CollectionAction>(
-          value: CollectionAction.multiSelect,
-          child: ListTile(
-            leading: Icon(Icons.checklist_rounded),
-            title: Text('多选'),
-            contentPadding: EdgeInsets.zero,
-          ),
+        _menuItem(
+          CollectionAction.multiSelect,
+          Icons.checklist_rounded,
+          '\u591a\u9009',
         ),
       if (!collection.isSystem)
-        PopupMenuItem<CollectionAction>(
-          value: CollectionAction.rename,
-          child: ListTile(
-            leading: Icon(Icons.drive_file_rename_outline_rounded),
-            title: const Text('重命名'),
-            contentPadding: EdgeInsets.zero,
-          ),
+        _menuItem(
+          CollectionAction.rename,
+          Icons.drive_file_rename_outline_rounded,
+          '\u91cd\u547d\u540d',
         ),
       if (collection.isRemote)
-        PopupMenuItem<CollectionAction>(
-          value: CollectionAction.sync,
-          child: ListTile(
-            leading: Icon(Icons.sync_rounded),
-            title: Text('同步'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
+        _menuItem(CollectionAction.sync, Icons.sync_rounded, '\u540c\u6b65'),
       if (collection.isRemote)
-        PopupMenuItem<CollectionAction>(
-          value: CollectionAction.remove,
-          child: ListTile(
-            leading: Icon(Icons.remove_circle_outline_rounded),
-            title: Text('解除绑定'),
-            contentPadding: EdgeInsets.zero,
-          ),
+        _menuItem(
+          CollectionAction.remove,
+          Icons.remove_circle_outline_rounded,
+          '\u89e3\u9664\u7ed1\u5b9a',
         ),
       if (!collection.isSystem && !collection.isRemote)
-        PopupMenuItem<CollectionAction>(
-          value: CollectionAction.uploadToRemote,
-          child: ListTile(
-            leading: Icon(Icons.cloud_upload_outlined),
-            title: Text('上传到 B 站并同步'),
-            contentPadding: EdgeInsets.zero,
-          ),
+        _menuItem(
+          CollectionAction.uploadToRemote,
+          Icons.cloud_upload_outlined,
+          '\u4e0a\u4f20\u5230 B \u7ad9\u5e76\u540c\u6b65',
         ),
       if (!collection.isSystem)
-        PopupMenuItem<CollectionAction>(
-          value: CollectionAction.delete,
-          child: ListTile(
-            leading: Icon(Icons.delete_outline_rounded),
-            title: Text('删除'),
-            contentPadding: EdgeInsets.zero,
-          ),
+        _menuItem(
+          CollectionAction.delete,
+          Icons.delete_outline_rounded,
+          '\u5220\u9664',
+          danger: true,
         ),
-      if (!collection.isSystem || collection.isRemote) const PopupMenuDivider(),
     ],
   );
 
@@ -304,5 +296,63 @@ Future<void> _showRemoveRemoteCollectionDialog({
       .removeRemoteCollection(collection.id);
   if (context.mounted) {
     ToastUtil.show(removed ? '已解除绑定' : '解除绑定失败');
+  }
+}
+
+PopupMenuItem<CollectionAction> _menuItem(
+  CollectionAction action,
+  IconData icon,
+  String label, {
+  bool danger = false,
+}) {
+  return PopupMenuItem<CollectionAction>(
+    value: action,
+    height: 46,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: _MenuRow(icon: icon, label: label, danger: danger),
+  );
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color foreground = danger ? colorScheme.error : colorScheme.primary;
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: foreground.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+          ),
+          child: Icon(icon, size: 17, color: foreground),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: danger ? colorScheme.error : colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
