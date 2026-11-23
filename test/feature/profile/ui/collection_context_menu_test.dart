@@ -6,6 +6,9 @@ import 'package:bilimusic/feature/favorites/domain/bili_favorite_collection_page
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
+import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
+import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
+import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
 import 'package:bilimusic/feature/profile/ui/desktop_profile_sidebar.dart';
 import 'package:bilimusic/feature/profile/ui/profile_page.dart';
 import 'package:bilimusic/feature/recent/domain/recent_playback_entry.dart';
@@ -197,12 +200,50 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('mobile favorite playlist long-press asks before unfavoriting', (
+    WidgetTester tester,
+  ) async {
+    final _FavoritePlaylists playlists = _FavoritePlaylists(<HotPlaylist>[
+      const HotPlaylist(
+        platform: MusicChartPlatform.netease,
+        id: 'playlist-1',
+        name: '魅力铃声',
+        coverUrl: '',
+        trackCount: 39,
+      ),
+    ]);
+    await _pumpProfile(
+      tester,
+      desktop: false,
+      favorites: _Favorites(const FavoritesState()),
+      favoritePlaylists: playlists,
+    );
+
+    expect(find.text('魅力铃声'), findsOneWidget);
+
+    await tester.longPress(find.text('魅力铃声'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('打开歌单'), findsOneWidget);
+    expect(find.text('取消收藏'), findsOneWidget);
+    expect(playlists.toggleCalls, 0);
+
+    await tester.tap(find.text('取消收藏'));
+    await tester.pumpAndSettle();
+    expect(playlists.toggleCalls, 1);
+    expect(tester.takeException(), isNull);
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
 }
 
 Future<ProviderContainer> _pumpProfile(
   WidgetTester tester, {
   required bool desktop,
   required _Favorites favorites,
+  _FavoritePlaylists? favoritePlaylists,
   bool loggedIn = false,
 }) async {
   tester.view.physicalSize = desktop
@@ -226,6 +267,9 @@ Future<ProviderContainer> _pumpProfile(
             : null,
       ),
       favoriteUpControllerProvider.overrideWithValue(const <FavoriteUp>[]),
+      favoriteHotPlaylistsProvider.overrideWith(
+        () => favoritePlaylists ?? _FavoritePlaylists(const <HotPlaylist>[]),
+      ),
       recentPlaybackControllerProvider.overrideWithValue(
         const <RecentPlaybackEntry>[],
       ),
@@ -352,4 +396,23 @@ class _Favorites extends FavoritesController {
 class _EmptyDownloads extends DownloadController {
   @override
   DownloadState build() => const DownloadState();
+}
+
+class _FavoritePlaylists extends FavoriteHotPlaylists {
+  _FavoritePlaylists(this.initial);
+
+  final List<HotPlaylist> initial;
+  int toggleCalls = 0;
+
+  @override
+  List<HotPlaylist> build() => initial;
+
+  @override
+  Future<bool> toggle(HotPlaylist playlist) async {
+    toggleCalls += 1;
+    state = state
+        .where((HotPlaylist item) => item.key != playlist.key)
+        .toList(growable: false);
+    return false;
+  }
 }
