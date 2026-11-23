@@ -214,8 +214,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                     onLongPressStart: (LongPressStartDetails details) =>
                         _removeFavoritePlaylist(playlist),
-                    onMenuPressed: (Offset _) =>
-                        _removeFavoritePlaylist(playlist),
                   ),
                 );
               }),

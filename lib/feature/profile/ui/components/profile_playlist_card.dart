@@ -12,7 +12,6 @@ class ProfilePlaylistCard extends StatelessWidget {
     required this.coverUrl,
     required this.onTap,
     required this.onLongPressStart,
-    required this.onMenuPressed,
     this.isRemote = false,
     this.badgeLabel,
     this.updatedAt,
@@ -23,7 +22,6 @@ class ProfilePlaylistCard extends StatelessWidget {
   final String? coverUrl;
   final VoidCallback onTap;
   final ValueChanged<LongPressStartDetails> onLongPressStart;
-  final ValueChanged<Offset> onMenuPressed;
   final bool isRemote;
   final String? badgeLabel;
   final DateTime? updatedAt;
@@ -47,7 +45,7 @@ class ProfilePlaylistCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 10, 6, 10),
+            padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -103,34 +101,6 @@ class ProfilePlaylistCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                ),
-                Builder(
-                  builder: (BuildContext buttonContext) {
-                    return Tooltip(
-                      message: '歌单设置',
-                      child: InkResponse(
-                        radius: 16,
-                        onTap: () {
-                          final RenderBox? box =
-                              buttonContext.findRenderObject() as RenderBox?;
-                          if (box == null) {
-                            return;
-                          }
-                          onMenuPressed(
-                            box.localToGlobal(box.size.center(Offset.zero)),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(
-                            Icons.more_horiz_rounded,
-                            size: 18,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
                 ),
               ],
             ),
