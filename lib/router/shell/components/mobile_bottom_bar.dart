@@ -11,13 +11,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 const double mobileBottomBarRadius = 24;
-const double mobileBottomBarPlayerRowHeight = 56;
-const double mobileBottomBarTabsHeight = 52;
+const double mobileBottomBarPlayerRowHeight = 52;
+const double mobileBottomBarTabsHeight = 50;
+
+/// 底栏的玻璃档：比播放页的 smoke/frost 更透，并带一点主题色，
+/// 让内容从底下透出来时不会糊成一块灰。
+LiquidGlassSettings mobileBottomBarGlassSettings(BuildContext context) {
+  final ThemeData theme = Theme.of(context);
+  final ColorScheme colorScheme = theme.colorScheme;
+  final bool isDark = theme.brightness == Brightness.dark;
+  final Color base = isDark ? const Color(0xFF101215) : Colors.white;
+  final Color tinted = Color.alphaBlend(
+    colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.08),
+    base,
+  );
+
+  return LiquidGlassSettings(
+    bodyMode: GlassBodyMode.clear,
+    glassColor: tinted.withValues(alpha: isDark ? 0.34 : 0.24),
+    thickness: 18,
+    blur: 26,
+    chromaticAberration: 0,
+    saturation: 1.7,
+    lightIntensity: 0.55,
+    refractiveIndex: 1.12,
+  );
+}
 
 /// 贴底整条：播放行 + 进度 + 导航行装在同一个容器里。
 ///
 /// [showTabs] 为 false 时（歌单、收藏夹、下载这类详情页）只保留播放行，
-/// 高度从约 122dp 降到约 72dp；[glass] 打开时换成 frost 磨砂材质。
+/// 高度从约 106dp 降到约 60dp；[glass] 打开时换成半透明磨砂材质。
 class MobileBottomBar extends ConsumerWidget {
   const MobileBottomBar({
     super.key,
@@ -81,24 +105,9 @@ class MobileBottomBar extends ConsumerWidget {
                   onOpenQueue: onOpenQueue,
                   onToggleFavorite: onToggleFavorite,
                 ),
-          if (showPlayer)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(1),
-                child: LinearProgressIndicator(
-                  value: buildMiniPlayerProgress(state),
-                  minHeight: 2,
-                  backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    colorScheme.primary,
-                  ),
-                ),
-              ),
-            ),
           if (showTabs)
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: 4),
               child: _TabRow(
                 selectedIndex: selectedIndex,
                 onSelected: onTabSelected,
@@ -112,7 +121,7 @@ class MobileBottomBar extends ConsumerWidget {
 
     if (glass) {
       return GlassPanel(
-        tone: GlassTone.frost,
+        settings: mobileBottomBarGlassSettings(context),
         shape: const LiquidVerticalRoundedSuperellipse(
           topRadius: mobileBottomBarRadius,
           bottomRadius: 0,

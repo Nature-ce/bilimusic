@@ -13,19 +13,6 @@ String buildMiniPlayerSubtitle(PlayerState state, {String? displayArtist}) {
   };
 }
 
-double buildMiniPlayerProgress(PlayerState state) {
-  final Duration? duration = state.duration;
-
-  if (duration == null || duration <= Duration.zero) {
-    return 0;
-  }
-
-  return (state.position.inMilliseconds / duration.inMilliseconds).clamp(
-    0.0,
-    1.0,
-  );
-}
-
 class MiniPlayerArtwork extends StatelessWidget {
   const MiniPlayerArtwork({super.key, required this.coverUrl});
 

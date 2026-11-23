@@ -75,19 +75,18 @@ void main() {
             tester.getSize(find.byType(MiniPlayerArtwork)),
             const Size(36, 36),
           );
-          expect(
-            tester.getSize(find.byType(LinearProgressIndicator)),
-            const Size(388, 2),
-          );
-          expect(tester.getSize(bar).height, 122 + inset);
+
+          expect(tester.getSize(bar).height, 106 + inset);
           expect(tester.getRect(bar).bottom, 900);
-          expect(_spacerHeight(tester), 138 + inset);
+          expect(_spacerHeight(tester), 122 + inset);
 
           if (glass) {
             final GlassPanel panel = tester.widget<GlassPanel>(
               find.descendant(of: bar, matching: find.byType(GlassPanel)),
             );
-            expect(panel.tone, GlassTone.frost);
+            expect(panel.settings, isNotNull);
+            expect(panel.settings!.glassColor.a, lessThan(0.4));
+            expect(panel.settings!.blur, greaterThanOrEqualTo(20));
             expect(panel.shape, isA<LiquidVerticalRoundedSuperellipse>());
             final LiquidVerticalRoundedSuperellipse shape =
                 panel.shape as LiquidVerticalRoundedSuperellipse;
@@ -130,17 +129,14 @@ void main() {
     final Finder bar = find.byType(MobileBottomBar);
 
     expect(bar, findsOneWidget);
-    expect(tester.getSize(bar).height, 122);
+    expect(tester.getSize(bar).height, 106);
     expect(tester.getSize(find.byType(MiniPlayerArtwork)), const Size(36, 36));
-    expect(
-      tester.getSize(find.byType(LinearProgressIndicator)),
-      const Size(388, 2),
-    );
+
     expect(
       find.descendant(of: bar, matching: find.text('Test song - Test artist')),
       findsOneWidget,
     );
-    expect(_spacerHeight(tester), 138);
+    expect(_spacerHeight(tester), 122);
     expect(tester.takeException(), isNull);
     await _disposeShell(tester);
   });
@@ -155,13 +151,12 @@ void main() {
 
     expect(bar, findsOneWidget);
     expect(find.byType(MiniPlayerArtwork), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
     for (final String label in <String>['首页', '刷歌', '我的']) {
       expect(find.text(label), findsNothing);
     }
-    expect(tester.getSize(bar).height, 72);
+    expect(tester.getSize(bar).height, 60);
     expect(tester.getRect(bar).bottom, 900);
-    expect(_spacerHeight(tester), 88);
+    expect(_spacerHeight(tester), 76);
     expect(tester.getRect(find.byKey(_viewportKey)).bottom, 900);
     expect(tester.takeException(), isNull);
     await _disposeShell(tester);
@@ -173,7 +168,7 @@ void main() {
     final GoRouter router = await _pumpShell(tester, inset: 34);
 
     expect(find.byType(MobileBottomBar), findsOneWidget);
-    expect(_spacerHeight(tester), 172);
+    expect(_spacerHeight(tester), 156);
 
     markPlayerPageVisible();
     await tester.pumpAndSettle();
@@ -185,7 +180,7 @@ void main() {
     markPlayerPageHidden();
     await tester.pumpAndSettle();
     expect(find.byType(MobileBottomBar), findsOneWidget);
-    expect(_spacerHeight(tester), 172);
+    expect(_spacerHeight(tester), 156);
 
     router.go('/settings');
     await tester.pumpAndSettle();
@@ -196,7 +191,7 @@ void main() {
     router.go('/home');
     await tester.pumpAndSettle();
     expect(find.byType(MobileBottomBar), findsOneWidget);
-    expect(_spacerHeight(tester), 172);
+    expect(_spacerHeight(tester), 156);
     expect(tester.takeException(), isNull);
     await _disposeShell(tester);
   });
@@ -212,8 +207,8 @@ void main() {
         find.descendant(of: bar, matching: find.byType(GlassPanel)),
         findsNothing,
       );
-      expect(tester.getSize(bar).height, 122);
-      expect(_spacerHeight(tester), 138);
+      expect(tester.getSize(bar).height, 106);
+      expect(_spacerHeight(tester), 122);
 
       appearance.setGlass(true);
       await tester.pumpAndSettle();
@@ -222,8 +217,8 @@ void main() {
         find.descendant(of: bar, matching: find.byType(GlassPanel)),
         findsOneWidget,
       );
-      expect(tester.getSize(bar).height, 122);
-      expect(_spacerHeight(tester), 138);
+      expect(tester.getSize(bar).height, 106);
+      expect(_spacerHeight(tester), 122);
 
       appearance.setGlass(false);
       await tester.pumpAndSettle();
@@ -231,8 +226,8 @@ void main() {
         find.descendant(of: bar, matching: find.byType(GlassPanel)),
         findsNothing,
       );
-      expect(tester.getSize(bar).height, 122);
-      expect(_spacerHeight(tester), 138);
+      expect(tester.getSize(bar).height, 106);
+      expect(_spacerHeight(tester), 122);
       expect(tester.takeException(), isNull);
       await _disposeShell(tester);
     },
@@ -254,7 +249,7 @@ void main() {
     expect(find.byIcon(Icons.person_outline_rounded), findsNothing);
     expect(find.byIcon(Icons.home), findsNothing);
     expect(find.byIcon(Icons.home_outlined), findsOneWidget);
-    expect(_spacerHeight(tester), 138);
+    expect(_spacerHeight(tester), 122);
 
     await tester.tap(find.text('首页'));
     await tester.pumpAndSettle();
@@ -271,26 +266,26 @@ void main() {
     final _FakePlayerController controller = _controllerOf(tester);
     final Finder bar = find.byType(MobileBottomBar);
 
-    expect(tester.getSize(bar).height, 122);
-    expect(_spacerHeight(tester), 138);
+    expect(tester.getSize(bar).height, 106);
+    expect(_spacerHeight(tester), 122);
 
     controller.clear();
     await tester.pumpAndSettle();
     expect(bar, findsOneWidget);
     expect(find.byType(MiniPlayerArtwork), findsNothing);
     expect(find.text('首页'), findsOneWidget);
-    expect(tester.getSize(bar).height, 58);
-    expect(_spacerHeight(tester), 74);
+    expect(tester.getSize(bar).height, 54);
+    expect(_spacerHeight(tester), 70);
 
     controller.load();
     await tester.pumpAndSettle();
-    expect(tester.getSize(bar).height, 122);
-    expect(_spacerHeight(tester), 138);
+    expect(tester.getSize(bar).height, 106);
+    expect(_spacerHeight(tester), 122);
 
     router.go('/profile/downloads');
     await tester.pumpAndSettle();
-    expect(tester.getSize(bar).height, 72);
-    expect(_spacerHeight(tester), 88);
+    expect(tester.getSize(bar).height, 60);
+    expect(_spacerHeight(tester), 76);
 
     markPlayerPageVisible();
     await tester.pumpAndSettle();
@@ -299,13 +294,13 @@ void main() {
 
     markPlayerPageHidden();
     await tester.pumpAndSettle();
-    expect(tester.getSize(bar).height, 72);
-    expect(_spacerHeight(tester), 88);
+    expect(tester.getSize(bar).height, 60);
+    expect(_spacerHeight(tester), 76);
 
     router.go('/home');
     await tester.pumpAndSettle();
-    expect(tester.getSize(bar).height, 122);
-    expect(_spacerHeight(tester), 138);
+    expect(tester.getSize(bar).height, 106);
+    expect(_spacerHeight(tester), 122);
     expect(tester.takeException(), isNull);
     await _disposeShell(tester);
   });
@@ -315,7 +310,7 @@ void main() {
   ) async {
     await _pumpShell(tester, inset: 34);
     final double spacing = _spacerHeight(tester);
-    expect(spacing, 172);
+    expect(spacing, 156);
 
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
     tester.view.padding = FakeViewPadding.zero;
