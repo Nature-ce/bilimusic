@@ -52,6 +52,7 @@ class VideoCard extends ConsumerWidget {
     this.onPlayNext,
     this.onEnqueue,
     this.onAddToCollection,
+    this.showPlayOverlay = true,
   });
 
   final VideoCardData data;
@@ -62,6 +63,9 @@ class VideoCard extends ConsumerWidget {
   final FutureOr<void> Function()? onPlayNext;
   final FutureOr<void> Function()? onEnqueue;
   final FutureOr<void> Function()? onAddToCollection;
+
+  /// 封面左下角的圆形播放角标；搜索结果这类列表可以关掉。
+  final bool showPlayOverlay;
 
   bool get _hasActions =>
       onFavoriteToggle != null ||
@@ -102,23 +106,24 @@ class VideoCard extends ConsumerWidget {
                       iconSize: 30,
                     ),
                   ),
-                  Positioned(
-                    left: 8,
-                    bottom: 8,
-                    child: Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        size: 18,
-                        color: colorScheme.primary,
+                  if (showPlayOverlay)
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Icon(
+                          Icons.play_arrow_rounded,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(width: 16),
@@ -211,6 +216,7 @@ class _VideoCardActions extends StatelessWidget {
   final FutureOr<void> Function()? onPlayNext;
   final FutureOr<void> Function()? onEnqueue;
   final FutureOr<void> Function()? onAddToCollection;
+
   final VideoCardPlayableActions? playableActions;
 
   Future<void> _toggleFavorite(BuildContext context) async {

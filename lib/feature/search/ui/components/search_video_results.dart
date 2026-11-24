@@ -130,6 +130,7 @@ class SearchVideoResults extends StatelessWidget {
               );
 
               return VideoCard(
+                showPlayOverlay: false,
                 data: VideoCardData(
                   title: normalizeDisplayText(item.title),
                   coverUrl: item.coverUrl,
