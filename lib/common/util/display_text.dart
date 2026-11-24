@@ -37,7 +37,27 @@ String _normalizeRune(int rune) {
       return String.fromCharCode(base + (rune - start));
     }
   }
+  if (_isUnsupportedDecoration(rune)) {
+    return '';
+  }
   return String.fromCharCode(rune);
+}
+
+/// 老系统字体普遍缺字形的装饰字符：高版本 emoji、罕见符号块、私用区、
+/// 变体选择符与零宽字符。留着只会渲染成方块，展示前直接去掉。
+bool _isUnsupportedDecoration(int rune) {
+  return (rune >= 0x1F900 && rune <= 0x1FAFF) ||
+      (rune >= 0x1F650 && rune <= 0x1F67F) ||
+      (rune >= 0x1F700 && rune <= 0x1F8FF) ||
+      (rune >= 0xFE00 && rune <= 0xFE0F) ||
+      (rune >= 0xE0100 && rune <= 0xE01EF) ||
+      (rune >= 0xE0000 && rune <= 0xE007F) ||
+      (rune >= 0x200B && rune <= 0x200F) ||
+      (rune >= 0x2060 && rune <= 0x206F) ||
+      rune == 0xFEFF ||
+      (rune >= 0xE000 && rune <= 0xF8FF) ||
+      (rune >= 0xF0000 && rune <= 0xFFFFD) ||
+      (rune >= 0x100000 && rune <= 0x10FFFD);
 }
 
 /// 起止码位连续、且与 ASCII 顺序一一对应的区间：`(起点, 终点, 起始字符码位)`。

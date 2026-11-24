@@ -24,6 +24,17 @@ void main() {
     expect(normalizeDisplayText('【Hi-Res无损】听最硬的曲'), '【Hi-Res无损】听最硬的曲');
   });
 
+  test('drops decoration chars older fonts render as tofu', () {
+    expect(
+      normalizeDisplayText(
+        '𝐏𝐥𝐚𝐲𝐥𝐢𝐬𝐭  一聽就停不下來🧡促進腦內多巴胺分泌的俏皮風英文歌單🎧｜chill vibes',
+      ),
+      'Playlist  一聽就停不下來促進腦內多巴胺分泌的俏皮風英文歌單🎧|chill vibes',
+    );
+    expect(normalizeDisplayText('🎵💗 2025 最适合你的'), '🎵💗 2025 最适合你的');
+    expect(normalizeDisplayText('标题\u200B带\uFEFF零宽字符'), '标题带零宽字符');
+  });
+
   test('is idempotent', () {
     const String fancy = '【𝐇𝐢-𝐑𝐞𝐬无损臻享】';
     final String once = normalizeDisplayText(fancy);
