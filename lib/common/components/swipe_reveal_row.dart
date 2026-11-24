@@ -1,6 +1,37 @@
 import 'package:flutter/material.dart';
 
+/// 管理「哪一行处于滑开状态」：同一时间只允许一行展开。
+class SwipeRevealController extends ChangeNotifier {
+  Object? _openId;
+
+  Object? get openId => _openId;
+
+  bool isOpen(Object id) => identical(_openId, id);
+
+  void open(Object id) {
+    if (identical(_openId, id)) {
+      return;
+    }
+    _openId = id;
+    notifyListeners();
+  }
+
+  void close([Object? id]) {
+    if (id != null && !identical(_openId, id)) {
+      return;
+    }
+    if (_openId == null) {
+      return;
+    }
+    _openId = null;
+    notifyListeners();
+  }
+}
+
 /// 向左滑出操作按钮的行：滑开露出右侧按钮，点按钮执行操作，点行内容自动收起。
+///
+/// 传入 [controller] 后，展开某行会收起其它行；[SwipeRevealController.close]
+/// 也能把当前展开的行收回去（例如点击空白处、开始滚动）。
 class SwipeRevealRow extends StatefulWidget {
   const SwipeRevealRow({
     super.key,
@@ -10,6 +41,8 @@ class SwipeRevealRow extends StatefulWidget {
     this.actionIcon = Icons.delete_outline_rounded,
     this.actionWidth = 88,
     this.backgroundColor,
+    this.controller,
+    this.revealId,
   });
 
   final Widget child;
@@ -18,6 +51,8 @@ class SwipeRevealRow extends StatefulWidget {
   final IconData actionIcon;
   final double actionWidth;
   final Color? backgroundColor;
+  final SwipeRevealController? controller;
+  final Object? revealId;
 
   @override
   State<SwipeRevealRow> createState() => _SwipeRevealRowState();
@@ -30,9 +65,48 @@ class _SwipeRevealRowState extends State<SwipeRevealRow> {
   double _target = 0;
   bool _dragging = false;
 
+  late final Object _id = widget.revealId ?? this;
+
   bool get _isOpen => _target < 0;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?.addListener(_handleControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant SwipeRevealRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_handleControllerChanged);
+      widget.controller?.addListener(_handleControllerChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_handleControllerChanged);
+    super.dispose();
+  }
+
+  void _handleControllerChanged() {
+    final SwipeRevealController? controller = widget.controller;
+    if (controller == null || controller.isOpen(_id)) {
+      return;
+    }
+    if (_target == 0 && !_dragging) {
+      return;
+    }
+    setState(() {
+      _dragging = false;
+      _offset = 0;
+      _target = 0;
+    });
+  }
+
   void _handleDragStart(DragStartDetails details) {
+    widget.controller?.close(_id);
     setState(() => _dragging = true);
   }
 
@@ -54,6 +128,11 @@ class _SwipeRevealRowState extends State<SwipeRevealRow> {
       _dragging = false;
       _target = shouldOpen ? -widget.actionWidth : 0;
     });
+    if (shouldOpen) {
+      widget.controller?.open(_id);
+    } else {
+      widget.controller?.close(_id);
+    }
   }
 
   void _close() {
@@ -61,6 +140,7 @@ class _SwipeRevealRowState extends State<SwipeRevealRow> {
       return;
     }
     setState(() => _target = 0);
+    widget.controller?.close(_id);
   }
 
   void _runAction() {

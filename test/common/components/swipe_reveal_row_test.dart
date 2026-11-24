@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 Future<void> _pump(
   WidgetTester tester, {
   required VoidCallback onAction,
+  SwipeRevealController? controller,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -12,6 +13,8 @@ Future<void> _pump(
         body: ListView(
           children: <Widget>[
             SwipeRevealRow(
+              controller: controller,
+              revealId: 'row',
               actionLabel: '删除',
               onAction: onAction,
               child: const SizedBox(
@@ -51,6 +54,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('controller.close 会把滑开的行收回去', (WidgetTester tester) async {
+    int actions = 0;
+    final SwipeRevealController controller = SwipeRevealController();
+    addTearDown(controller.dispose);
+    await _pump(tester, controller: controller, onAction: () => actions += 1);
+
+    await tester.drag(find.text('列表条目'), const Offset(-110, 0));
+    await tester.pumpAndSettle();
+    expect(controller.openId, 'row');
+
+    controller.close();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('删除'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(actions, 0);
+  });
   testWidgets('向右滑回原处后删除按钮重新被盖住', (WidgetTester tester) async {
     int actions = 0;
     await _pump(tester, onAction: () => actions += 1);

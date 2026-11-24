@@ -12,7 +12,7 @@ typedef _RecentListRow = ({
   int index,
 });
 
-class RecentPlaybackList extends StatelessWidget {
+class RecentPlaybackList extends StatefulWidget {
   const RecentPlaybackList({
     super.key,
     required this.groups,
@@ -27,11 +27,24 @@ class RecentPlaybackList extends StatelessWidget {
   final ValueChanged<int>? onDeleteEntry;
 
   @override
+  State<RecentPlaybackList> createState() => _RecentPlaybackListState();
+}
+
+class _RecentPlaybackListState extends State<RecentPlaybackList> {
+  final SwipeRevealController _swipeController = SwipeRevealController();
+
+  @override
+  void dispose() {
+    _swipeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final List<_RecentListRow> rows = <_RecentListRow>[];
     int index = 0;
 
-    for (final RecentPlaybackDayGroup group in groups) {
+    for (final RecentPlaybackDayGroup group in widget.groups) {
       rows.add((dayLabel: group.label, entry: null, index: -1));
       for (final RecentPlaybackEntry entry in group.entries) {
         rows.add((dayLabel: null, entry: entry, index: index));
@@ -39,44 +52,61 @@ class RecentPlaybackList extends StatelessWidget {
       }
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      itemCount: rows.length + 1,
-      itemBuilder: (BuildContext context, int position) {
-        if (position == rows.length) {
-          return const BottomPageSpacer();
-        }
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _swipeController.close,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification notification) {
+          if (notification is ScrollStartNotification) {
+            _swipeController.close();
+          }
+          return false;
+        },
+        child: ListView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: rows.length + 1,
+          itemBuilder: (BuildContext context, int position) {
+            if (position == rows.length) {
+              return const BottomPageSpacer();
+            }
 
-        final _RecentListRow row = rows[position];
-        final String? dayLabel = row.dayLabel;
-        if (dayLabel != null) {
-          return _RecentDayHeader(label: dayLabel);
-        }
+            final _RecentListRow row = rows[position];
+            final String? dayLabel = row.dayLabel;
+            if (dayLabel != null) {
+              return _RecentDayHeader(label: dayLabel);
+            }
 
-        final RecentPlaybackEntry? entry = row.entry;
-        if (entry == null) {
-          return const SizedBox.shrink();
-        }
+            final RecentPlaybackEntry? entry = row.entry;
+            if (entry == null) {
+              return const SizedBox.shrink();
+            }
 
-        final Widget tile = RecentPlaybackEntryTile(
-          entry: entry,
-          progressMs: progress[entry.stableId],
-          onTap: () => onPlay(row.index),
-        );
-        final ValueChanged<int>? delete = onDeleteEntry;
-        if (delete == null) {
-          return KeyedSubtree(
-            key: ValueKey<String>(entry.stableId),
-            child: tile,
-          );
-        }
-        return SwipeRevealRow(
-          key: ValueKey<String>('swipe:${entry.stableId}'),
-          actionLabel: '删除',
-          onAction: () => delete(row.index),
-          child: tile,
-        );
-      },
+            final Widget tile = RecentPlaybackEntryTile(
+              entry: entry,
+              progressMs: widget.progress[entry.stableId],
+              onTap: () {
+                _swipeController.close();
+                widget.onPlay(row.index);
+              },
+            );
+            final ValueChanged<int>? delete = widget.onDeleteEntry;
+            if (delete == null) {
+              return KeyedSubtree(
+                key: ValueKey<String>(entry.stableId),
+                child: tile,
+              );
+            }
+            return SwipeRevealRow(
+              key: ValueKey<String>('swipe:${entry.stableId}'),
+              actionLabel: '删除',
+              revealId: entry.stableId,
+              controller: _swipeController,
+              onAction: () => delete(row.index),
+              child: tile,
+            );
+          },
+        ),
+      ),
     );
   }
 }

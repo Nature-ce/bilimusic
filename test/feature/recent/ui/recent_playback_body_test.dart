@@ -56,6 +56,26 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('滑开后点空白处会收回删除按钮', (WidgetTester tester) async {
+    final List<RecentPlaybackEntry> deleted = <RecentPlaybackEntry>[];
+    await _pump(
+      tester,
+      onDeleteEntry: (RecentPlaybackEntry entry) async {
+        deleted.add(entry);
+      },
+    );
+
+    await tester.drag(find.text(_entry.title), const Offset(-110, 0));
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(const Offset(200, 700));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(deleted, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('长按条目不再弹出操作面板', (WidgetTester tester) async {
     await _pump(tester, onDeleteEntry: (_) async {});
 
