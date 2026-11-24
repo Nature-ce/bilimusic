@@ -2,6 +2,31 @@ import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+/// 半透明白雾玻璃：首页队列弹层、操作菜单这类浅色玻璃面板共用。
+///
+/// 比烟熏玻璃更透，掺一点主题色，深色主题下自动反白。
+LiquidGlassSettings appFrostGlassSettings(BuildContext context) {
+  final ThemeData theme = Theme.of(context);
+  final ColorScheme colorScheme = theme.colorScheme;
+  final bool isDark = theme.brightness == Brightness.dark;
+  final Color base = isDark ? const Color(0xFF101215) : Colors.white;
+  final Color tinted = Color.alphaBlend(
+    colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.05),
+    base,
+  );
+
+  return LiquidGlassSettings(
+    bodyMode: GlassBodyMode.clear,
+    glassColor: tinted.withValues(alpha: isDark ? 0.34 : 0.24),
+    thickness: 14,
+    blur: 30,
+    chromaticAberration: 0,
+    saturation: 1.55,
+    lightIntensity: 0.55,
+    refractiveIndex: 1.08,
+  );
+}
+
 /// 播放页复用的两档玻璃材质。
 ///
 /// 玻璃本体走 [GlassBodyMode.clear]，让 glassColor 的 alpha 直接决定透明度，

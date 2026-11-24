@@ -68,7 +68,7 @@ Future<T?> showGlassMenu<T>({
                 top: top,
                 width: width,
                 child: GlassPanel(
-                  tone: GlassTone.frost,
+                  settings: appFrostGlassSettings(dialogContext),
                   shape: LiquidRoundedSuperellipse(
                     borderRadius: 18,
                     side: BorderSide(

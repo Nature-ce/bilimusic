@@ -1,5 +1,6 @@
 import 'package:bilimusic/common/components/glass_menu.dart';
 import 'package:bilimusic/common/components/glass_panel.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,6 +43,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(GlassPanel), findsWidgets);
+    // 和首页播放列表面板同一档白雾玻璃。
+    final GlassContainer glass = tester.widget<GlassContainer>(
+      find.byType(GlassContainer).first,
+    );
+    expect(
+      glass.settings?.glassColor,
+      appFrostGlassSettings(tester.element(find.text('下一首播放'))).glassColor,
+    );
     expect(find.text('下一首播放'), findsOneWidget);
     expect(find.text('加入队列'), findsOneWidget);
 

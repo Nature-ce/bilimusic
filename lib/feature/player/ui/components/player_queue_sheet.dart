@@ -89,25 +89,7 @@ Future<void> showPlayerQueueSheet({
 /// 首页队列弹层的白雾玻璃：比播放页的烟熏更透，并带一点主题色，
 /// 浅色主题下用深色文字，和首页/每日推荐卡同一色系。
 LiquidGlassSettings homeQueueSheetGlassSettings(BuildContext context) {
-  final ThemeData theme = Theme.of(context);
-  final ColorScheme colorScheme = theme.colorScheme;
-  final bool isDark = theme.brightness == Brightness.dark;
-  final Color base = isDark ? const Color(0xFF101215) : Colors.white;
-  final Color tinted = Color.alphaBlend(
-    colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.05),
-    base,
-  );
-
-  return LiquidGlassSettings(
-    bodyMode: GlassBodyMode.clear,
-    glassColor: tinted.withValues(alpha: isDark ? 0.34 : 0.24),
-    thickness: 14,
-    blur: 30,
-    chromaticAberration: 0,
-    saturation: 1.55,
-    lightIntensity: 0.55,
-    refractiveIndex: 1.08,
-  );
+  return appFrostGlassSettings(context);
 }
 
 /// 播放队列弹层的玻璃：比播放页的 smoke 更厚背衬、更少折射，
