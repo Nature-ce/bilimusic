@@ -68,6 +68,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
+  /// 横向滑动切换 section 的速度阈值（dp/s）。
+  static const double _swipeVelocityThreshold = 140;
+
+  void _handleHorizontalDragEnd(DragEndDetails details) {
+    final double velocity = details.primaryVelocity ?? 0;
+    if (velocity.abs() < _swipeVelocityThreshold) {
+      return;
+    }
+    _selectSection(velocity < 0 ? HomeSection.playlists : HomeSection.charts);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,21 +105,25 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
-        child: ListView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: PlatformUtil.isDesktop
-              ? const EdgeInsets.symmetric(horizontal: 0)
-              : const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          children: <Widget>[
-            HomeSectionSwitch(selected: _section, onSelected: _selectSection),
-            const SizedBox(height: AppSpacing.lg),
-            if (_section == HomeSection.charts)
-              const HomeRecommendSection()
-            else
-              const HotPlaylistSection(),
-            const BottomPageSpacer(),
-          ],
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: _handleHorizontalDragEnd,
+          child: ListView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: PlatformUtil.isDesktop
+                ? const EdgeInsets.symmetric(horizontal: 0)
+                : const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            children: <Widget>[
+              HomeSectionSwitch(selected: _section, onSelected: _selectSection),
+              const SizedBox(height: AppSpacing.lg),
+              if (_section == HomeSection.charts)
+                const HomeRecommendSection()
+              else
+                const HotPlaylistSection(),
+              const BottomPageSpacer(),
+            ],
+          ),
         ),
       ),
     );
