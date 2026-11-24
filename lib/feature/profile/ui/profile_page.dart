@@ -1,5 +1,7 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/login_required.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
@@ -342,35 +344,42 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Future<void> _handleAddPressed() async {
     final bool isLoggedIn =
         (ref.read(biliSessionControllerProvider)?.isLoggedIn ?? false);
-    final _AddAction? action = await showModalBottomSheet<_AddAction>(
-      context: context,
-      showDragHandle: true,
-      useRootNavigator: true,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.playlist_add_rounded),
-                title: const Text('新建歌单'),
-                subtitle: const Text('只在本地保存，不同步 B 站'),
-                onTap: () => Navigator.of(context).pop(_AddAction.localCreate),
-              ),
-              if (isLoggedIn)
-                ListTile(
-                  leading: const Icon(Icons.cloud_download_outlined),
-                  title: const Text('从 B站收藏夹导入'),
-                  subtitle: const Text('默认拷贝一份到本地，也可选择绑定同步'),
-                  onTap: () =>
-                      Navigator.of(context).pop(_AddAction.remoteImport),
-                ),
-              const SizedBox(height: 8),
-            ],
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
+    Widget buildSheetContent(BuildContext sheetContext) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+            leading: const Icon(Icons.playlist_add_rounded),
+            title: const Text('新建歌单'),
+            subtitle: const Text('只在本地保存，不同步 B 站'),
+            onTap: () => Navigator.of(sheetContext).pop(_AddAction.localCreate),
           ),
-        );
-      },
-    );
+          if (isLoggedIn)
+            ListTile(
+              leading: const Icon(Icons.cloud_download_outlined),
+              title: const Text('从 B站收藏夹导入'),
+              subtitle: const Text('默认拷贝一份到本地，也可选择绑定同步'),
+              onTap: () =>
+                  Navigator.of(sheetContext).pop(_AddAction.remoteImport),
+            ),
+          const SizedBox(height: 8),
+        ],
+      );
+    }
+
+    final _AddAction? action = useGlass
+        ? await showAppHalfSheet<_AddAction>(
+            context: context,
+            builder: buildSheetContent,
+          )
+        : await showModalBottomSheet<_AddAction>(
+            context: context,
+            showDragHandle: true,
+            useRootNavigator: true,
+            builder: (BuildContext sheetContext) =>
+                SafeArea(child: buildSheetContent(sheetContext)),
+          );
 
     if (!mounted || action == null) {
       return;

@@ -31,6 +31,23 @@ class _GlassAppearance extends AppearanceSettingLogic {
 }
 
 void main() {
+  testWidgets('glass switch on: add playlist sheet uses glass', (
+    WidgetTester tester,
+  ) async {
+    await _pumpProfile(
+      tester,
+      desktop: false,
+      favorites: _Favorites(const FavoritesState()),
+      appearance: _GlassAppearance.new,
+    );
+
+    await tester.tap(find.text('新建').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppGlassSheet), findsOneWidget);
+    expect(find.text('从 B站收藏夹导入'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('glass switch on: mobile long-press opens the glass menu', (
     WidgetTester tester,
   ) async {
