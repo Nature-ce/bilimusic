@@ -1,3 +1,4 @@
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/metadata/domain/metadata_state.dart';
@@ -40,6 +41,11 @@ const PlayableItem _testItem = PlayableItem(
   description: '这是一段测试简介。',
 );
 
+class _GlassAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => true;
+}
+
 void main() {
   testWidgets(
     'desktop lyric appearance button follows offset and opens settings',
@@ -58,6 +64,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
             favoritesControllerProvider.overrideWith(
               _FakeFavoritesController.new,
             ),
@@ -110,6 +117,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
           favoritesControllerProvider.overrideWith(
             _FakeFavoritesController.new,
           ),
@@ -199,6 +207,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
           favoritesControllerProvider.overrideWith(
             _FakeFavoritesController.new,
           ),
@@ -236,6 +245,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
           favoritesControllerProvider.overrideWith(
             _FakeFavoritesController.new,
           ),
@@ -277,6 +287,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
           favoritesControllerProvider.overrideWith(
             _FakeFavoritesController.new,
           ),
@@ -323,6 +334,7 @@ void main() {
   ) async {
     final ProviderContainer container = ProviderContainer(
       overrides: [
+        appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
         playerControllerProvider.overrideWith(_BareFakePlayerController.new),
       ],
     );

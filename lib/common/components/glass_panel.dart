@@ -294,3 +294,139 @@ ThemeData glassSurfaceTheme(BuildContext context) {
     canvasColor: Colors.transparent,
   );
 }
+
+/// 跟随「玻璃材质」开关的半屏弹层：开关打开时用白雾玻璃，关闭时退回白底。
+class AppGlassSheet extends StatelessWidget {
+  const AppGlassSheet({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassPanel(
+      settings: appFrostGlassSettings(context),
+      shape: const LiquidVerticalRoundedSuperellipse(
+        topRadius: AppRadius.xl,
+        bottomRadius: 0,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const GlassDragHandle(tone: GlassTone.frost),
+          Flexible(child: SafeArea(top: false, child: child)),
+        ],
+      ),
+    );
+  }
+}
+
+/// 跟随「玻璃材质」开关的底部弹层。
+Future<T?> showAppHalfSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    barrierColor: Colors.black.withValues(alpha: 0.28),
+    builder: (BuildContext sheetContext) {
+      return AppGlassSheet(child: Builder(builder: builder));
+    },
+  );
+}
+
+/// 跟随「玻璃材质」开关的确认对话框。
+class AppGlassAlertDialog extends StatelessWidget {
+  const AppGlassAlertDialog({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.cancelLabel,
+    required this.confirmLabel,
+    this.danger = false,
+  });
+
+  final String title;
+  final String message;
+  final String cancelLabel;
+  final String confirmLabel;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: GlassPanel(
+          settings: appFrostGlassSettings(context),
+          shape: LiquidRoundedSuperellipse(
+            borderRadius: 28,
+            side: BorderSide(
+              color: colorScheme.outline.withValues(alpha: 0.2),
+              width: 0.8,
+            ),
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    message,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      height: 1.45,
+                      color: colorScheme.onSurface.withValues(alpha: 0.72),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: Text(cancelLabel),
+                      ),
+                      const SizedBox(width: 4),
+                      FilledButton(
+                        style: danger
+                            ? FilledButton.styleFrom(
+                                backgroundColor: colorScheme.error,
+                                foregroundColor: colorScheme.onError,
+                              )
+                            : null,
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: Text(confirmLabel),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

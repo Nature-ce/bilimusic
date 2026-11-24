@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bilimusic/common/components/badged_icon_button.dart';
 import 'package:bilimusic/common/components/glass_panel.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/download/domain/downloaded_track.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
@@ -57,6 +58,11 @@ final Metadata _metadata = Metadata(
   title: 'Song title',
   artist: 'Song artist',
 );
+
+class _GlassAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => true;
+}
 
 void main() {
   testWidgets(
@@ -1071,7 +1077,7 @@ void main() {
     expect(exits, 1);
   });
 
-  testWidgets('player menu sheet uses dark glass with white text', (
+  testWidgets('player menu sheet uses glass when the switch is on', (
     WidgetTester tester,
   ) async {
     await _pumpPlayer(
@@ -1083,12 +1089,12 @@ void main() {
     await tester.tap(find.byKey(const Key('playerMenuButton')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(GlassSheetPanel), findsOneWidget);
+    expect(find.byType(AppGlassSheet), findsOneWidget);
+    // 白雾玻璃面板上文字仍是深色，保证可读。
     final BuildContext sheetContext = tester.element(find.text('定时关闭'));
-    expect(Theme.of(sheetContext).brightness, Brightness.dark);
     expect(
-      Theme.of(sheetContext).iconTheme.color?.computeLuminance(),
-      greaterThan(0.5),
+      Theme.of(sheetContext).colorScheme.onSurface.computeLuminance(),
+      lessThan(0.5),
     );
     expect(tester.takeException(), isNull);
   });
@@ -1313,6 +1319,7 @@ Future<ProviderContainer> _pumpPlayer(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
         favoritesControllerProvider.overrideWith(_FakeFavoritesController.new),
         playerControllerProvider.overrideWith(_FakePlayerController.new),
         metadataControllerProvider.overrideWith(

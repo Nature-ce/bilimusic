@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/download/data/download_repository.dart';
 import 'package:bilimusic/feature/download/ui/downloads_page.dart';
 import 'package:bilimusic/feature/player/domain/audio_stream_info.dart';
@@ -7,6 +8,11 @@ import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _SolidAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => false;
+}
 
 void main() {
   testWidgets('shows the empty state when nothing is downloaded', (
@@ -22,6 +28,7 @@ void main() {
     });
     final ProviderContainer container = ProviderContainer(
       overrides: [
+        appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
         downloadRepositoryProvider.overrideWithValue(
           DownloadRepository(
             _MemoryIndexStore(),
@@ -89,7 +96,10 @@ void main() {
       );
     });
     final ProviderContainer container = ProviderContainer(
-      overrides: [downloadRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
+        downloadRepositoryProvider.overrideWithValue(repository),
+      ],
     );
     addTearDown(container.dispose);
 

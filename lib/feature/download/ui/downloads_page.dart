@@ -2,7 +2,9 @@ import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/player_util.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/download/domain/download_task.dart';
 import 'package:bilimusic/feature/download/domain/downloaded_track.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
@@ -338,13 +340,25 @@ class _DownloadsPageState extends ConsumerState<DownloadsPage> {
   }
 
   Future<void> _confirmDeleteTrack(DownloadedTrack track) async {
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
+    final String message =
+        '将删除本地文件《${resolveDownloadTitle(track.title)}》，确认继续？';
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
+        if (useGlass) {
+          return AppGlassAlertDialog(
+            title: '删除下载',
+            message: message,
+            cancelLabel: '取消',
+            confirmLabel: '删除',
+            danger: true,
+          );
+        }
         final ColorScheme colorScheme = Theme.of(dialogContext).colorScheme;
         return AlertDialog(
           title: const Text('删除下载'),
-          content: Text('将删除本地文件《${resolveDownloadTitle(track.title)}》，确认继续？'),
+          content: Text(message),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),

@@ -1,3 +1,4 @@
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/download/domain/download_task.dart';
 import 'package:bilimusic/feature/download/domain/downloaded_track.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
@@ -74,7 +75,10 @@ Future<_FakeDownloads> _pumpPage(
   final _FakeDownloads controller = _FakeDownloads(state);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [downloadControllerProvider.overrideWith(() => controller)],
+      overrides: [
+        appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
+        downloadControllerProvider.overrideWith(() => controller),
+      ],
       child: MaterialApp(
         builder: FlutterSmartDialog.init(),
         home: const DownloadsPage(),
@@ -92,6 +96,11 @@ Future<void> _dismissToasts(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await dismiss;
   await tester.pumpAndSettle();
+}
+
+class _SolidAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => false;
 }
 
 void main() {

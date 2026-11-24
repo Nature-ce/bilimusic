@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/glass_panel.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/comment/domain/comment_target.dart';
@@ -460,80 +461,88 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   }
 
   Future<void> _showPlayerMenu(PlayableItem item) async {
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
       barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (BuildContext sheetContext) {
-        return Theme(
-          data: glassSurfaceTheme(sheetContext),
-          child: GlassSheetPanel(
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    if (isAutoFeedQueue(
-                      ref.read(playerControllerProvider).queueSourceLabel,
-                    ))
-                      ListTile(
-                        key: const Key('radarRefreshMenuEntry'),
-                        leading: const Icon(Icons.radar_rounded),
-                        title: const Text('换一批推荐'),
-                        subtitle: const Text('按最近的收听重新算一批'),
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          ref
-                              .read(radarRefreshRequestsProvider.notifier)
-                              .request();
-                        },
-                      ),
-                    ListTile(
-                      key: const Key('sleepTimerMenuEntry'),
-                      leading: const Icon(Icons.timer_outlined),
-                      title: const Text('定时关闭'),
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const SleepTimerPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    ListTile(
-                      key: const Key('playbackSpeedMenuEntry'),
-                      leading: const Icon(Icons.speed_rounded),
-                      title: const Text('倍速播放'),
-                      subtitle: Text(
-                        formatPlaybackSpeed(
-                          ref.read(playerControllerProvider).speed,
-                        ),
-                      ),
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        _showPlaybackSpeedSheet();
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.open_in_new_rounded),
-                      title: const Text('外部应用打开'),
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        _openInBrowser(item);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
+        final Widget content = SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _playerMenuItems(item, sheetContext),
           ),
         );
+        if (useGlass) {
+          return AppGlassSheet(child: content);
+        }
+        return Material(
+          color: Theme.of(sheetContext).colorScheme.surface,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppRadius.xl),
+            ),
+          ),
+          child: content,
+        );
       },
+    );
+  }
+
+  Widget _playerMenuItems(PlayableItem item, BuildContext sheetContext) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (isAutoFeedQueue(
+          ref.read(playerControllerProvider).queueSourceLabel,
+        ))
+          ListTile(
+            key: const Key('radarRefreshMenuEntry'),
+            leading: const Icon(Icons.radar_rounded),
+            title: const Text('换一批推荐'),
+            subtitle: const Text('按最近的收听重新算一批'),
+            onTap: () {
+              Navigator.of(sheetContext).pop();
+              ref.read(radarRefreshRequestsProvider.notifier).request();
+            },
+          ),
+        ListTile(
+          key: const Key('sleepTimerMenuEntry'),
+          leading: const Icon(Icons.timer_outlined),
+          title: const Text('定时关闭'),
+          onTap: () {
+            Navigator.of(sheetContext).pop();
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SleepTimerPage()),
+            );
+          },
+        ),
+        ListTile(
+          key: const Key('playbackSpeedMenuEntry'),
+          leading: const Icon(Icons.speed_rounded),
+          title: const Text('倍速播放'),
+          subtitle: Text(
+            formatPlaybackSpeed(ref.read(playerControllerProvider).speed),
+          ),
+          onTap: () {
+            Navigator.of(sheetContext).pop();
+            _showPlaybackSpeedSheet();
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.open_in_new_rounded),
+          title: const Text('外部应用打开'),
+          onTap: () {
+            Navigator.of(sheetContext).pop();
+            _openInBrowser(item);
+          },
+        ),
+      ],
     );
   }
 
@@ -546,49 +555,59 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
       elevation: 0,
       barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (BuildContext sheetContext) {
-        final ThemeData theme = glassSurfaceTheme(sheetContext);
-        return Theme(
-          data: theme,
-          child: GlassSheetPanel(
-            child: SafeArea(
-              top: false,
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                itemCount: kPlayerPlaybackSpeeds.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 4),
-                itemBuilder: (BuildContext context, int index) {
-                  final double speed = kPlayerPlaybackSpeeds[index];
-                  final bool isSelected = speed == currentSpeed;
-                  return Material(
-                    color: isSelected
-                        ? Colors.white.withValues(alpha: 0.14)
-                        : Colors.transparent,
+        final bool useGlass = ref.read(appearanceSettingLogicProvider);
+        final Widget content = SafeArea(
+          top: false,
+          child: ListView.separated(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            itemCount: kPlayerPlaybackSpeeds.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 4),
+            itemBuilder: (BuildContext context, int index) {
+              final double speed = kPlayerPlaybackSpeeds[index];
+              final bool isSelected = speed == currentSpeed;
+              return Material(
+                color: isSelected
+                    ? Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.lg),
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                      ),
-                      title: Text(formatPlaybackSpeed(speed)),
-                      trailing: isSelected
-                          ? Icon(
-                              Icons.check_rounded,
-                              color: theme.colorScheme.primary,
-                            )
-                          : null,
-                      onTap: () async {
-                        Navigator.of(context).pop();
-                        await ref
-                            .read(playerControllerProvider.notifier)
-                            .setSpeed(speed);
-                      },
-                    ),
-                  );
-                },
-              ),
+                  ),
+                  title: Text(formatPlaybackSpeed(speed)),
+                  trailing: isSelected
+                      ? Icon(
+                          Icons.check_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      : null,
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await ref
+                        .read(playerControllerProvider.notifier)
+                        .setSpeed(speed);
+                  },
+                ),
+              );
+            },
+          ),
+        );
+        if (useGlass) {
+          return AppGlassSheet(child: content);
+        }
+        return Material(
+          color: Theme.of(sheetContext).colorScheme.surface,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppRadius.xl),
             ),
           ),
+          child: content,
         );
       },
     );

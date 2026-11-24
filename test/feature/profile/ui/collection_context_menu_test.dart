@@ -1,6 +1,8 @@
 import 'package:bilimusic/common/components/common_attach_menu.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/favorites/domain/bili_favorite_collection_page.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
@@ -18,7 +20,46 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _SolidAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => false;
+}
+
+class _GlassAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => true;
+}
+
 void main() {
+  testWidgets('glass switch on: mobile long-press opens the glass menu', (
+    WidgetTester tester,
+  ) async {
+    final FavoriteCollection collection = FavoriteCollection(
+      id: 'local',
+      name: '测试歌单',
+      source: FavoriteCollectionSource.local,
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    );
+    await _pumpProfile(
+      tester,
+      desktop: false,
+      favorites: _Favorites(FavoritesState(collections: [collection])),
+      appearance: _GlassAppearance.new,
+    );
+
+    await tester.longPress(find.text(collection.name));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassPanel), findsWidgets);
+    expect(find.text('重命名'), findsOneWidget);
+    expect(find.text('删除'), findsOneWidget);
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppGlassAlertDialog), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final bool desktop in <bool>[true, false]) {
     for (final String id in <String>[
       'local',
@@ -204,6 +245,7 @@ Future<ProviderContainer> _pumpProfile(
   required bool desktop,
   required _Favorites favorites,
   bool loggedIn = false,
+  AppearanceSettingLogic Function()? appearance,
 }) async {
   tester.view.physicalSize = desktop
       ? const Size(1000, 800)
@@ -213,6 +255,9 @@ Future<ProviderContainer> _pumpProfile(
   addTearDown(tester.view.resetDevicePixelRatio);
   final ProviderContainer container = ProviderContainer(
     overrides: [
+      appearanceSettingLogicProvider.overrideWith(
+        appearance ?? _SolidAppearance.new,
+      ),
       favoritesControllerProvider.overrideWith(() => favorites),
       biliSessionControllerProvider.overrideWithValue(
         loggedIn

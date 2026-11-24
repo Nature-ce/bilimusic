@@ -1,3 +1,5 @@
+import 'package:bilimusic/common/components/glass_menu.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/login_required.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
@@ -6,6 +8,7 @@ import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/ui/components/collection_name_dialog.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,56 +44,106 @@ Future<void> showFavoriteCollectionActionMenu({
   final ThemeData theme = Theme.of(context);
   final ColorScheme colorScheme = theme.colorScheme;
 
-  final CollectionAction? action = await showMenu<CollectionAction>(
-    context: context,
-    position: position,
-    useRootNavigator: true,
-    color: appCardSurfaceColor(context),
-    surfaceTintColor: Colors.transparent,
-    elevation: 8,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      side: BorderSide(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.45),
-      ),
-    ),
-    constraints: const BoxConstraints(minWidth: 196, maxWidth: 236),
-    items: <PopupMenuEntry<CollectionAction>>[
-      if (onMultiSelect != null)
-        _menuItem(
-          CollectionAction.multiSelect,
-          Icons.checklist_rounded,
-          '\u591a\u9009',
-        ),
-      if (!collection.isSystem)
-        _menuItem(
-          CollectionAction.rename,
-          Icons.drive_file_rename_outline_rounded,
-          '\u91cd\u547d\u540d',
-        ),
-      if (collection.isRemote)
-        _menuItem(CollectionAction.sync, Icons.sync_rounded, '\u540c\u6b65'),
-      if (collection.isRemote)
-        _menuItem(
-          CollectionAction.remove,
-          Icons.remove_circle_outline_rounded,
-          '\u89e3\u9664\u7ed1\u5b9a',
-        ),
-      if (!collection.isSystem && !collection.isRemote)
-        _menuItem(
-          CollectionAction.uploadToRemote,
-          Icons.cloud_upload_outlined,
-          '\u4e0a\u4f20\u5230 B \u7ad9\u5e76\u540c\u6b65',
-        ),
-      if (!collection.isSystem)
-        _menuItem(
-          CollectionAction.delete,
-          Icons.delete_outline_rounded,
-          '\u5220\u9664',
-          danger: true,
-        ),
-    ],
-  );
+  final bool useGlass = ref.read(appearanceSettingLogicProvider);
+  final CollectionAction? action = useGlass
+      ? await showGlassMenu<CollectionAction>(
+          context: context,
+          globalPosition: globalPosition,
+          width: 208,
+          entries: <GlassMenuEntry<CollectionAction>>[
+            if (onMultiSelect != null)
+              const GlassMenuEntry<CollectionAction>(
+                value: CollectionAction.multiSelect,
+                icon: Icons.checklist_rounded,
+                label: '多选',
+              ),
+            if (!collection.isSystem)
+              const GlassMenuEntry<CollectionAction>(
+                value: CollectionAction.rename,
+                icon: Icons.drive_file_rename_outline_rounded,
+                label: '重命名',
+              ),
+            if (collection.isRemote)
+              const GlassMenuEntry<CollectionAction>(
+                value: CollectionAction.sync,
+                icon: Icons.sync_rounded,
+                label: '同步',
+              ),
+            if (collection.isRemote)
+              const GlassMenuEntry<CollectionAction>(
+                value: CollectionAction.remove,
+                icon: Icons.remove_circle_outline_rounded,
+                label: '解除绑定',
+              ),
+            if (!collection.isSystem && !collection.isRemote)
+              const GlassMenuEntry<CollectionAction>(
+                value: CollectionAction.uploadToRemote,
+                icon: Icons.cloud_upload_outlined,
+                label: '上传到 B 站并同步',
+              ),
+            if (!collection.isSystem)
+              const GlassMenuEntry<CollectionAction>(
+                value: CollectionAction.delete,
+                icon: Icons.delete_outline_rounded,
+                label: '删除',
+                danger: true,
+              ),
+          ],
+        )
+      : await showMenu<CollectionAction>(
+          context: context,
+          position: position,
+          useRootNavigator: true,
+          color: appCardSurfaceColor(context),
+          surfaceTintColor: Colors.transparent,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            side: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+            ),
+          ),
+          constraints: const BoxConstraints(minWidth: 196, maxWidth: 236),
+          items: <PopupMenuEntry<CollectionAction>>[
+            if (onMultiSelect != null)
+              _menuItem(
+                CollectionAction.multiSelect,
+                Icons.checklist_rounded,
+                '\u591a\u9009',
+              ),
+            if (!collection.isSystem)
+              _menuItem(
+                CollectionAction.rename,
+                Icons.drive_file_rename_outline_rounded,
+                '\u91cd\u547d\u540d',
+              ),
+            if (collection.isRemote)
+              _menuItem(
+                CollectionAction.sync,
+                Icons.sync_rounded,
+                '\u540c\u6b65',
+              ),
+            if (collection.isRemote)
+              _menuItem(
+                CollectionAction.remove,
+                Icons.remove_circle_outline_rounded,
+                '\u89e3\u9664\u7ed1\u5b9a',
+              ),
+            if (!collection.isSystem && !collection.isRemote)
+              _menuItem(
+                CollectionAction.uploadToRemote,
+                Icons.cloud_upload_outlined,
+                '\u4e0a\u4f20\u5230 B \u7ad9\u5e76\u540c\u6b65',
+              ),
+            if (!collection.isSystem)
+              _menuItem(
+                CollectionAction.delete,
+                Icons.delete_outline_rounded,
+                '\u5220\u9664',
+                danger: true,
+              ),
+          ],
+        );
 
   if (action == null || !context.mounted) {
     return;
@@ -221,16 +274,25 @@ Future<void> _showDeleteCollectionDialog({
   required WidgetRef ref,
   required FavoriteCollection collection,
 }) async {
+  final bool useGlass = ref.read(appearanceSettingLogicProvider);
+  final String message = collection.isRemote
+      ? '确认删除“${collection.name}”？这会同时删除 B 站收藏夹，无法恢复。'
+      : '确认删除“${collection.name}”？删除后无法恢复。';
   final bool? confirmed = await showDialog<bool>(
     context: context,
     builder: (BuildContext context) {
+      if (useGlass) {
+        return AppGlassAlertDialog(
+          title: '删除歌单',
+          message: message,
+          cancelLabel: '取消',
+          confirmLabel: '删除',
+          danger: true,
+        );
+      }
       return AlertDialog(
         title: const Text('删除歌单'),
-        content: Text(
-          collection.isRemote
-              ? '确认删除“${collection.name}”？这会同时删除 B 站收藏夹，无法恢复。'
-              : '确认删除“${collection.name}”？删除后无法恢复。',
-        ),
+        content: Text(message),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -268,9 +330,18 @@ Future<void> _showRemoveRemoteCollectionDialog({
   if (!collection.isRemote) {
     return;
   }
+  final bool useGlass = ref.read(appearanceSettingLogicProvider);
   final bool? confirmed = await showDialog<bool>(
     context: context,
     builder: (BuildContext context) {
+      if (useGlass) {
+        return AppGlassAlertDialog(
+          title: '解除绑定',
+          message: '确认解除“${collection.name}”与 App 的绑定？只会从列表移除，不会删除 B 站收藏夹。',
+          cancelLabel: '取消',
+          confirmLabel: '解除绑定',
+        );
+      }
       return AlertDialog(
         title: const Text('解除绑定'),
         content: Text('确认解除“${collection.name}”与 App 的绑定？只会从列表移除，不会删除 B 站收藏夹。'),
