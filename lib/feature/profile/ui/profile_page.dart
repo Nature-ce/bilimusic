@@ -12,7 +12,7 @@ import 'package:bilimusic/feature/favorites/ui/components/collection_name_dialog
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
-import 'package:bilimusic/feature/profile/ui/components/profile_playlist_card.dart';
+import 'package:bilimusic/feature/profile/ui/components/playlist_wall.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_stats_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
 import 'package:bilimusic/feature/profile/ui/components/user_card.dart';
@@ -32,7 +32,6 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  bool _showAllCollections = false;
   bool _didRefreshRemoteCollections = false;
   bool _isRefreshingRemoteCollections = false;
 
@@ -81,11 +80,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           (FavoriteCollection left, FavoriteCollection right) =>
               right.updatedAt.compareTo(left.updatedAt),
         );
-    final bool shouldCollapse = collections.length > 5;
-    final List<FavoriteCollection> visibleCollections =
-        shouldCollapse && !_showAllCollections
-        ? collections.take(5).toList(growable: false)
-        : collections;
     final List<HotPlaylist> favoritePlaylists = ref.watch(
       favoriteHotPlaylistsProvider,
     );
@@ -122,70 +116,42 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             const SizedBox(height: 14),
             _ProfileSectionHeader(onAddPressed: _handleAddPressed),
-            if (visibleCollections.isNotEmpty) const SizedBox(height: 12),
-            if (visibleCollections.isNotEmpty)
-              LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  const double gap = 12;
-                  final double itemWidth = (constraints.maxWidth - gap) / 2;
-                  return Wrap(
-                    spacing: gap,
-                    runSpacing: gap,
-                    children: <Widget>[
-                      for (final FavoriteCollection collection
-                          in visibleCollections)
-                        SizedBox(
-                          width: itemWidth,
-                          child: ProfileCollectionGridCard(
-                            title: collection.name,
-                            trackCount: favoritesState.itemCountForCollection(
-                              collection.id,
-                            ),
-                            coverUrl: favoritesState
-                                .itemsForCollection(collection.id)
-                                .firstOrNull
-                                ?.coverUrl,
-                            updatedAt: collection.updatedAt,
-                            onTap: () => context.push(
-                              '/profile/favorites/${collection.id}',
-                            ),
-                            onLongPressStart: (LongPressStartDetails details) {
-                              _showCollectionActionMenu(
-                                globalPosition: details.globalPosition,
-                                collection: collection,
-                              );
-                            },
-                          ),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  for (final FavoriteCollection collection in collections)
+                    Padding(
+                      padding: const EdgeInsets.only(right: playlistWallGap),
+                      child: PlaylistWallCard(
+                        title: collection.name,
+                        trackCount: favoritesState.itemCountForCollection(
+                          collection.id,
                         ),
-                    ],
-                  );
-                },
-              ),
-            if (shouldCollapse)
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCollections = !_showAllCollections;
-                    });
-                  },
-                  iconAlignment: IconAlignment.end,
-                  icon: Icon(
-                    _showAllCollections
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    size: 22,
+                        coverUrl: favoritesState
+                            .itemsForCollection(collection.id)
+                            .firstOrNull
+                            ?.coverUrl,
+                        updatedAt: collection.updatedAt,
+                        onTap: () =>
+                            context.push('/profile/favorites/${collection.id}'),
+                        onLongPressStart: (LongPressStartDetails details) {
+                          _showCollectionActionMenu(
+                            globalPosition: details.globalPosition,
+                            collection: collection,
+                          );
+                        },
+                      ),
+                    ),
+                  CreatePlaylistWallCard(
+                    onTap: () => _showCreateCollectionDialog(context),
                   ),
-                  label: Text(_showAllCollections ? '收起歌单' : '展开全部歌单'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant,
-                    textStyle: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w500),
-                  ),
-                ),
+                ],
               ),
+            ),
             if (favoritePlaylists.isNotEmpty) ...<Widget>[
               const SizedBox(height: 18),
               Padding(
@@ -196,21 +162,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ),
               const SizedBox(height: 10),
-              ...favoritePlaylists.map((HotPlaylist playlist) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: ProfilePlaylistCard(
-                    title: playlist.name,
-                    trackCount: playlist.trackCount,
-                    coverUrl: playlist.coverUrl,
-                    badgeLabel: playlist.platform.label,
-                    onTap: () => context.push(
-                      '/home/playlist/${playlist.platform.name}/${playlist.id}',
-                      extra: playlist,
-                    ),
-                  ),
-                );
-              }),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    for (final HotPlaylist playlist in favoritePlaylists)
+                      Padding(
+                        padding: const EdgeInsets.only(right: playlistWallGap),
+                        child: PlaylistWallCard(
+                          title: playlist.name,
+                          trackCount: playlist.trackCount,
+                          coverUrl: playlist.coverUrl,
+                          platform: playlist.platform,
+                          coverSize: favoritePlaylistWallCoverSize,
+                          onTap: () => context.push(
+                            '/home/playlist/${playlist.platform.name}/${playlist.id}',
+                            extra: playlist,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ],
             const SizedBox(height: 18),
             const BottomPageSpacer(),

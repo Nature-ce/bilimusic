@@ -122,7 +122,7 @@ void main() {
           );
           await tester.pumpAndSettle();
           if (flow == 'local') {
-            await tester.tap(find.text('新建歌单'));
+            await tester.tap(find.text('新建歌单').last);
             await tester.pumpAndSettle();
             await tester.enterText(find.byType(TextField), '新的歌单');
             await tester.tap(find.text('创建'));
