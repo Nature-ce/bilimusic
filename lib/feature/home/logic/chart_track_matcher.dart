@@ -158,6 +158,11 @@ class ChartTrackMatcher {
     if (trackSeconds <= 0) {
       return true;
     }
+    // 原曲时长本身可疑（榜单接口偶尔返回 00:29 这种片段/试听时长）时，
+    // 比例过滤会把真正的完整版判成「太长」，因此这里直接放行、只按标题歌手匹配。
+    if (trackSeconds < minimumClipSeconds) {
+      return true;
+    }
     final double ratio = candidateSeconds / trackSeconds;
     return ratio >= minimumDurationRatio && ratio <= maximumDurationRatio;
   }

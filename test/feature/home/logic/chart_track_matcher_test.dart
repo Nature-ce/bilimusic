@@ -109,6 +109,39 @@ void main() {
     );
   });
 
+  test('ignores the ratio gate when the track duration looks like a clip', () {
+    // 榜单接口给「最初的记忆」返回的时长是 00:29，真实完整版约 4 分钟：
+    // 不能因为比例差太多就判为「太长」。
+    const MusicChartTrack clipDurationTrack = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 2,
+      title: '最初的记忆',
+      artist: '火鸡',
+      coverUrl: '',
+      durationSeconds: 29,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: clipDurationTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '最初的记忆 - 火鸡', duration: '04:00'),
+        ],
+      ),
+      isNotNull,
+    );
+
+    // 但真正的几十秒片段依然要被挡掉。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: clipDurationTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '最初的记忆 - 火鸡', duration: '00:25'),
+        ],
+      ),
+      isNull,
+    );
+  });
   test('rejects candidates far shorter than the track', () {
     // 原曲 4:29，候选只有 1 分钟 → 明显是片段。
     expect(
