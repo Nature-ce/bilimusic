@@ -383,6 +383,53 @@ class AppGlassDialogShell extends StatelessWidget {
   }
 }
 
+/// 跟随玻璃开关的确认对话框：玻璃开走玻璃面板（轻遮罩），关走原来的 AlertDialog。
+Future<bool?> showAppConfirmDialog({
+  required BuildContext context,
+  required bool useGlass,
+  required String title,
+  required String message,
+  required String confirmLabel,
+  String cancelLabel = '取消',
+  bool danger = false,
+}) {
+  if (useGlass) {
+    return showAppGlassDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AppGlassAlertDialog(
+        title: title,
+        message: message,
+        cancelLabel: cancelLabel,
+        confirmLabel: confirmLabel,
+        danger: danger,
+      ),
+    );
+  }
+  return showDialog<bool>(
+    context: context,
+    builder: (BuildContext dialogContext) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: Text(cancelLabel),
+        ),
+        FilledButton(
+          style: danger
+              ? FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                  foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+                )
+              : null,
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+}
+
 /// 玻璃弹层用的遮罩：比 Material 默认的 54% 黑轻很多，整页不会被压得太暗。
 Color appGlassBarrierColor({double alpha = 0.16}) {
   return Colors.black.withValues(alpha: alpha);

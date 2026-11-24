@@ -1,18 +1,21 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/cache/cache_util.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CacheSettingsPage extends StatefulWidget {
+class CacheSettingsPage extends ConsumerStatefulWidget {
   const CacheSettingsPage({super.key});
 
   @override
-  State<CacheSettingsPage> createState() => _CacheSettingsPageState();
+  ConsumerState<CacheSettingsPage> createState() => _CacheSettingsPageState();
 }
 
-class _CacheSettingsPageState extends State<CacheSettingsPage> {
+class _CacheSettingsPageState extends ConsumerState<CacheSettingsPage> {
   int _imageCacheBytes = 0;
   int _audioCacheBytes = 0;
   int _lyricsCacheBytes = 0;
@@ -88,6 +91,7 @@ class _CacheSettingsPageState extends State<CacheSettingsPage> {
         await _showClearCacheDialog(
           context,
           cacheSizeLabel: formatBytes(_selectedCacheBytes),
+          useGlass: ref.read(appearanceSettingLogicProvider),
         ) ??
         false;
     if (!shouldClear) {
@@ -255,24 +259,13 @@ class _CacheSettingsPageState extends State<CacheSettingsPage> {
 Future<bool?> _showClearCacheDialog(
   BuildContext context, {
   required String cacheSizeLabel,
+  required bool useGlass,
 }) {
-  return showDialog<bool>(
+  return showAppConfirmDialog(
     context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('确认清空所选缓存吗？'),
-        content: Text('将清理 $cacheSizeLabel 的图片、音频、歌词与元信息缓存，后续使用时会重新下载或重新拉取。'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('确认'),
-          ),
-        ],
-      );
-    },
+    useGlass: useGlass,
+    title: '确认清空所选缓存吗？',
+    message: '将清理 $cacheSizeLabel 的图片、音频、歌词与元信息缓存，后续使用时会重新下载或重新拉取。',
+    confirmLabel: '确认',
   );
 }

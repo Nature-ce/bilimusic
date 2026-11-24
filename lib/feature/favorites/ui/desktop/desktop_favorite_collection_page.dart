@@ -249,26 +249,12 @@ class _DesktopFavoriteCollectionPageState
       return;
     }
 
-    final bool? confirmed = await showDialog<bool>(
+    final bool? confirmed = await showAppConfirmDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('删除收藏'),
-          content: Text(
-            '确定从“${collection.name}”移除 ${selectedItems.length} 项吗？',
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('删除'),
-            ),
-          ],
-        );
-      },
+      useGlass: ref.read(appearanceSettingLogicProvider),
+      title: '删除收藏',
+      message: '确定从“${collection.name}”移除 ${selectedItems.length} 项吗？',
+      confirmLabel: '删除',
     );
     if (confirmed != true || !mounted) {
       return;

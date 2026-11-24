@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
@@ -5,6 +6,7 @@ import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/core/cache/cache_util.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/auth/data/bili_auth_repository.dart';
 import 'package:bilimusic/feature/auth/logic/bili_auth_controller.dart';
 import 'package:bilimusic/feature/setting/ui/components/settings_tiles.dart';
@@ -39,24 +41,12 @@ class _SettingPageState extends ConsumerState<SettingPage> {
     required String content,
     required String confirmText,
   }) async {
-    final bool? confirmed = await showDialog<bool>(
+    final bool? confirmed = await showAppConfirmDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(content),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(confirmText),
-            ),
-          ],
-        );
-      },
+      useGlass: ref.read(appearanceSettingLogicProvider),
+      title: title,
+      message: content,
+      confirmLabel: confirmText,
     );
     return confirmed ?? false;
   }

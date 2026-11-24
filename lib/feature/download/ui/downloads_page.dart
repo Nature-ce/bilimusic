@@ -400,30 +400,42 @@ class _DownloadsPageState extends ConsumerState<DownloadsPage> {
       return;
     }
 
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        final ColorScheme colorScheme = Theme.of(dialogContext).colorScheme;
-        return AlertDialog(
-          title: const Text('删除所选'),
-          content: Text('将删除选中的 ${selectedTracks.length} 首本地文件，确认继续？'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
+    final String message = '将删除选中的 ${selectedTracks.length} 首本地文件，确认继续？';
+    final bool? confirmed = useGlass
+        ? await showAppGlassDialog<bool>(
+            context: context,
+            builder: (BuildContext dialogContext) => AppGlassAlertDialog(
+              title: '删除所选',
+              message: message,
+              cancelLabel: '取消',
+              confirmLabel: '删除',
+              danger: true,
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('删除'),
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (BuildContext dialogContext) => AlertDialog(
+              title: const Text('删除所选'),
+              content: Text(message),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                    foregroundColor: Theme.of(
+                      dialogContext,
+                    ).colorScheme.onError,
+                  ),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('删除'),
+                ),
+              ],
             ),
-          ],
-        );
-      },
-    );
+          );
     if (confirmed != true || !mounted) {
       return;
     }
