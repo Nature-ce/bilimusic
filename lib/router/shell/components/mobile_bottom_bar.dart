@@ -120,13 +120,19 @@ class MobileBottomBar extends ConsumerWidget {
     );
 
     if (glass) {
-      return GlassPanel(
-        settings: mobileBottomBarGlassSettings(context),
-        shape: const LiquidVerticalRoundedSuperellipse(
-          topRadius: mobileBottomBarRadius,
-          bottomRadius: 0,
+      return ClipRRect(
+        clipBehavior: Clip.antiAlias,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(mobileBottomBarRadius),
         ),
-        child: content,
+        child: GlassPanel(
+          settings: mobileBottomBarGlassSettings(context),
+          shape: const LiquidVerticalRoundedSuperellipse(
+            topRadius: mobileBottomBarRadius,
+            bottomRadius: 0,
+          ),
+          child: content,
+        ),
       );
     }
 
