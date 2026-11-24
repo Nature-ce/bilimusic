@@ -7,9 +7,9 @@ import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
+import 'package:bilimusic/feature/home/ui/components/home_recommend_section.dart';
 import 'package:bilimusic/feature/home/ui/components/home_section_switch.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_section.dart';
-import 'package:bilimusic/feature/home/ui/components/home_recommend_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,34 +24,56 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   static const double _backToTopThreshold = 480;
 
-  late final ScrollController _scrollController;
-  late final HomeBackToTopVisibility _backToTopVisibility;
-  HomeSection _section = HomeSection.charts;
+  late final PageController _pageController;
+  late final ScrollController _chartsController;
+  late final ScrollController _playlistsController;
+  int _pageIndex = 0;
+
+  ScrollController get _activeController =>
+      _pageIndex == HomeSection.charts.index
+      ? _chartsController
+      : _playlistsController;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ref.read(homeScrollControllerProvider);
-    _backToTopVisibility = ref.read(homeBackToTopVisibilityProvider.notifier);
-    _scrollController.addListener(_handleScroll);
+    _pageController = PageController();
+    _chartsController = ScrollController()..addListener(_handleScroll);
+    _playlistsController = ScrollController()..addListener(_handleScroll);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _bindActiveController(),
+    );
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_handleScroll);
-    _backToTopVisibility.setVisible(false);
+    _chartsController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    _playlistsController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
+  void _bindActiveController() {
+    if (!mounted) {
+      return;
+    }
+    ref
+        .read(homeActiveScrollControllerProvider.notifier)
+        .bind(_activeController);
+  }
+
   void _handleScroll() {
+    final ScrollController controller = _activeController;
     final bool visible =
-        _scrollController.hasClients &&
-        _scrollController.offset > _backToTopThreshold;
-    _backToTopVisibility.setVisible(visible);
+        controller.hasClients && controller.offset > _backToTopThreshold;
+    ref.read(homeBackToTopVisibilityProvider.notifier).setVisible(visible);
   }
 
   Future<void> _handleRefresh() {
-    // 两个 section 一起刷：只刷当前 tab 会导致「在热榜下拉刷新，切到热门歌单还是旧数据」。
     return Future.wait(<Future<void>>[
       ref.read(musicChartControllerProvider.notifier).refresh(),
       ref.read(hotPlaylistControllerProvider.notifier).refresh(),
@@ -59,46 +81,26 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _selectSection(HomeSection section) {
-    if (_section == section) {
+    if (section.index == _pageIndex) {
       return;
     }
-    setState(() => _section = section);
-    if (_scrollController.hasClients && _scrollController.offset > 0) {
-      _scrollController.jumpTo(0);
-    }
+    _pageController.animateToPage(
+      section.index,
+      duration: AppMotion.resolve(context, AppMotion.base),
+      curve: AppMotion.standard,
+    );
   }
 
-  /// 横向滑动切换 section 的速度阈值（dp/s）。
-  static const double _swipeVelocityThreshold = 140;
-
-  /// 慢速拖拽时的位移阈值（dp），避免只能靠甩动手势切换。
-  static const double _swipeDistanceThreshold = 72;
-
-  double _horizontalDragDx = 0;
-
-  void _handleHorizontalDragStart(DragStartDetails details) {
-    _horizontalDragDx = 0;
-  }
-
-  void _handleHorizontalDragUpdate(DragUpdateDetails details) {
-    _horizontalDragDx += details.primaryDelta ?? 0;
-  }
-
-  void _handleHorizontalDragEnd(DragEndDetails details) {
-    final double velocity = details.primaryVelocity ?? 0;
-    final double dx = _horizontalDragDx;
-    _horizontalDragDx = 0;
-    final bool flung = velocity.abs() >= _swipeVelocityThreshold;
-    final bool dragged = dx.abs() >= _swipeDistanceThreshold;
-    if (!flung && !dragged) {
-      return;
-    }
-    final bool toPlaylists = flung ? velocity < 0 : dx < 0;
-    _selectSection(toPlaylists ? HomeSection.playlists : HomeSection.charts);
+  void _handlePageChanged(int index) {
+    setState(() => _pageIndex = index);
+    _bindActiveController();
+    _handleScroll();
   }
 
   @override
   Widget build(BuildContext context) {
+    final HomeSection section = HomeSection.values[_pageIndex];
+
     return Scaffold(
       appBar: PlatformUtil.isDesktop
           ? null
@@ -121,30 +123,68 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ],
               ),
             ),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragStart: _handleHorizontalDragStart,
-          onHorizontalDragUpdate: _handleHorizontalDragUpdate,
-          onHorizontalDragEnd: _handleHorizontalDragEnd,
-          child: ListView(
-            controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: PlatformUtil.isDesktop
-                ? const EdgeInsets.symmetric(horizontal: 0)
-                : const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            children: <Widget>[
-              HomeSectionSwitch(selected: _section, onSelected: _selectSection),
-              const SizedBox(height: AppSpacing.lg),
-              if (_section == HomeSection.charts)
-                const HomeRecommendSection()
-              else
-                const HotPlaylistSection(),
-              const BottomPageSpacer(),
-            ],
+      body: Column(
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              PlatformUtil.isDesktop ? AppSpacing.lg : 16,
+              16,
+              PlatformUtil.isDesktop ? AppSpacing.lg : 16,
+              0,
+            ),
+            child: HomeSectionSwitch(
+              selected: section,
+              onSelected: _selectSection,
+            ),
           ),
-        ),
+          const SizedBox(height: AppSpacing.lg),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: _handlePageChanged,
+              children: <Widget>[
+                _HomeSectionPage(
+                  controller: _chartsController,
+                  onRefresh: _handleRefresh,
+                  child: const HomeRecommendSection(),
+                ),
+                _HomeSectionPage(
+                  controller: _playlistsController,
+                  onRefresh: _handleRefresh,
+                  child: const HotPlaylistSection(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 单个 section 的可滚动页面：刷新 + 列表 + 底部留白。
+class _HomeSectionPage extends StatelessWidget {
+  const _HomeSectionPage({
+    required this.controller,
+    required this.onRefresh,
+    required this.child,
+  });
+
+  final ScrollController controller;
+  final Future<void> Function() onRefresh;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        controller: controller,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: PlatformUtil.isDesktop
+            ? const EdgeInsets.symmetric(horizontal: 0)
+            : const EdgeInsets.fromLTRB(16, 0, 16, 0),
+        children: <Widget>[child, const BottomPageSpacer()],
       ),
     );
   }

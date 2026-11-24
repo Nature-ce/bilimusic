@@ -75,7 +75,7 @@ void main() {
     await tester.pump();
 
     final RefreshIndicator indicator = tester.widget<RefreshIndicator>(
-      find.byType(RefreshIndicator),
+      find.byType(RefreshIndicator).first,
     );
     await indicator.onRefresh();
 

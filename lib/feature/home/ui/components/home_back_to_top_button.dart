@@ -72,8 +72,10 @@ class HomeBackToTopButton extends ConsumerWidget {
   }
 
   void _scrollToTop(BuildContext context, WidgetRef ref) {
-    final ScrollController controller = ref.read(homeScrollControllerProvider);
-    if (!controller.hasClients) {
+    final ScrollController? controller = ref.read(
+      homeActiveScrollControllerProvider,
+    );
+    if (controller == null || !controller.hasClients) {
       return;
     }
     final Duration duration = AppMotion.resolve(context, AppMotion.slow);

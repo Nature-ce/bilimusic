@@ -19,6 +19,15 @@ import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
 import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _ActiveScroll extends HomeActiveScrollController {
+  _ActiveScroll(this.controller);
+
+  final ScrollController? controller;
+
+  @override
+  ScrollController? build() => controller;
+}
+
 class _SolidAppearance extends AppearanceSettingLogic {
   @override
   bool build() => false;
@@ -128,7 +137,9 @@ void main() {
     addTearDown(controller.dispose);
     final ProviderContainer container = ProviderContainer(
       overrides: [
-        homeScrollControllerProvider.overrideWith((ref) => controller),
+        homeActiveScrollControllerProvider.overrideWith(
+          () => _ActiveScroll(controller),
+        ),
         appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
       ],
     );
@@ -168,7 +179,9 @@ void main() {
     addTearDown(controller.dispose);
     final ProviderContainer container = ProviderContainer(
       overrides: [
-        homeScrollControllerProvider.overrideWith((ref) => controller),
+        homeActiveScrollControllerProvider.overrideWith(
+          () => _ActiveScroll(controller),
+        ),
         appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
       ],
     );
@@ -214,7 +227,9 @@ void main() {
       addTearDown(controller.dispose);
       final ProviderContainer container = ProviderContainer(
         overrides: [
-          homeScrollControllerProvider.overrideWith((ref) => controller),
+          homeActiveScrollControllerProvider.overrideWith(
+            () => _ActiveScroll(controller),
+          ),
           appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
         ],
       );
@@ -279,11 +294,11 @@ void main() {
     await tester.tap(find.text('热门歌单'));
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(ListView), const Offset(0, -900));
+    await tester.dragFrom(const Offset(195, 600), const Offset(0, -900));
     await tester.pumpAndSettle();
     expect(container.read(homeBackToTopVisibilityProvider), isTrue);
 
-    await tester.drag(find.byType(ListView), const Offset(0, 900));
+    await tester.dragFrom(const Offset(195, 600), const Offset(0, 900));
     await tester.pumpAndSettle();
     expect(container.read(homeBackToTopVisibilityProvider), isFalse);
   });
