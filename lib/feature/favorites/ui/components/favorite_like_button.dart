@@ -32,6 +32,8 @@ class FavoriteLikeIconButton extends StatelessWidget {
           : colorScheme.onSurface.withValues(alpha: 0.55),
       disabledColor: colorScheme.onSurface.withValues(alpha: 0.28),
       iconSize: iconSize,
+      // 点过之后不要留下焦点/悬浮/按压的高亮圆圈，只保留爱心本身的变化。
+      style: IconButton.styleFrom(overlayColor: Colors.transparent),
     );
 
     if (tooltip == null) {
