@@ -71,12 +71,30 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// 横向滑动切换 section 的速度阈值（dp/s）。
   static const double _swipeVelocityThreshold = 140;
 
+  /// 慢速拖拽时的位移阈值（dp），避免只能靠甩动手势切换。
+  static const double _swipeDistanceThreshold = 72;
+
+  double _horizontalDragDx = 0;
+
+  void _handleHorizontalDragStart(DragStartDetails details) {
+    _horizontalDragDx = 0;
+  }
+
+  void _handleHorizontalDragUpdate(DragUpdateDetails details) {
+    _horizontalDragDx += details.primaryDelta ?? 0;
+  }
+
   void _handleHorizontalDragEnd(DragEndDetails details) {
     final double velocity = details.primaryVelocity ?? 0;
-    if (velocity.abs() < _swipeVelocityThreshold) {
+    final double dx = _horizontalDragDx;
+    _horizontalDragDx = 0;
+    final bool flung = velocity.abs() >= _swipeVelocityThreshold;
+    final bool dragged = dx.abs() >= _swipeDistanceThreshold;
+    if (!flung && !dragged) {
       return;
     }
-    _selectSection(velocity < 0 ? HomeSection.playlists : HomeSection.charts);
+    final bool toPlaylists = flung ? velocity < 0 : dx < 0;
+    _selectSection(toPlaylists ? HomeSection.playlists : HomeSection.charts);
   }
 
   @override
@@ -107,6 +125,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         onRefresh: _handleRefresh,
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
+          onHorizontalDragStart: _handleHorizontalDragStart,
+          onHorizontalDragUpdate: _handleHorizontalDragUpdate,
           onHorizontalDragEnd: _handleHorizontalDragEnd,
           child: ListView(
             controller: _scrollController,
