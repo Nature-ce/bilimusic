@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_avatar.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/comment/domain/comment_item.dart';
 import 'package:bilimusic/feature/comment/ui/components/comment_picture_gallery.dart';
 import 'package:flutter/material.dart';
@@ -123,7 +124,10 @@ class CommentCard extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: colorScheme.surfaceContainerLow),
+              decoration: BoxDecoration(
+                color: colorScheme.onSurface.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: item.replies.take(2).map((CommentItem reply) {

@@ -150,6 +150,7 @@ Future<T?> showGlassSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool isScrollControlled = true,
+  bool fillHeight = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -165,10 +166,25 @@ Future<T?> showGlassSheet<T>({
         // 只有再套一层 Material 才会用新的深色 textTheme 重新铺开。
         child: Material(
           type: MaterialType.transparency,
-          child: GlassSheetPanel(
-            tone: GlassTone.smoke,
-            child: builder(sheetContext),
-          ),
+          child: fillHeight
+              ? GlassPanel(
+                  tone: GlassTone.smoke,
+                  shape: const LiquidVerticalRoundedSuperellipse(
+                    topRadius: AppRadius.xl,
+                    bottomRadius: 0,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const GlassDragHandle(tone: GlassTone.smoke),
+                      Flexible(child: builder(sheetContext)),
+                    ],
+                  ),
+                )
+              : GlassSheetPanel(
+                  tone: GlassTone.smoke,
+                  child: builder(sheetContext),
+                ),
         ),
       );
     },

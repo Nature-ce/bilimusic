@@ -1,4 +1,6 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/comment/domain/comment_item.dart';
@@ -20,11 +22,9 @@ Future<void> openCommentComposer({
     return;
   }
 
-  await showModalBottomSheet<void>(
+  await showGlassSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (BuildContext context) {
+    builder: (BuildContext sheetContext) {
       return _CommentComposerSheet(onSubmit: onSubmit, replyTo: replyTo);
     },
   );
@@ -81,7 +81,7 @@ class _CommentComposerSheetState extends State<_CommentComposerSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Material(
-        color: colorScheme.surfaceContainerHigh,
+        type: MaterialType.transparency,
         child: SafeArea(
           top: false,
           child: Padding(
@@ -111,11 +111,35 @@ class _CommentComposerSheetState extends State<_CommentComposerSheet> {
                   maxLength: 1000,
                   readOnly: _submitting,
                   onChanged: (String _) => setState(() {}),
-                  decoration: const InputDecoration(
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
                     isDense: true,
                     counterText: '',
                     hintText: '发一条友善的评论',
-                    border: InputBorder.none,
+                    hintStyle: TextStyle(
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.onSurface.withValues(alpha: 0.06),
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary.withValues(alpha: 0.55),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -134,6 +158,14 @@ class _CommentComposerSheetState extends State<_CommentComposerSheet> {
                     else
                       FilledButton(
                         onPressed: _canSubmit ? _submit : null,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                          disabledBackgroundColor: colorScheme.onSurface
+                              .withValues(alpha: 0.1),
+                          disabledForegroundColor: colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.6),
+                        ),
                         child: const Text('发送'),
                       ),
                   ],

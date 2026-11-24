@@ -12,6 +12,7 @@ import 'package:bilimusic/feature/comment/ui/components/comment_composer.dart';
 import 'package:bilimusic/feature/comment/ui/comment_reply_sheet.dart';
 import 'package:bilimusic/feature/player/logic/display/player_cover_color_provider.dart';
 import 'package:bilimusic/feature/player/logic/display/player_display_provider.dart';
+import 'package:bilimusic/common/components/app_back_button.dart';
 import 'package:bilimusic/feature/player/ui/components/player_dynamic_backdrop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -114,6 +115,9 @@ class _CommentPageState extends ConsumerState<CommentPage> {
                 ? null
                 : AppBar(
                     title: const Text('评论'),
+                    leading: const AppBackButton(),
+                    leadingWidth: 44,
+                    titleSpacing: 0,
                     backgroundColor: Colors.transparent,
                     elevation: 0,
                     scrolledUnderElevation: 0,

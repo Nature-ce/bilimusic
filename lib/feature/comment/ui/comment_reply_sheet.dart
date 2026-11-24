@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/comment/domain/comment_item.dart';
 import 'package:bilimusic/feature/comment/domain/comment_reply_state.dart';
 import 'package:bilimusic/feature/comment/domain/comment_target.dart';
@@ -12,13 +13,12 @@ Future<void> showCommentReplySheet({
   required CommentTarget target,
   required CommentItem rootItem,
 }) async {
-  await showModalBottomSheet<void>(
+  await showGlassSheet<void>(
     context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    builder: (BuildContext context) {
+    fillHeight: true,
+    builder: (BuildContext sheetContext) {
       return SafeArea(
+        top: false,
         child: _CommentReplySheet(
           args: CommentReplySheetArgs(target: target, rootItem: rootItem),
         ),
