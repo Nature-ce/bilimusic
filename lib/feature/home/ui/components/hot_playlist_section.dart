@@ -3,6 +3,7 @@ import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_state.dart';
+import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_card.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_feature_card.dart';
@@ -20,15 +21,22 @@ class HotPlaylistSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final HotPlaylistState state = ref.watch(hotPlaylistControllerProvider);
+    final List<HotPlaylist> featured = _featuredPlaylists(state.playlists);
+    final Set<String> featuredKeys = featured
+        .map((HotPlaylist playlist) => playlist.key)
+        .toSet();
+    final List<HotPlaylist> gridPlaylists = state.playlists
+        .where((HotPlaylist playlist) => !featuredKeys.contains(playlist.key))
+        .toList(growable: false);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          if (state.playlists.isNotEmpty) ...<Widget>[
+          if (featured.isNotEmpty) ...<Widget>[
             _FeatureRow(
-              playlists: state.playlists.take(2).toList(growable: false),
+              playlists: featured,
               onTap: (HotPlaylist playlist) =>
                   _handlePlaylistTap(context, playlist),
             ),
@@ -78,7 +86,7 @@ class HotPlaylistSection extends ConsumerWidget {
             const StatusView(icon: Icons.queue_music_rounded, title: '暂无热门歌单')
           else
             _HotPlaylistGrid(
-              playlists: state.playlists.skip(2).toList(growable: false),
+              playlists: gridPlaylists,
               onPlaylistTap: (HotPlaylist playlist) =>
                   _handlePlaylistTap(context, playlist),
             ),
@@ -108,9 +116,7 @@ class _FeatureRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<HotPlaylist> featured = playlists
-        .take(2)
-        .toList(growable: false);
+    final List<HotPlaylist> featured = playlists;
     if (featured.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -252,4 +258,21 @@ class _HotPlaylistLoadingGrid extends StatelessWidget {
       },
     );
   }
+}
+
+/// 「编辑甄选」每个平台各取一张，保证三平台都露面（酷狗不会再被挤掉）。
+List<HotPlaylist> _featuredPlaylists(List<HotPlaylist> playlists) {
+  if (playlists.isEmpty) {
+    return const <HotPlaylist>[];
+  }
+  final List<HotPlaylist> featured = <HotPlaylist>[];
+  for (final MusicChartPlatform platform in MusicChartPlatform.values) {
+    for (final HotPlaylist playlist in playlists) {
+      if (playlist.platform == platform) {
+        featured.add(playlist);
+        break;
+      }
+    }
+  }
+  return featured;
 }

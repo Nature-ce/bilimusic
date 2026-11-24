@@ -2,6 +2,7 @@ import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
+import 'package:bilimusic/feature/home/ui/components/hot_playlist_feature_card.dart';
 import 'package:bilimusic/feature/home/ui/components/hot_playlist_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,15 @@ class _LoadedPlaylists extends HotPlaylistController {
         playCount: 12345,
         trackCount: 20,
         creator: '第三个UP主',
+      ),
+      HotPlaylist(
+        platform: MusicChartPlatform.kugou,
+        id: '4',
+        name: '测试歌单 D',
+        coverUrl: '',
+        playCount: 4321,
+        trackCount: 12,
+        creator: '酷狗UP主',
       ),
     ],
   );
@@ -85,15 +95,29 @@ void main() {
   ) async {
     await _pumpSection(tester, controller: _LoadedPlaylists.new);
 
-    // 前两张歌单只出现在「编辑甄选」大卡里，网格从第三张开始，不重复。
     expect(find.text('测试歌单 A'), findsOneWidget);
     expect(find.text('测试歌单 B'), findsOneWidget);
     expect(find.text('测试歌单 C'), findsOneWidget);
-    expect(find.textContaining('1.2万'), findsWidgets);
-    expect(find.textContaining('20 首'), findsOneWidget);
+    expect(find.text('测试歌单 D'), findsOneWidget);
+    // 网格里只剩第二张网易云歌单（B，35 首）。
+    expect(find.textContaining('35 首'), findsOneWidget);
     expect(find.text('编辑甄选'), findsOneWidget);
     expect(find.text('热门歌单'), findsOneWidget);
     expect(find.text('换一批'), findsOneWidget);
+
+    // 编辑甄选每个平台各一张：网易云 / QQ音乐 / 酷狗 都要有。
+    final List<HotPlaylistFeatureCard> featured = tester
+        .widgetList<HotPlaylistFeatureCard>(find.byType(HotPlaylistFeatureCard))
+        .toList();
+    expect(featured, hasLength(3));
+    expect(
+      featured.map((HotPlaylistFeatureCard card) => card.playlist.platform),
+      containsAll(<MusicChartPlatform>[
+        MusicChartPlatform.netease,
+        MusicChartPlatform.tencent,
+        MusicChartPlatform.kugou,
+      ]),
+    );
   });
 
   testWidgets('tapping a card reports the playlist', (
