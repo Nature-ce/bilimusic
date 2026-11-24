@@ -343,39 +343,43 @@ class _DownloadsPageState extends ConsumerState<DownloadsPage> {
     final bool useGlass = ref.read(appearanceSettingLogicProvider);
     final String message =
         '将删除本地文件《${resolveDownloadTitle(track.title)}》，确认继续？';
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        if (useGlass) {
-          return AppGlassAlertDialog(
-            title: '删除下载',
-            message: message,
-            cancelLabel: '取消',
-            confirmLabel: '删除',
-            danger: true,
+    final bool? confirmed = useGlass
+        ? await showAppGlassDialog<bool>(
+            context: context,
+            builder: (BuildContext dialogContext) => AppGlassAlertDialog(
+              title: '删除下载',
+              message: message,
+              cancelLabel: '取消',
+              confirmLabel: '删除',
+              danger: true,
+            ),
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (BuildContext dialogContext) {
+              final ColorScheme colorScheme = Theme.of(
+                dialogContext,
+              ).colorScheme;
+              return AlertDialog(
+                title: const Text('删除下载'),
+                content: Text(message),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('取消'),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.error,
+                      foregroundColor: colorScheme.onError,
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: const Text('删除'),
+                  ),
+                ],
+              );
+            },
           );
-        }
-        final ColorScheme colorScheme = Theme.of(dialogContext).colorScheme;
-        return AlertDialog(
-          title: const Text('删除下载'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('删除'),
-            ),
-          ],
-        );
-      },
-    );
     if (confirmed != true || !mounted) {
       return;
     }

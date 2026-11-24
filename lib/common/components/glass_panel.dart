@@ -320,6 +320,23 @@ class AppGlassSheet extends StatelessWidget {
   }
 }
 
+/// 玻璃弹层用的遮罩：比 Material 默认的 54% 黑轻很多，整页不会被压得太暗。
+Color appGlassBarrierColor({double alpha = 0.16}) {
+  return Colors.black.withValues(alpha: alpha);
+}
+
+/// 跟随「玻璃材质」开关的对话框（遮罩同样偏轻）。
+Future<T?> showAppGlassDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+}) {
+  return showDialog<T>(
+    context: context,
+    barrierColor: appGlassBarrierColor(alpha: 0.18),
+    builder: builder,
+  );
+}
+
 /// 跟随「玻璃材质」开关的底部弹层。
 Future<T?> showAppHalfSheet<T>({
   required BuildContext context,
@@ -330,7 +347,7 @@ Future<T?> showAppHalfSheet<T>({
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     elevation: 0,
-    barrierColor: Colors.black.withValues(alpha: 0.28),
+    barrierColor: appGlassBarrierColor(),
     builder: (BuildContext sheetContext) {
       return AppGlassSheet(child: Builder(builder: builder));
     },

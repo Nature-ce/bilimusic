@@ -18,14 +18,12 @@ class RecentPlaybackList extends StatelessWidget {
     required this.groups,
     required this.progress,
     required this.onPlay,
-    this.onLongPressEntry,
     this.onDeleteEntry,
   });
 
   final List<RecentPlaybackDayGroup> groups;
   final Map<String, int> progress;
   final ValueChanged<int> onPlay;
-  final ValueChanged<int>? onLongPressEntry;
   final ValueChanged<int>? onDeleteEntry;
 
   @override
@@ -64,9 +62,6 @@ class RecentPlaybackList extends StatelessWidget {
           entry: entry,
           progressMs: progress[entry.stableId],
           onTap: () => onPlay(row.index),
-          onLongPress: onLongPressEntry == null
-              ? null
-              : () => onLongPressEntry!(row.index),
         );
         final ValueChanged<int>? delete = onDeleteEntry;
         if (delete == null) {

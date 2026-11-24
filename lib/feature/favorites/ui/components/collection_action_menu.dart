@@ -278,38 +278,38 @@ Future<void> _showDeleteCollectionDialog({
   final String message = collection.isRemote
       ? '确认删除“${collection.name}”？这会同时删除 B 站收藏夹，无法恢复。'
       : '确认删除“${collection.name}”？删除后无法恢复。';
-  final bool? confirmed = await showDialog<bool>(
-    context: context,
-    builder: (BuildContext context) {
-      if (useGlass) {
-        return AppGlassAlertDialog(
-          title: '删除歌单',
-          message: message,
-          cancelLabel: '取消',
-          confirmLabel: '删除',
-          danger: true,
+  final bool? confirmed = useGlass
+      ? await showAppGlassDialog<bool>(
+          context: context,
+          builder: (BuildContext context) => AppGlassAlertDialog(
+            title: '删除歌单',
+            message: message,
+            cancelLabel: '取消',
+            confirmLabel: '删除',
+            danger: true,
+          ),
+        )
+      : await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text('删除歌单'),
+            content: Text(message),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('删除'),
+              ),
+            ],
+          ),
         );
-      }
-      return AlertDialog(
-        title: const Text('删除歌单'),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('删除'),
-          ),
-        ],
-      );
-    },
-  );
   if (confirmed != true) {
     return;
   }
@@ -331,33 +331,35 @@ Future<void> _showRemoveRemoteCollectionDialog({
     return;
   }
   final bool useGlass = ref.read(appearanceSettingLogicProvider);
-  final bool? confirmed = await showDialog<bool>(
-    context: context,
-    builder: (BuildContext context) {
-      if (useGlass) {
-        return AppGlassAlertDialog(
-          title: '解除绑定',
-          message: '确认解除“${collection.name}”与 App 的绑定？只会从列表移除，不会删除 B 站收藏夹。',
-          cancelLabel: '取消',
-          confirmLabel: '解除绑定',
+  final bool? confirmed = useGlass
+      ? await showAppGlassDialog<bool>(
+          context: context,
+          builder: (BuildContext context) => AppGlassAlertDialog(
+            title: '解除绑定',
+            message: '确认解除“${collection.name}”与 App 的绑定？只会从列表移除，不会删除 B 站收藏夹。',
+            cancelLabel: '取消',
+            confirmLabel: '解除绑定',
+          ),
+        )
+      : await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            title: const Text('解除绑定'),
+            content: Text(
+              '确认解除“${collection.name}”与 App 的绑定？只会从列表移除，不会删除 B 站收藏夹。',
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('解除绑定'),
+              ),
+            ],
+          ),
         );
-      }
-      return AlertDialog(
-        title: const Text('解除绑定'),
-        content: Text('确认解除“${collection.name}”与 App 的绑定？只会从列表移除，不会删除 B 站收藏夹。'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('解除绑定'),
-          ),
-        ],
-      );
-    },
-  );
   if (confirmed != true) {
     return;
   }
