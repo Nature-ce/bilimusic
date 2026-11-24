@@ -95,8 +95,10 @@ class _ModePlayer extends _ReorderablePlayer {
 
 Future<void> _openQueueSheet(
   WidgetTester tester,
-  ProviderContainer container,
-) async {
+  ProviderContainer container, {
+  PlayerQueueSheetStyle style = PlayerQueueSheetStyle.home,
+  bool glass = true,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -114,6 +116,8 @@ Future<void> _openQueueSheet(
                   onPressed: () => showPlayerQueueSheet(
                     context: context,
                     state: container.read(playerControllerProvider),
+                    glass: glass,
+                    style: style,
                   ),
                   child: const Text('打开队列'),
                 ),
@@ -191,7 +195,7 @@ void main() {
     expect(find.textContaining('𝐇𝐢-𝐑𝐞𝐬'), findsNothing);
   });
 
-  testWidgets('队列弹层使用烟熏黑玻璃，文字改白色', (WidgetTester tester) async {
+  testWidgets('播放页队列弹层保持烟熏黑玻璃，文字为白色', (WidgetTester tester) async {
     final ProviderContainer container = ProviderContainer(
       overrides: [
         playerControllerProvider.overrideWith(_ReorderablePlayer.new),
@@ -199,9 +203,13 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    await _openQueueSheet(tester, container);
+    await _openQueueSheet(
+      tester,
+      container,
+      style: PlayerQueueSheetStyle.player,
+    );
 
-    // 和迷你播放器一样走 liquid_glass_widgets 的着色器玻璃，不是纯色面板。
+    // 播放页入口固定走烟熏玻璃，不跟随外观开关。
     final GlassContainer glass = tester.widget<GlassContainer>(
       find.byType(GlassContainer).first,
     );
@@ -223,6 +231,45 @@ void main() {
 
     final Text pendingRow = tester.widget<Text>(find.textContaining('队列歌曲1'));
     expect(pendingRow.style?.color, GlassTone.smoke.primaryText);
+  });
+
+  testWidgets('首页队列弹层用更透的白雾玻璃，文字跟随主题', (WidgetTester tester) async {
+    final ProviderContainer container = ProviderContainer(
+      overrides: [
+        playerControllerProvider.overrideWith(_ReorderablePlayer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await _openQueueSheet(tester, container);
+
+    final GlassContainer glass = tester.widget<GlassContainer>(
+      find.byType(GlassContainer).first,
+    );
+    expect(glass.useOwnLayer, isTrue);
+    final ColorScheme colorScheme = Theme.of(
+      tester.element(find.text('播放队列')),
+    ).colorScheme;
+    final LiquidGlassSettings expected = homeQueueSheetGlassSettings(
+      tester.element(find.text('播放队列')),
+    );
+    expect(glass.settings?.glassColor, expected.glassColor);
+    expect(glass.settings?.backerColor, expected.backerColor);
+    // 比播放页的烟熏玻璃更透明：背衬更淡、模糊更强。
+    expect(
+      expected.backerColor?.a ?? 0,
+      lessThan(playerQueueSheetGlassSettings.backerColor?.a ?? 1),
+    );
+    expect(expected.blur, greaterThan(playerQueueSheetGlassSettings.blur));
+
+    final Text title = tester.widget<Text>(find.text('播放队列'));
+    expect(title.style?.color, colorScheme.onSurface);
+
+    final Text pendingRow = tester.widget<Text>(find.textContaining('队列歌曲1'));
+    expect(pendingRow.style?.color, colorScheme.onSurface);
+
+    // 行间分割线 + 标题分隔线。
+    expect(find.byType(Divider), findsWidgets);
   });
 
   for (final (PlayerQueueMode mode, Type iconType) in <(PlayerQueueMode, Type)>[

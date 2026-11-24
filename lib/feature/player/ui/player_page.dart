@@ -28,7 +28,6 @@ import 'package:bilimusic/feature/player/ui/components/player_top_bar.dart';
 import 'package:bilimusic/feature/player/ui/sleep_timer_page.dart';
 import 'package:bilimusic/feature/player/domain/queue_source.dart';
 import 'package:bilimusic/feature/radar/logic/radar_refresh_requests.dart';
-import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -346,7 +345,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
             onOpenQueue: () => showPlayerQueueSheet(
               context: pageContext,
               state: state,
-              glass: ref.read(appearanceSettingLogicProvider),
+              glass: true,
+              style: PlayerQueueSheetStyle.player,
             ),
             onOpenComments: item == null ? null : () => _openComments(item),
           ),

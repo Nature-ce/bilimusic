@@ -14,25 +14,33 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
+/// 队列弹层从哪打开：播放页里用烟熏玻璃（固定不变），
+/// 首页 / 底部播放条跟随外观开关，玻璃档用更透的白雾玻璃。
+enum PlayerQueueSheetStyle { player, home }
+
 Future<void> showPlayerQueueSheet({
   required BuildContext context,
   required PlayerState state,
   bool glass = true,
+  PlayerQueueSheetStyle style = PlayerQueueSheetStyle.home,
 }) async {
   if (!state.hasQueue) {
     return;
   }
 
+  final bool darkGlass = style == PlayerQueueSheetStyle.player;
+  final bool showsGlass = darkGlass || glass;
+
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: glass ? Colors.transparent : null,
+    backgroundColor: showsGlass ? Colors.transparent : null,
     elevation: 0,
-    barrierColor: glass
+    barrierColor: showsGlass
         ? Colors.transparent
         : Colors.black.withValues(alpha: 0.3),
-    clipBehavior: glass ? Clip.none : Clip.antiAlias,
-    shape: glass
+    clipBehavior: showsGlass ? Clip.none : Clip.antiAlias,
+    shape: showsGlass
         ? null
         : const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(
@@ -40,14 +48,16 @@ Future<void> showPlayerQueueSheet({
             ),
           ),
     builder: (BuildContext context) {
-      if (!glass) {
+      if (!showsGlass) {
         return SafeArea(
           top: false,
-          child: const _PlayerQueueSheet(glass: false),
+          child: const _PlayerQueueSheet(tone: null, showHandle: true),
         );
       }
       return GlassPanel(
-        settings: playerQueueSheetGlassSettings,
+        settings: darkGlass
+            ? playerQueueSheetGlassSettings
+            : homeQueueSheetGlassSettings(context),
         shape: const LiquidVerticalRoundedSuperellipse(
           topRadius: AppRadius.xl,
           bottomRadius: 0,
@@ -55,14 +65,46 @@ Future<void> showPlayerQueueSheet({
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const GlassDragHandle(tone: GlassTone.smoke),
+            GlassDragHandle(
+              tone: darkGlass ? GlassTone.smoke : GlassTone.frost,
+            ),
             Flexible(
-              child: SafeArea(top: false, child: const _PlayerQueueSheet()),
+              child: SafeArea(
+                top: false,
+                child: _PlayerQueueSheet(
+                  tone: darkGlass ? GlassTone.smoke : null,
+                  homeStyle: !darkGlass,
+                ),
+              ),
             ),
           ],
         ),
       );
     },
+  );
+}
+
+/// 首页队列弹层的白雾玻璃：比播放页的烟熏更透，并带一点主题色，
+/// 浅色主题下用深色文字，和首页/每日推荐卡同一色系。
+LiquidGlassSettings homeQueueSheetGlassSettings(BuildContext context) {
+  final ThemeData theme = Theme.of(context);
+  final ColorScheme colorScheme = theme.colorScheme;
+  final bool isDark = theme.brightness == Brightness.dark;
+  final Color base = isDark ? const Color(0xFF101215) : Colors.white;
+  final Color tinted = Color.alphaBlend(
+    colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.05),
+    base,
+  );
+
+  return LiquidGlassSettings(
+    bodyMode: GlassBodyMode.clear,
+    glassColor: tinted.withValues(alpha: isDark ? 0.34 : 0.24),
+    thickness: 14,
+    blur: 30,
+    chromaticAberration: 0,
+    saturation: 1.55,
+    lightIntensity: 0.55,
+    refractiveIndex: 1.08,
   );
 }
 
@@ -103,9 +145,15 @@ Future<void> showDesktopPlayerQueuePanel({
 enum _QueueCloseTarget { navigator, sidePanel }
 
 class _PlayerQueueSheet extends ConsumerWidget {
-  const _PlayerQueueSheet({this.glass = true});
+  const _PlayerQueueSheet({
+    this.tone,
+    this.showHandle = false,
+    this.homeStyle = false,
+  });
 
-  final bool glass;
+  final GlassTone? tone;
+  final bool showHandle;
+  final bool homeStyle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -117,15 +165,16 @@ class _PlayerQueueSheet extends ConsumerWidget {
       builder: (BuildContext context, ScrollController _) {
         final Widget content = _PlayerQueueContent(
           closeTarget: _QueueCloseTarget.navigator,
-          tone: glass ? GlassTone.smoke : null,
+          tone: tone,
+          homeStyle: homeStyle,
         );
-        if (glass) {
+        if (!showHandle) {
           return content;
         }
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const GlassDragHandle(tone: GlassTone.frost),
+            GlassDragHandle(tone: tone ?? GlassTone.frost),
             Flexible(child: content),
           ],
         );
@@ -135,12 +184,19 @@ class _PlayerQueueSheet extends ConsumerWidget {
 }
 
 class _PlayerQueueContent extends ConsumerStatefulWidget {
-  const _PlayerQueueContent({required this.closeTarget, this.tone});
+  const _PlayerQueueContent({
+    required this.closeTarget,
+    this.tone,
+    this.homeStyle = false,
+  });
 
   final _QueueCloseTarget closeTarget;
 
-  /// 玻璃弹层里用 [GlassTone] 定的文字色；桌面侧栏为 null，沿用主题色。
+  /// 玻璃弹层里用 [GlassTone] 定的文字色；桌面侧栏 / 浅色玻璃为 null，沿用主题色。
   final GlassTone? tone;
+
+  /// 首页入口的新版样式：44dp 行高、行间分割线、当前行胶囊高亮。
+  final bool homeStyle;
 
   @override
   ConsumerState<_PlayerQueueContent> createState() =>
@@ -188,8 +244,20 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
 
     return Column(
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+        Container(
+          padding: widget.homeStyle
+              ? const EdgeInsets.fromLTRB(20, 6, 14, 8)
+              : const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          decoration: widget.homeStyle
+              ? BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      width: 0.8,
+                    ),
+                  ),
+                )
+              : null,
           child: Row(
             children: <Widget>[
               Expanded(
@@ -215,7 +283,20 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
               ),
               if (liveState.hasQueue)
                 TextButton(
-                  style: TextButton.styleFrom(foregroundColor: secondaryText),
+                  style: widget.homeStyle
+                      ? TextButton.styleFrom(
+                          foregroundColor: secondaryText,
+                          backgroundColor: colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.45),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: const StadiumBorder(),
+                        )
+                      : TextButton.styleFrom(foregroundColor: secondaryText),
                   onPressed: () async {
                     await liveController.clearQueue();
                     if (!context.mounted) {
@@ -281,84 +362,124 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                 index: index,
                 child: Semantics(
                   selected: isCurrent,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () async {
-                        await _close(context);
-                        await liveController.skipToQueueIndex(index);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 4, 8, 4),
-                        child: Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Text.rich(
-                                TextSpan(
-                                  text: title,
-                                  children: <InlineSpan>[
-                                    if (subtitle.isNotEmpty)
-                                      TextSpan(
-                                        text: ' - $subtitle',
-                                        style: theme.textTheme.bodyMedium
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.homeStyle ? 10 : 0,
+                        ),
+                        child: Material(
+                          color: widget.homeStyle && isCurrent
+                              ? colorScheme.primary.withValues(alpha: 0.12)
+                              : Colors.transparent,
+                          borderRadius: widget.homeStyle
+                              ? BorderRadius.circular(AppRadius.md)
+                              : null,
+                          child: InkWell(
+                            onTap: () async {
+                              await _close(context);
+                              await liveController.skipToQueueIndex(index);
+                            },
+                            child: Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                widget.homeStyle ? 12 : 20,
+                                widget.homeStyle ? 0 : 4,
+                                widget.homeStyle ? 6 : 8,
+                                widget.homeStyle ? 0 : 4,
+                              ),
+                              child: SizedBox(
+                                height: widget.homeStyle ? 44 : null,
+                                child: Row(
+                                  children: <Widget>[
+                                    Expanded(
+                                      child: Text.rich(
+                                        TextSpan(
+                                          text: title,
+                                          children: <InlineSpan>[
+                                            if (subtitle.isNotEmpty)
+                                              TextSpan(
+                                                text: ' - $subtitle',
+                                                style: theme
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      color: isCurrent
+                                                          ? colorScheme.primary
+                                                          : secondaryText,
+                                                      fontWeight:
+                                                          FontWeight.normal,
+                                                    ),
+                                              ),
+                                          ],
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleSmall
                                             ?.copyWith(
                                               color: isCurrent
                                                   ? colorScheme.primary
-                                                  : secondaryText,
-                                              fontWeight: FontWeight.normal,
+                                                  : primaryText,
+                                              fontWeight: isCurrent
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal,
                                             ),
                                       ),
+                                    ),
+                                    if (isCurrent) ...<Widget>[
+                                      const SizedBox(width: 8),
+                                      PlayerPlaybackWaveform(
+                                        isPlaying:
+                                            liveState.isPlaying &&
+                                            !liveState.isBuffering &&
+                                            !liveState.isLoading,
+                                      ),
+                                    ],
+                                    IconButton(
+                                      constraints:
+                                          const BoxConstraints.tightFor(
+                                            width: 48,
+                                            height: 48,
+                                          ),
+                                      tooltip: '移出队列',
+                                      onPressed: () async {
+                                        await liveController.removeQueueItemAt(
+                                          index,
+                                        );
+                                        if (!context.mounted) {
+                                          return;
+                                        }
+                                        final PlayerState refreshedState = ref
+                                            .read(playerControllerProvider);
+                                        if (!refreshedState.hasQueue) {
+                                          await _close(context);
+                                        }
+                                      },
+                                      icon: HugeIcon(
+                                        icon: HugeIcons.strokeRoundedCancel01,
+                                        color: secondaryText,
+                                        size: 18,
+                                      ),
+                                    ),
                                   ],
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: isCurrent
-                                      ? colorScheme.primary
-                                      : primaryText,
-                                  fontWeight: isCurrent
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                ),
                               ),
                             ),
-                            if (isCurrent) ...<Widget>[
-                              const SizedBox(width: 8),
-                              PlayerPlaybackWaveform(
-                                isPlaying:
-                                    liveState.isPlaying &&
-                                    !liveState.isBuffering &&
-                                    !liveState.isLoading,
-                              ),
-                            ],
-                            IconButton(
-                              constraints: const BoxConstraints.tightFor(
-                                width: 48,
-                                height: 48,
-                              ),
-                              tooltip: '移出队列',
-                              onPressed: () async {
-                                await liveController.removeQueueItemAt(index);
-                                if (!context.mounted) {
-                                  return;
-                                }
-                                final PlayerState refreshedState = ref.read(
-                                  playerControllerProvider,
-                                );
-                                if (!refreshedState.hasQueue) {
-                                  await _close(context);
-                                }
-                              },
-                              icon: HugeIcon(
-                                icon: HugeIcons.strokeRoundedCancel01,
-                                color: secondaryText,
-                                size: 18,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                      if (widget.homeStyle &&
+                          index != liveState.queue.length - 1)
+                        Divider(
+                          height: 1,
+                          thickness: 0.6,
+                          indent: 20,
+                          endIndent: 20,
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               );
