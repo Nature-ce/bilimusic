@@ -206,7 +206,14 @@ void main() {
       find.byType(GlassContainer).first,
     );
     expect(glass.useOwnLayer, isTrue);
-    expect(glass.settings?.glassColor, GlassTone.smoke.settings.glassColor);
+    expect(
+      glass.settings?.glassColor,
+      playerQueueSheetGlassSettings.glassColor,
+    );
+    expect(
+      glass.settings?.backerColor,
+      playerQueueSheetGlassSettings.backerColor,
+    );
 
     final Text title = tester.widget<Text>(find.text('播放队列'));
     expect(title.style?.color, GlassTone.smoke.primaryText);

@@ -50,7 +50,7 @@ class MobileChromeConfig {
       return fullScreen;
     }
 
-    if (path == '/profile/favorite-ups' || path == '/profile/report') {
+    if (path == '/profile/report') {
       return fullScreen;
     }
 

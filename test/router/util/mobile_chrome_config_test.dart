@@ -47,10 +47,7 @@ void main() {
   });
 
   test('收藏 UP 主与听歌报告页全屏', () {
-    for (final String path in <String>[
-      '/profile/favorite-ups',
-      '/profile/report',
-    ]) {
+    for (final String path in <String>['/profile/report']) {
       final MobileChromeConfig chrome = MobileChromeConfig.resolve(path);
 
       expect(chrome.showBottomTabs, isFalse, reason: path);

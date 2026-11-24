@@ -12,7 +12,6 @@ import 'package:bilimusic/feature/favorites/ui/components/collection_name_dialog
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/logic/favorite_hot_playlist_controller.dart';
-import 'package:bilimusic/feature/profile/ui/components/followed_ups_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_playlist_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/profile_stats_card.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
@@ -21,8 +20,6 @@ import 'package:bilimusic/feature/profile/ui/components/weekly_listening_card.da
 import 'package:bilimusic/feature/recent/logic/recent_playback_controller.dart';
 import 'package:bilimusic/feature/statistics/domain/daily_listening.dart';
 import 'package:bilimusic/feature/statistics/logic/weekly_listening.dart';
-import 'package:bilimusic/feature/up/domain/favorite_up.dart';
-import 'package:bilimusic/feature/up/logic/favorite_up_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -93,7 +90,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       favoriteHotPlaylistsProvider,
     );
     final WeeklyListeningSummary weeklyListening = _weeklyListeningSummary();
-    final List<FavoriteUp> followedUps = _followedUps();
 
     return Scaffold(
       body: SafeArea(
@@ -216,11 +212,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 );
               }),
             ],
-            const SizedBox(height: 14),
-            FollowedUpsCard(
-              ups: followedUps,
-              onTap: () => context.push('/profile/favorite-ups'),
-            ),
             const SizedBox(height: 18),
             const BottomPageSpacer(),
           ],
@@ -234,14 +225,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       return ref.watch(weeklyListeningProvider);
     } on Object {
       return const WeeklyListeningSummary();
-    }
-  }
-
-  List<FavoriteUp> _followedUps() {
-    try {
-      return ref.watch(favoriteUpControllerProvider);
-    } on Object {
-      return const <FavoriteUp>[];
     }
   }
 

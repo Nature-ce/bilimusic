@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 Future<void> showPlayerQueueSheet({
@@ -43,15 +44,39 @@ Future<void> showPlayerQueueSheet({
           child: const _PlayerQueueSheet(glass: false),
         );
       }
-      return GlassSheetPanel(
-        tone: GlassTone.smoke,
-        child: Flexible(
-          child: SafeArea(top: false, child: const _PlayerQueueSheet()),
+      return GlassPanel(
+        settings: playerQueueSheetGlassSettings,
+        shape: const LiquidVerticalRoundedSuperellipse(
+          topRadius: AppRadius.xl,
+          bottomRadius: 0,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const GlassDragHandle(tone: GlassTone.smoke),
+            Flexible(
+              child: SafeArea(top: false, child: const _PlayerQueueSheet()),
+            ),
+          ],
         ),
       );
     },
   );
 }
+
+/// 播放队列弹层的玻璃：比播放页的 smoke 更厚背衬、更少折射，
+/// 避免背后的彩色卡片（例如「我的」页顶部绿卡）透出来糊住第一行。
+const LiquidGlassSettings playerQueueSheetGlassSettings = LiquidGlassSettings(
+  bodyMode: GlassBodyMode.clear,
+  glassColor: Color(0x33FFFFFF),
+  backerColor: Color(0x94000000),
+  thickness: 12,
+  blur: 28,
+  chromaticAberration: 0,
+  saturation: 1.1,
+  lightIntensity: 0.5,
+  refractiveIndex: 1.06,
+);
 
 Future<void> showDesktopPlayerQueuePanel({
   required BuildContext context,

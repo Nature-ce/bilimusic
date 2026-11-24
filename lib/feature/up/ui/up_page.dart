@@ -54,16 +54,18 @@ class _UpPageState extends ConsumerState<UpPage>
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final Color scaffoldBackground = theme.scaffoldBackgroundColor;
     final Brightness statusBarIconBrightness =
-        colorScheme.surface.computeLuminance() > 0.5
+        scaffoldBackground.computeLuminance() > 0.5
         ? Brightness.dark
         : Brightness.light;
 
     // 登陆提示
     if (!(ref.watch(biliSessionControllerProvider)?.isLoggedIn ?? false)) {
       return Scaffold(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: scaffoldBackground,
         appBar: PageAppBar(leading: const AppBackButton()),
         body: const LoginRequiredView(description: 'UP 主空间需要登录 B 站账号'),
       );
@@ -75,14 +77,14 @@ class _UpPageState extends ConsumerState<UpPage>
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: colorScheme.surface,
+        statusBarColor: scaffoldBackground,
         statusBarIconBrightness: statusBarIconBrightness,
         statusBarBrightness: statusBarIconBrightness == Brightness.dark
             ? Brightness.light
             : Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: scaffoldBackground,
         body: SafeArea(
           bottom: false,
           child: state.when(
@@ -127,7 +129,7 @@ class _UpPageState extends ConsumerState<UpPage>
                           pinned: true,
                           delegate: _PinnedTabBarDelegate(
                             child: ColoredBox(
-                              color: colorScheme.surface,
+                              color: scaffoldBackground,
                               child: TabBar(
                                 controller: _tabController,
                                 tabs: const <Widget>[
