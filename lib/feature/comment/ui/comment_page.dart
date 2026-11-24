@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/feature/comment/domain/comment_item.dart';
 import 'package:bilimusic/feature/comment/domain/comment_sort.dart';
@@ -338,7 +339,7 @@ class _CommentHeader extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
     final String title = target.title?.trim().isNotEmpty == true
-        ? target.title!.trim()
+        ? normalizeDisplayText(target.title!.trim())
         : '评论';
 
     return Row(

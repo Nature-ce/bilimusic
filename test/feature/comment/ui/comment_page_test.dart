@@ -68,6 +68,7 @@ class _OneCommentController extends _EmptyCommentController {
 Future<void> _pumpCommentPage(
   WidgetTester tester, {
   bool withComment = false,
+  CommentTarget target = _target,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -78,17 +79,33 @@ Future<void> _pumpCommentPage(
     ProviderScope(
       overrides: [
         playerControllerProvider.overrideWith(_FakePlayerController.new),
-        commentControllerProvider(_target).overrideWith(
+        commentControllerProvider(target).overrideWith(
           withComment ? _OneCommentController.new : _EmptyCommentController.new,
         ),
       ],
-      child: const MaterialApp(home: CommentPage(target: _target)),
+      child: MaterialApp(home: CommentPage(target: target)),
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
+  testWidgets('评论页顶部标题会把装饰字体还原成普通字符', (WidgetTester tester) async {
+    const CommentTarget stylized = CommentTarget(
+      oid: 2,
+      type: 1,
+      bvid: 'BV1test',
+      title: '𝐇𝐢-𝐑𝐞𝐬无损音质 | 《背对背》',
+      coverUrl: '',
+    );
+
+    await _pumpCommentPage(tester, target: stylized);
+
+    expect(find.text('Hi-Res无损音质 | 《背对背》'), findsOneWidget);
+    expect(find.textContaining('𝐇𝐢'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('评论页改成深色玻璃风：深色主题 + 模糊封面背景', (WidgetTester tester) async {
     await _pumpCommentPage(tester);
 
