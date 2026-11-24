@@ -1,8 +1,10 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
@@ -142,23 +144,36 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
     if (_isDownloadingAll || tracks.isEmpty) {
       return;
     }
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('下载整张歌单？'),
-        content: Text('将匹配并下载 ${tracks.length} 首歌曲，匹配过程需要一点时间，完成后会加入下载队列。'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('开始下载'),
-          ),
-        ],
-      ),
-    );
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
+    final String confirmMessage =
+        '将匹配并下载 ${tracks.length} 首歌曲，匹配过程需要一点时间，完成后会加入下载队列。';
+    final bool? confirmed = useGlass
+        ? await showAppGlassDialog<bool>(
+            context: context,
+            builder: (BuildContext dialogContext) => AppGlassAlertDialog(
+              title: '下载整张歌单？',
+              message: confirmMessage,
+              cancelLabel: '取消',
+              confirmLabel: '开始下载',
+            ),
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (BuildContext dialogContext) => AlertDialog(
+              title: const Text('下载整张歌单？'),
+              content: Text(confirmMessage),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('开始下载'),
+                ),
+              ],
+            ),
+          );
     if (confirmed != true || !mounted) {
       return;
     }

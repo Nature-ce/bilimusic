@@ -1,3 +1,4 @@
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
@@ -74,6 +75,7 @@ Future<void> _pumpPage(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
         hotPlaylistRepositoryProvider.overrideWithValue(
           _repository(total: total),
         ),
@@ -92,6 +94,11 @@ Future<void> _pumpPage(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+class _GlassAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => true;
 }
 
 void main() {
