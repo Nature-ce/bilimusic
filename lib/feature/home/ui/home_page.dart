@@ -81,12 +81,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _selectSection(HomeSection section) {
-    if (section.index == _pageIndex) {
+    final int target = section.index;
+    if (target == _pageIndex || !_pageController.hasClients) {
+      return;
+    }
+    final Duration duration = AppMotion.resolve(context, AppMotion.base);
+    if (duration <= Duration.zero) {
+      // 系统关闭动画时 animateToPage 会拿到零时长（偏移算成 NaN，页面反而卡住），直接跳页。
+      _pageController.jumpToPage(target);
       return;
     }
     _pageController.animateToPage(
-      section.index,
-      duration: AppMotion.resolve(context, AppMotion.base),
+      target,
+      duration: duration,
       curve: AppMotion.standard,
     );
   }

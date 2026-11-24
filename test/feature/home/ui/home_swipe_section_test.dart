@@ -61,7 +61,10 @@ class _FakePlaylists extends HotPlaylistController {
   );
 }
 
-Future<void> _pumpHome(WidgetTester tester) async {
+Future<void> _pumpHome(
+  WidgetTester tester, {
+  bool disableAnimations = false,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -75,7 +78,10 @@ Future<void> _pumpHome(WidgetTester tester) async {
         musicChartControllerProvider.overrideWith(_FakeCharts.new),
         hotPlaylistControllerProvider.overrideWith(_FakePlaylists.new),
       ],
-      child: const MaterialApp(home: HomePage()),
+      child: MediaQuery(
+        data: MediaQueryData(disableAnimations: disableAnimations),
+        child: const MaterialApp(home: HomePage()),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -102,6 +108,35 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('点击顶部栏目也能切换 section', (WidgetTester tester) async {
+    await _pumpHome(tester);
+
+    expect(find.text('今日推荐'), findsOneWidget);
+
+    await tester.tap(find.text('热门歌单'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑甄选'), findsOneWidget);
+    expect(find.text('今日推荐'), findsNothing);
+
+    await tester.tap(find.text('推荐'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('今日推荐'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('系统关闭动画时点击栏目也能切换 section', (WidgetTester tester) async {
+    await _pumpHome(tester, disableAnimations: true);
+
+    expect(find.text('今日推荐'), findsOneWidget);
+
+    await tester.tap(find.text('热门歌单'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑甄选'), findsOneWidget);
+    expect(find.text('今日推荐'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('小幅横拖不会切换 section', (WidgetTester tester) async {
     await _pumpHome(tester);
 
