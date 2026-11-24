@@ -13,6 +13,11 @@ import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
 import 'package:bilimusic/feature/radar/domain/radar_taste.dart';
 import 'package:bilimusic/feature/radar/logic/radar_recommender.dart';
 import 'package:bilimusic/feature/radar/logic/radar_taste_provider.dart';
+import 'package:bilimusic/feature/search/data/bili_search_repository.dart';
+import 'package:bilimusic/feature/search/domain/search_page_result.dart';
+import 'package:bilimusic/feature/search/domain/search_result_item.dart';
+import 'package:bilimusic/feature/search/domain/search_sort.dart';
+import 'package:bilimusic/feature/search/logic/search_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -74,12 +79,31 @@ DailyPick _dailyPick(int index) {
   );
 }
 
+class _FakeSearchRepository implements BiliSearchRepository {
+  _FakeSearchRepository({this.items = const <SearchResultItem>[]});
+
+  final List<SearchResultItem> items;
+
+  @override
+  Future<SearchPageResult> searchVideos(
+    String keyword, {
+    int page = 1,
+    SearchSort sort = SearchSort.comprehensive,
+  }) async {
+    return SearchPageResult(items: items);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
 ProviderContainer _container({
   required _FakeDailyStore store,
   required _FakePoolLoader loader,
   required _CountingRecommender recommender,
   DateTime Function()? now,
   RadarTaste taste = const RadarTaste(),
+  BiliSearchRepository? searchRepository,
 }) {
   final ProviderContainer container = ProviderContainer(
     overrides: [
@@ -89,6 +113,9 @@ ProviderContainer _container({
       dailyRecommendationRandomProvider.overrideWithValue(Random(7)),
       radarTasteProvider.overrideWith((Ref ref) async => taste),
       dailyNowProvider.overrideWith((Ref ref) => now ?? () => _today),
+      biliSearchRepositoryProvider.overrideWith(
+        (Ref ref) => searchRepository ?? _FakeSearchRepository(),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -274,6 +301,56 @@ void main() {
     expect(loader.loadCalls, 2);
     expect(store.saveCalls, 2);
     expect(store.load()!.dateKey, '2026-11-25');
+  });
+
+  test('缺少封面的曲目会用 B 站匹配结果回填并落盘', () async {
+    final _FakeDailyStore store = _FakeDailyStore(
+      stored: DailyRecommendation(
+        dateKey: '2026-11-24',
+        generatedAtEpochMs: 5,
+        picks: const <DailyPick>[
+          DailyPick(
+            title: '最初的记忆',
+            artist: '火鸡',
+            reason: RadarReason.explorer,
+            durationSeconds: 29,
+          ),
+        ],
+      ),
+    );
+    final ProviderContainer container = _container(
+      store: store,
+      loader: _FakePoolLoader(waves: const <List<HotPlaylistTrack>>[]),
+      recommender: _CountingRecommender(),
+      searchRepository: _FakeSearchRepository(
+        items: const <SearchResultItem>[
+          SearchResultItem(
+            aid: 1,
+            bvid: 'BV1',
+            typeId: 3,
+            title: '火鸡 - 最初的记忆 (完整版)',
+            author: '某UP主',
+            coverUrl: 'https://example.com/bili.jpg',
+            duration: '04:00',
+            playCountText: '1万',
+            danmakuCountText: '',
+            publishTimeText: '',
+            tagText: '',
+          ),
+        ],
+      ),
+    );
+
+    await _settle(container);
+    await container
+        .read(dailyRecommendationControllerProvider.notifier)
+        .backfillCovers();
+
+    final DailyRecommendationState state = container.read(
+      dailyRecommendationControllerProvider,
+    );
+    expect(state.picks.single.coverUrl, 'https://example.com/bili.jpg');
+    expect(store.load()!.picks.single.coverUrl, 'https://example.com/bili.jpg');
   });
 }
 

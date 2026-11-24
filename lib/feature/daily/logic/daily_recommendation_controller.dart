@@ -6,11 +6,16 @@ import 'package:bilimusic/feature/daily/data/daily_recommendation_store.dart';
 import 'package:bilimusic/feature/daily/domain/daily_recommendation.dart';
 import 'package:bilimusic/feature/daily/domain/daily_recommendation_state.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
+import 'package:bilimusic/feature/home/logic/chart_track_matcher.dart';
 import 'package:bilimusic/feature/radar/data/radar_pool_loader.dart';
 import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
 import 'package:bilimusic/feature/radar/domain/radar_taste.dart';
 import 'package:bilimusic/feature/radar/logic/radar_recommender.dart';
 import 'package:bilimusic/feature/radar/logic/radar_taste_provider.dart';
+import 'package:bilimusic/feature/search/data/bili_search_repository.dart';
+import 'package:bilimusic/feature/search/domain/search_page_result.dart';
+import 'package:bilimusic/feature/search/domain/search_result_item.dart';
+import 'package:bilimusic/feature/search/logic/search_controller.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -43,6 +48,7 @@ class DailyRecommendationController extends _$DailyRecommendationController {
   static const int maxPoolWaves = 3;
 
   bool _isGenerating = false;
+  bool _isBackfillingCovers = false;
 
   @override
   DailyRecommendationState build() {
@@ -61,6 +67,7 @@ class DailyRecommendationController extends _$DailyRecommendationController {
         dateKey: stored.dateKey,
         generatedAtEpochMs: stored.generatedAtEpochMs,
       );
+      unawaited(backfillCovers());
       return;
     }
     await generate();
@@ -151,6 +158,7 @@ class DailyRecommendationController extends _$DailyRecommendationController {
         dateKey: today,
         generatedAtEpochMs: recommendation.generatedAtEpochMs,
       );
+      unawaited(backfillCovers());
     } on Object {
       if (!ref.mounted) {
         return;
@@ -166,6 +174,78 @@ class DailyRecommendationController extends _$DailyRecommendationController {
       return ref.read(dailyRecommendationStoreProvider).load();
     } on Object {
       return null;
+    }
+  }
+
+  /// 源接口偶尔不给封面（coverUrl 为空），用 B 站匹配到的视频封面回填并落盘。
+  Future<void> backfillCovers({int maxTracks = 8}) async {
+    if (_isBackfillingCovers) {
+      return;
+    }
+    final List<DailyPick> missing = state.picks
+        .where((DailyPick pick) => pick.coverUrl.trim().isEmpty)
+        .take(maxTracks)
+        .toList(growable: false);
+    if (missing.isEmpty) {
+      return;
+    }
+    _isBackfillingCovers = true;
+    try {
+      final BiliSearchRepository repository = ref.read(
+        biliSearchRepositoryProvider,
+      );
+      final Map<String, String> covers = <String, String>{};
+      for (final DailyPick pick in missing) {
+        if (!ref.mounted) {
+          return;
+        }
+        try {
+          final SearchPageResult result = await repository.searchVideos(
+            pick.searchKeyword,
+          );
+          final SearchResultItem? match = ChartTrackMatcher.pickBest(
+            track: pick,
+            candidates: result.items,
+          );
+          final String cover = match?.coverUrl.trim() ?? '';
+          if (cover.isNotEmpty) {
+            covers[pick.key] = cover;
+          }
+        } on Object {
+          // 单首失败不影响其它曲目。
+        }
+      }
+      if (!ref.mounted || covers.isEmpty) {
+        return;
+      }
+      final List<DailyPick> updated = <DailyPick>[
+        for (final DailyPick pick in state.picks)
+          covers.containsKey(pick.key) && pick.coverUrl.trim().isEmpty
+              ? pick.copyWith(coverUrl: covers[pick.key]!)
+              : pick,
+      ];
+      state = state.copyWith(picks: List<DailyPick>.unmodifiable(updated));
+      await _persistPicks(updated);
+    } on Object {
+      // 回填只是锦上添花，失败不影响已展示的推荐。
+    } finally {
+      _isBackfillingCovers = false;
+    }
+  }
+
+  Future<void> _persistPicks(List<DailyPick> picks) async {
+    try {
+      await ref
+          .read(dailyRecommendationStoreProvider)
+          .save(
+            DailyRecommendation(
+              dateKey: state.dateKey,
+              generatedAtEpochMs: state.generatedAtEpochMs,
+              picks: picks,
+            ),
+          );
+    } on Object {
+      // 落盘失败不影响当前展示。
     }
   }
 
