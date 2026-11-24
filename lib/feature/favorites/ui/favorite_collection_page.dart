@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/logger.dart';
@@ -11,6 +12,7 @@ import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
@@ -936,151 +938,156 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       collection: collection,
     );
 
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
+    Widget buildSheet(BuildContext sheetContext) {
+      final double bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+
+      return SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  contentPadding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
+                  leading: CommonCachedImage(
+                    imageUrl: item.coverUrl,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(14),
+                    fallbackIcon: Icons.music_note_rounded,
+                    iconColor: colorScheme.primary,
+                    backgroundColor: colorScheme.primary.withValues(
+                      alpha: 0.14,
+                    ),
+                  ),
+                  title: Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    buildFavoriteEntrySubtitle(item),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                _FavoriteActionTile(
+                  icon: Icons.heart_broken_rounded,
+                  title: '取消收藏',
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    final bool removed = await ref
+                        .read(favoritesControllerProvider.notifier)
+                        .removeFromCollection(
+                          collectionId: collection.id,
+                          itemId: item.itemId,
+                        );
+                    if (!mounted) {
+                      return;
+                    }
+                    ToastUtil.show(
+                      removed ? '已从“${collection.name}”移除' : '取消收藏失败',
+                    );
+                  },
+                ),
+                _FavoriteActionTile(
+                  icon: Icons.playlist_add_rounded,
+                  title: '加到歌单',
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await showPlayerCollectionSheet(
+                      context: context,
+                      item: playableItem,
+                    );
+                  },
+                ),
+                _FavoriteActionTile(
+                  icon: Icons.download_rounded,
+                  title: '下载',
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    final bool queued = await ref
+                        .read(downloadControllerProvider.notifier)
+                        .download(playableItem);
+                    if (!mounted) {
+                      return;
+                    }
+                    ToastUtil.show(queued ? '已加入下载队列' : '已下载或正在下载');
+                  },
+                ),
+                _FavoriteActionTile(
+                  icon: Icons.person_rounded,
+                  title: '查看UP主',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _openOwnerPage(item);
+                  },
+                ),
+                _FavoriteActionTile(
+                  icon: Icons.bar_chart_rounded,
+                  title: '统计',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    if (mounted) {
+                      context.push('/statistics/song', extra: playableItem);
+                    }
+                  },
+                ),
+                _FavoriteActionTile(
+                  icon: Icons.skip_next_rounded,
+                  title: '下一首播放',
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await ref
+                        .read(playerControllerProvider.notifier)
+                        .playNext(playableItem);
+                    if (!mounted) {
+                      return;
+                    }
+                    ToastUtil.show('已加入下一首');
+                  },
+                ),
+                _FavoriteActionTile(
+                  icon: Icons.library_add_rounded,
+                  title: '添加全部分P',
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await _enqueueAllParts(playableItem: playableItem);
+                  },
+                ),
+                _FavoriteActionTile(
+                  icon: Icons.share_rounded,
+                  title: '分享',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    ToastUtil.show('分享功能暂未开放');
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (useGlass) {
+      await showAppHalfSheet<void>(context: context, builder: buildSheet);
+      return;
+    }
     await showModalBottomSheet<void>(
       useRootNavigator: true,
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: colorScheme.surface,
-      builder: (BuildContext sheetContext) {
-        final double bottomInset = MediaQuery.of(
-          sheetContext,
-        ).viewInsets.bottom;
-
-        return SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  ListTile(
-                    contentPadding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
-                    leading: CommonCachedImage(
-                      imageUrl: item.coverUrl,
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.cover,
-                      borderRadius: BorderRadius.circular(14),
-                      fallbackIcon: Icons.music_note_rounded,
-                      iconColor: colorScheme.primary,
-                      backgroundColor: colorScheme.primary.withValues(
-                        alpha: 0.14,
-                      ),
-                    ),
-                    title: Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    subtitle: Text(
-                      buildFavoriteEntrySubtitle(item),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  _FavoriteActionTile(
-                    icon: Icons.heart_broken_rounded,
-                    title: '取消收藏',
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      final bool removed = await ref
-                          .read(favoritesControllerProvider.notifier)
-                          .removeFromCollection(
-                            collectionId: collection.id,
-                            itemId: item.itemId,
-                          );
-                      if (!mounted) {
-                        return;
-                      }
-                      ToastUtil.show(
-                        removed ? '已从“${collection.name}”移除' : '取消收藏失败',
-                      );
-                    },
-                  ),
-                  _FavoriteActionTile(
-                    icon: Icons.playlist_add_rounded,
-                    title: '加到歌单',
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      await showPlayerCollectionSheet(
-                        context: context,
-                        item: playableItem,
-                      );
-                    },
-                  ),
-                  _FavoriteActionTile(
-                    icon: Icons.download_rounded,
-                    title: '下载',
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      final bool queued = await ref
-                          .read(downloadControllerProvider.notifier)
-                          .download(playableItem);
-                      if (!mounted) {
-                        return;
-                      }
-                      ToastUtil.show(queued ? '已加入下载队列' : '已下载或正在下载');
-                    },
-                  ),
-                  _FavoriteActionTile(
-                    icon: Icons.person_rounded,
-                    title: '查看UP主',
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      _openOwnerPage(item);
-                    },
-                  ),
-                  _FavoriteActionTile(
-                    icon: Icons.bar_chart_rounded,
-                    title: '统计',
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      if (mounted) {
-                        context.push('/statistics/song', extra: playableItem);
-                      }
-                    },
-                  ),
-                  _FavoriteActionTile(
-                    icon: Icons.skip_next_rounded,
-                    title: '下一首播放',
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      await ref
-                          .read(playerControllerProvider.notifier)
-                          .playNext(playableItem);
-                      if (!mounted) {
-                        return;
-                      }
-                      ToastUtil.show('已加入下一首');
-                    },
-                  ),
-                  _FavoriteActionTile(
-                    icon: Icons.library_add_rounded,
-                    title: '添加全部分P',
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      await _enqueueAllParts(playableItem: playableItem);
-                    },
-                  ),
-                  _FavoriteActionTile(
-                    icon: Icons.share_rounded,
-                    title: '分享',
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      ToastUtil.show('分享功能暂未开放');
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      backgroundColor: colorScheme.surfaceContainerLow,
+      builder: buildSheet,
     );
   }
 
