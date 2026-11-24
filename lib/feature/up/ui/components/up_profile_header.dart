@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/user_avatar.dart';
 import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/feature/up/domain/favorite_up.dart';
+import 'package:bilimusic/feature/favorites/ui/components/favorite_like_button.dart';
 import 'package:bilimusic/feature/up/domain/up_profile.dart';
 import 'package:bilimusic/feature/up/logic/favorite_up_controller.dart';
 import 'package:flutter/material.dart';
@@ -92,11 +93,10 @@ class _FavoriteUpButton extends ConsumerWidget {
       ),
     );
 
-    return IconButton.filledTonal(
-      tooltip: isFavorited ? '取消收藏' : '收藏UP主',
-      icon: Icon(
-        isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-      ),
+    return FavoriteLikeIconButton(
+      isLiked: isFavorited,
+      iconSize: 26,
+      tooltip: isFavorited ? '取消关注' : '关注 UP 主',
       onPressed: () {
         ref.read(favoriteUpControllerProvider.notifier).toggle(profile);
       },

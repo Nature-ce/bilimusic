@@ -28,7 +28,9 @@ Future<void> showPlayerQueueSheet({
     isScrollControlled: true,
     backgroundColor: glass ? Colors.transparent : null,
     elevation: 0,
-    barrierColor: Colors.black.withValues(alpha: 0.3),
+    barrierColor: glass
+        ? Colors.transparent
+        : Colors.black.withValues(alpha: 0.3),
     clipBehavior: glass ? Clip.none : Clip.antiAlias,
     shape: glass
         ? null

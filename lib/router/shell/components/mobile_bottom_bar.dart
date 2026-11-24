@@ -286,8 +286,8 @@ class _TabRow extends StatelessWidget {
   _tabs = <({IconData icon, IconData selectedIcon, String label})>[
     (icon: Icons.home_outlined, selectedIcon: Icons.home, label: '首页'),
     (
-      icon: Icons.shuffle_rounded,
-      selectedIcon: Icons.shuffle_rounded,
+      icon: Icons.radar_outlined,
+      selectedIcon: Icons.radar_rounded,
       label: '刷歌',
     ),
     (
