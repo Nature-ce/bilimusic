@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
@@ -8,7 +9,6 @@ import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
-import 'package:bilimusic/feature/home/logic/collection_play_all.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
 import 'package:bilimusic/feature/home/ui/components/home_chart_platform_card.dart';
@@ -17,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// 首页「推荐」：快捷入口 + 每日推荐大卡 + 四平台排行榜卡片入口。
+/// 首页「推荐」：今日推荐墙（每日推荐前 10 首）+ 四平台排行榜卡片入口。
 class HomeRecommendSection extends ConsumerStatefulWidget {
   const HomeRecommendSection({super.key});
 
@@ -36,9 +36,7 @@ class _HomeRecommendSectionState extends ConsumerState<HomeRecommendSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const _QuickActions(),
-        const SizedBox(height: AppSpacing.lg),
-        const _DailyHeroCard(),
+        const _DailyWall(),
         const _SectionHeader(title: '排行榜', subtitle: 'Charts'),
         _ChartCardRow(state: state, onPlay: _playTrack, onTrackTap: _playTrack),
       ],
@@ -125,103 +123,73 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _QuickActions extends StatelessWidget {
-  const _QuickActions();
+class _DailyWall extends ConsumerWidget {
+  const _DailyWall();
 
-  static const List<
-    ({String label, String glyph, List<Color> colors, String route})
-  >
-  _items = <({String label, String glyph, List<Color> colors, String route})>[
-    (
-      label: '每日推荐',
-      glyph: '日',
-      colors: <Color>[Color(0xFF3E7BD0), Color(0xFF6AA3E8)],
-      route: '/daily',
-    ),
-    (
-      label: '最近播放',
-      glyph: '近',
-      colors: <Color>[Color(0xFFC97B3E), Color(0xFFE3A46A)],
-      route: '/profile/recent',
-    ),
-    (
-      label: '我的收藏',
-      glyph: '藏',
-      colors: <Color>[Color(0xFF8B5CC4), Color(0xFFB183E0)],
-      route: '/profile/favorites/liked',
-    ),
-    (
-      label: '下载',
-      glyph: '下',
-      colors: <Color>[Color(0xFF2E7D5B), Color(0xFF4FA97C)],
-      route: '/profile/downloads',
-    ),
-  ];
+  static const int _previewCount = 10;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
-    return Row(
+    final DailyRecommendationState state = ref.watch(
+      dailyRecommendationControllerProvider,
+    );
+    final List<DailyPick> picks = state.picks;
+    final List<DailyPick> preview = picks.length > _previewCount
+        ? picks.take(_previewCount).toList(growable: false)
+        : picks;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        for (final ({
-              String label,
-              String glyph,
-              List<Color> colors,
-              String route,
-            })
-            item
-            in _items)
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              onTap: () => context.push(item.route),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                child: Column(
-                  children: <Widget>[
-                    Container(
-                      width: 46,
-                      height: 46,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: item.colors,
-                        ),
-                        boxShadow: <BoxShadow>[
-                          BoxShadow(
-                            color: item.colors.last.withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        item.glyph,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          height: 1,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs + 2),
-                    Text(
-                      item.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, AppSpacing.lg, 2, 0),
+          child: Row(
+            children: <Widget>[
+              Text(
+                '今日推荐',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
                 ),
               ),
+              const Spacer(),
+              if (preview.isNotEmpty)
+                TextButton(
+                  onPressed: () => context.push('/daily'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    textStyle: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('查看全部 ›'),
+                ),
+            ],
+          ),
+        ),
+        if (preview.isEmpty)
+          _DailyWallPlaceholder(
+            isLoading: state.isLoading,
+            hasError: state.hasError,
+            onRetry: () => ref
+                .read(dailyRecommendationControllerProvider.notifier)
+                .retry(),
+          )
+        else
+          SizedBox(
+            height: _DailyWallCard.height + 10,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(2, 9, 2, 0),
+              itemCount: preview.length,
+              separatorBuilder: (BuildContext context, int index) =>
+                  const SizedBox(width: 10),
+              itemBuilder: (BuildContext context, int index) =>
+                  _DailyWallCard(pick: preview[index], rank: index + 1),
             ),
           ),
       ],
@@ -229,189 +197,96 @@ class _QuickActions extends StatelessWidget {
   }
 }
 
-class _DailyHeroCard extends ConsumerStatefulWidget {
-  const _DailyHeroCard();
+class _DailyWallCard extends StatelessWidget {
+  const _DailyWallCard({required this.pick, required this.rank});
 
-  @override
-  ConsumerState<_DailyHeroCard> createState() => _DailyHeroCardState();
-}
+  static const double coverSize = 96;
+  static const double height = 96 + 6 + 17 + 2 + 14;
 
-class _DailyHeroCardState extends ConsumerState<_DailyHeroCard> {
-  bool _isPlayingAll = false;
-
-  Future<void> _playAll(List<DailyPick> picks) async {
-    if (_isPlayingAll || picks.isEmpty) {
-      return;
-    }
-    setState(() => _isPlayingAll = true);
-    try {
-      await CollectionPlayAllRunner(
-        context: context,
-        ref: ref,
-        sourceLabel: '每日推荐',
-        isActive: () => mounted,
-      ).run(picks);
-    } finally {
-      if (mounted) {
-        setState(() => _isPlayingAll = false);
-      }
-    }
-  }
+  final DailyPick pick;
+  final int rank;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final DailyRecommendationState daily = ref.watch(
-      dailyRecommendationControllerProvider,
-    );
-    final List<DailyPick> picks = daily.picks;
-    final bool personalized = daily.isPersonalized && picks.isNotEmpty;
-    final String title = picks.isNotEmpty
-        ? '今天为你挑了 ${picks.length} 首'
-        : daily.hasError
-        ? '每日推荐还在路上'
-        : '正在为你挑今天的歌';
-    final String subtitle = picks.isNotEmpty
-        ? (personalized ? daily.reasonSummary : '先从各平台热门里挑')
-        : daily.hasError
-        ? '点开重试一下'
-        : '每天 0 点更新 30 首';
+    final Color primary = colorScheme.primary;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => context.push('/daily'),
-      child: Container(
-        width: double.infinity,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.18),
-          ),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              colorScheme.primary.withValues(alpha: 0.15),
-              colorScheme.primary.withValues(alpha: 0.04),
-            ],
-          ),
-        ),
-        child: Stack(
+      child: SizedBox(
+        width: coverSize,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Positioned(
-              right: -22,
-              top: -30,
-              child: Transform.rotate(
-                angle: 0.22,
-                child: _RadarDecorSquare(
-                  size: 86,
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 58,
-              top: -34,
-              child: Transform.rotate(
-                angle: -0.16,
-                child: _RadarDecorSquare(
-                  size: 56,
-                  color: colorScheme.primary.withValues(alpha: 0.07),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            SizedBox(
+              width: coverSize,
+              height: coverSize,
+              child: Stack(
                 children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '每日推荐 · 每天 0 点更新',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ],
+                  Positioned.fill(
+                    child: CommonCachedImage(
+                      imageUrl: pick.coverUrl,
+                      width: coverSize,
+                      height: coverSize,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      placeholder: _DailyWallCoverFallback(primary: primary),
+                      errorWidget: _DailyWallCoverFallback(primary: primary),
                     ),
                   ),
-                  const SizedBox(height: 7),
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontSize: 22,
-                      height: 1.18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
-                      key: const Key('dailyHeroPlayAll'),
-                      onPressed: picks.isEmpty || _isPlayingAll
-                          ? null
-                          : () => _playAll(picks),
-                      icon: _isPlayingAll
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.play_arrow_rounded, size: 18),
-                      label: Text(_isPlayingAll ? '准备中' : '开始听'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md + 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                  Positioned(
+                    left: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '$rank',
+                        style: const TextStyle(
+                          fontSize: 9.5,
+                          height: 1.2,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          fontFeatures: <FontFeature>[
+                            FontFeature.tabularFigures(),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              pick.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.3,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              pick.artist,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -421,20 +296,98 @@ class _DailyHeroCardState extends ConsumerState<_DailyHeroCard> {
   }
 }
 
-class _RadarDecorSquare extends StatelessWidget {
-  const _RadarDecorSquare({required this.size, required this.color});
+class _DailyWallCoverFallback extends StatelessWidget {
+  const _DailyWallCoverFallback({required this.primary});
 
-  final double size;
-  final Color color;
+  final Color primary;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(size * 0.32),
+        gradient: LinearGradient(
+          colors: <Color>[
+            primary.withValues(alpha: 0.18),
+            primary.withValues(alpha: 0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Icon(Icons.music_note_rounded, color: primary, size: 28),
+    );
+  }
+}
+
+class _DailyWallPlaceholder extends StatelessWidget {
+  const _DailyWallPlaceholder({
+    required this.isLoading,
+    required this.hasError,
+    required this.onRetry,
+  });
+
+  final bool isLoading;
+  final bool hasError;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    if (hasError && !isLoading) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(2, 10, 2, 2),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              Icons.error_outline_rounded,
+              size: 18,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '今日推荐生成失败',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: colorScheme.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(2, 10, 2, 2),
+      child: Row(
+        children: <Widget>[
+          for (int index = 0; index < 4; index += 1) ...<Widget>[
+            if (index > 0) const SizedBox(width: 10),
+            Container(
+              width: _DailyWallCard.coverSize,
+              height: _DailyWallCard.coverSize,
+              decoration: BoxDecoration(
+                color: colorScheme.onSurface.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
