@@ -428,7 +428,6 @@ class _ChartCardRow extends StatelessWidget {
                       );
                   return HomeChartPlatformCard(
                     entry: entry,
-                    selected: state.selected == platform,
                     onOpen: () => context.push('/home/charts/${platform.name}'),
                     onPlay: () {
                       if (entry.tracks.isNotEmpty) {

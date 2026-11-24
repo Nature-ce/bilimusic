@@ -13,7 +13,6 @@ class HomeChartPlatformCard extends StatelessWidget {
   const HomeChartPlatformCard({
     super.key,
     required this.entry,
-    required this.selected,
     required this.onOpen,
     required this.onPlay,
     required this.onTrackTap,
@@ -22,7 +21,6 @@ class HomeChartPlatformCard extends StatelessWidget {
   static const double width = 268;
 
   final MusicChartEntry entry;
-  final bool selected;
   final VoidCallback onOpen;
   final VoidCallback onPlay;
   final ValueChanged<MusicChartTrack> onTrackTap;
@@ -45,10 +43,7 @@ class HomeChartPlatformCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.card),
               border: Border.all(
-                color: selected
-                    ? colorScheme.primary.withValues(alpha: 0.55)
-                    : colorScheme.outlineVariant.withValues(alpha: 0.4),
-                width: selected ? 1.5 : 1,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
