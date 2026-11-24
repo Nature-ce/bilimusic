@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/bottom_page_spacer.dart';
+import 'package:bilimusic/common/components/swipe_reveal_row.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/recent/domain/recent_playback_entry.dart';
 import 'package:bilimusic/feature/recent/ui/components/recent_playback_entry_tile.dart';
@@ -18,12 +19,14 @@ class RecentPlaybackList extends StatelessWidget {
     required this.progress,
     required this.onPlay,
     this.onLongPressEntry,
+    this.onDeleteEntry,
   });
 
   final List<RecentPlaybackDayGroup> groups;
   final Map<String, int> progress;
   final ValueChanged<int> onPlay;
   final ValueChanged<int>? onLongPressEntry;
+  final ValueChanged<int>? onDeleteEntry;
 
   @override
   Widget build(BuildContext context) {
@@ -57,14 +60,26 @@ class RecentPlaybackList extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        return RecentPlaybackEntryTile(
-          key: ValueKey<String>(entry.stableId),
+        final Widget tile = RecentPlaybackEntryTile(
           entry: entry,
           progressMs: progress[entry.stableId],
           onTap: () => onPlay(row.index),
           onLongPress: onLongPressEntry == null
               ? null
               : () => onLongPressEntry!(row.index),
+        );
+        final ValueChanged<int>? delete = onDeleteEntry;
+        if (delete == null) {
+          return KeyedSubtree(
+            key: ValueKey<String>(entry.stableId),
+            child: tile,
+          );
+        }
+        return SwipeRevealRow(
+          key: ValueKey<String>('swipe:${entry.stableId}'),
+          actionLabel: '删除',
+          onAction: () => delete(row.index),
+          child: tile,
         );
       },
     );

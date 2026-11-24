@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
@@ -52,6 +54,9 @@ class RecentPlaybackBody extends ConsumerWidget {
               index,
               useGlass,
             ),
+      onDeleteEntry: onDeleteEntry == null
+          ? null
+          : (int index) => unawaited(onDeleteEntry!(orderedEntries[index])),
     );
   }
 

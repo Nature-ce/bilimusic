@@ -53,6 +53,38 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('向左滑动条目露出删除按钮，点删除会回调', (WidgetTester tester) async {
+    final List<RecentPlaybackEntry> deleted = <RecentPlaybackEntry>[];
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: RecentPlaybackBody(
+              entries: const <RecentPlaybackEntry>[_entry],
+              progress: const <String, int>{},
+              onPlay: (_, _, _) {},
+              onDeleteEntry: (RecentPlaybackEntry entry) async {
+                deleted.add(entry);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.text(_entry.title), const Offset(-110, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+
+    expect(deleted, hasLength(1));
+    expect(deleted.single.stableId, _entry.stableId);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('玻璃开关打开时长按条目用玻璃弹层', (WidgetTester tester) async {
     await _pump(tester, appearance: _GlassAppearance.new);
 
