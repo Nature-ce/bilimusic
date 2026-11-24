@@ -42,6 +42,10 @@ class MobileChromeConfig {
       return fullScreen;
     }
 
+    if (path == '/daily') {
+      return detail;
+    }
+
     if (path == '/settings' || path.startsWith('/settings/')) {
       return fullScreen;
     }

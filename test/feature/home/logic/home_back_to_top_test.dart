@@ -1,3 +1,5 @@
+import 'package:bilimusic/feature/daily/domain/daily_recommendation_state.dart';
+import 'package:bilimusic/feature/daily/logic/daily_recommendation_controller.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
@@ -18,6 +20,11 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakeRadar extends MusicRadarController {
   @override
   MusicRadarState build() => const MusicRadarState();
+}
+
+class _FakeDaily extends DailyRecommendationController {
+  @override
+  DailyRecommendationState build() => const DailyRecommendationState();
 }
 
 class _FakeCharts extends MusicChartController {
@@ -193,6 +200,7 @@ void main() {
       overrides: [
         musicChartControllerProvider.overrideWith(_FakeCharts.new),
         musicRadarControllerProvider.overrideWith(_FakeRadar.new),
+        dailyRecommendationControllerProvider.overrideWith(_FakeDaily.new),
         hotPlaylistControllerProvider.overrideWith(_FakePlaylists.new),
       ],
     );

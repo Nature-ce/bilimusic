@@ -2,12 +2,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
-import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
-import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
-import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
+import 'package:bilimusic/feature/radar/data/radar_pool_loader.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
-import 'package:bilimusic/feature/radar/domain/radar_keys.dart';
 import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
 import 'package:bilimusic/feature/radar/domain/radar_taste.dart';
 import 'package:bilimusic/feature/radar/logic/radar_recommender.dart';
@@ -28,8 +25,8 @@ class MusicRadarController extends _$MusicRadarController {
   static const int _batchTracks = 24;
   static const int _extendTracks = 12;
   static const int _firstWavePlaylists = 1;
-  static const int _secondWavePlaylists = 2;
-  static const int _tracksPerPlaylist = 40;
+  static const int _secondWavePlaylists =
+      RadarPoolLoader.defaultPlaylistsPerPlatform;
 
   int _scanId = 0;
   int _extendId = 0;
@@ -57,7 +54,7 @@ class MusicRadarController extends _$MusicRadarController {
       isLoadingMore: false,
       errorMessage: null,
     );
-    final _PoolResult pool = await _gatherPool(
+    final RadarPoolResult pool = await _gatherPool(
       random,
       playlistsPerPlatform: _firstWavePlaylists,
     );
@@ -109,7 +106,7 @@ class MusicRadarController extends _$MusicRadarController {
     final Random random = ref.read(musicRadarRandomProvider);
     state = state.copyWith(isLoadingMore: true, errorMessage: null);
     if (_pool.isEmpty) {
-      final _PoolResult pool = await _gatherPool(random);
+      final RadarPoolResult pool = await _gatherPool(random);
       if (!ref.mounted || extendId != _extendId) {
         return;
       }
@@ -127,7 +124,7 @@ class MusicRadarController extends _$MusicRadarController {
       excludeKeys: _seenKeys,
     );
     if (picks.isEmpty) {
-      final _PoolResult pool = await _gatherPool(random);
+      final RadarPoolResult pool = await _gatherPool(random);
       if (!ref.mounted || extendId != _extendId) {
         return;
       }
@@ -167,89 +164,12 @@ class MusicRadarController extends _$MusicRadarController {
     }
   }
 
-  Future<_PoolResult> _gatherPool(
+  Future<RadarPoolResult> _gatherPool(
     Random random, {
     int playlistsPerPlatform = _secondWavePlaylists,
-  }) async {
-    final HotPlaylistRepository repository = ref.read(
-      hotPlaylistRepositoryProvider,
-    );
-    final List<Future<_PlatformPool>> tasks = <Future<_PlatformPool>>[
-      for (final MusicChartPlatform platform in MusicChartPlatform.values)
-        _gatherPlatform(
-          repository,
-          platform,
-          random,
-          playlistsPerPlatform: playlistsPerPlatform,
-        ),
-    ];
-    final List<_PlatformPool> groups = await Future.wait(tasks);
-    final Map<String, HotPlaylistTrack> unique = <String, HotPlaylistTrack>{};
-    Object? lastError;
-    bool anySourceLoaded = false;
-    for (final _PlatformPool group in groups) {
-      if (group.tracks.isNotEmpty) {
-        anySourceLoaded = true;
-      }
-      lastError ??= group.error;
-      for (final HotPlaylistTrack track in group.tracks) {
-        unique.putIfAbsent(
-          radarTrackKey(title: track.title, artist: track.artist),
-          () => track,
-        );
-      }
-    }
-    return _PoolResult(
-      tracks: unique.values.toList(growable: false),
-      lastError: anySourceLoaded ? null : lastError,
-    );
+  }) {
+    return ref
+        .read(radarPoolLoaderProvider)
+        .load(random: random, playlistsPerPlatform: playlistsPerPlatform);
   }
-
-  Future<_PlatformPool> _gatherPlatform(
-    HotPlaylistRepository repository,
-    MusicChartPlatform platform,
-    Random random, {
-    int playlistsPerPlatform = _secondWavePlaylists,
-  }) async {
-    try {
-      final List<HotPlaylist> playlists = await repository.fetchPlaylists(
-        platform,
-      );
-      if (playlists.isEmpty) {
-        return const _PlatformPool(tracks: <HotPlaylistTrack>[], error: null);
-      }
-      final List<HotPlaylist> selected = List<HotPlaylist>.of(playlists)
-        ..shuffle(random);
-      final List<HotPlaylistTrack> tracks = <HotPlaylistTrack>[];
-      Object? lastError;
-      for (final HotPlaylist playlist in selected.take(playlistsPerPlatform)) {
-        try {
-          final HotPlaylistTrackPage page = await repository.fetchTrackPage(
-            playlist,
-            limit: _tracksPerPlaylist,
-          );
-          tracks.addAll(page.tracks);
-        } on Object catch (error) {
-          lastError = error;
-        }
-      }
-      return _PlatformPool(tracks: tracks, error: lastError);
-    } on Object catch (error) {
-      return _PlatformPool(tracks: const <HotPlaylistTrack>[], error: error);
-    }
-  }
-}
-
-class _PoolResult {
-  const _PoolResult({required this.tracks, this.lastError});
-
-  final List<HotPlaylistTrack> tracks;
-  final Object? lastError;
-}
-
-class _PlatformPool {
-  const _PlatformPool({required this.tracks, this.error});
-
-  final List<HotPlaylistTrack> tracks;
-  final Object? error;
 }

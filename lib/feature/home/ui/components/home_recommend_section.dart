@@ -1,22 +1,23 @@
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
+import 'package:bilimusic/feature/daily/domain/daily_recommendation.dart';
+import 'package:bilimusic/feature/daily/domain/daily_recommendation_state.dart';
+import 'package:bilimusic/feature/daily/logic/daily_recommendation_controller.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
+import 'package:bilimusic/feature/home/logic/collection_play_all.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
 import 'package:bilimusic/feature/home/ui/components/home_chart_platform_card.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
-import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
-import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
-import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// 首页「推荐」：快捷入口 + 私人雷达大卡 + 四平台排行榜卡片入口。
+/// 首页「推荐」：快捷入口 + 每日推荐大卡 + 四平台排行榜卡片入口。
 class HomeRecommendSection extends ConsumerStatefulWidget {
   const HomeRecommendSection({super.key});
 
@@ -37,7 +38,7 @@ class _HomeRecommendSectionState extends ConsumerState<HomeRecommendSection> {
       children: <Widget>[
         const _QuickActions(),
         const SizedBox(height: AppSpacing.lg),
-        const _RadarHeroCard(),
+        const _DailyHeroCard(),
         const _SectionHeader(title: '排行榜', subtitle: 'Charts'),
         _ChartCardRow(state: state, onPlay: _playTrack, onTrackTap: _playTrack),
       ],
@@ -132,10 +133,10 @@ class _QuickActions extends StatelessWidget {
   >
   _items = <({String label, String glyph, List<Color> colors, String route})>[
     (
-      label: '私人雷达',
-      glyph: '雷',
+      label: '每日推荐',
+      glyph: '日',
       colors: <Color>[Color(0xFF3E7BD0), Color(0xFF6AA3E8)],
-      route: '/radar',
+      route: '/daily',
     ),
     (
       label: '最近播放',
@@ -228,210 +229,195 @@ class _QuickActions extends StatelessWidget {
   }
 }
 
-class _RadarHeroCard extends ConsumerWidget {
-  const _RadarHeroCard();
+class _DailyHeroCard extends ConsumerStatefulWidget {
+  const _DailyHeroCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DailyHeroCard> createState() => _DailyHeroCardState();
+}
+
+class _DailyHeroCardState extends ConsumerState<_DailyHeroCard> {
+  bool _isPlayingAll = false;
+
+  Future<void> _playAll(List<DailyPick> picks) async {
+    if (_isPlayingAll || picks.isEmpty) {
+      return;
+    }
+    setState(() => _isPlayingAll = true);
+    try {
+      await CollectionPlayAllRunner(
+        context: context,
+        ref: ref,
+        sourceLabel: '每日推荐',
+        isActive: () => mounted,
+      ).run(picks);
+    } finally {
+      if (mounted) {
+        setState(() => _isPlayingAll = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final MusicRadarState radar = ref.watch(musicRadarControllerProvider);
-    final int trackCount = radar.tracks.length;
-    final bool personalized = radar.isPersonalized && trackCount > 0;
-    final String title = personalized
-        ? '今天为你挑了 $trackCount 首'
-        : trackCount > 0
-        ? '先按各平台热门挑了 $trackCount 首'
-        : '进来挑第一批适合你的歌';
-    final String subtitle = personalized
-        ? _reasonSummary(radar)
-        : '多听几首后会自动学习你的口味';
+    final DailyRecommendationState daily = ref.watch(
+      dailyRecommendationControllerProvider,
+    );
+    final List<DailyPick> picks = daily.picks;
+    final bool personalized = daily.isPersonalized && picks.isNotEmpty;
+    final String title = picks.isNotEmpty
+        ? '今天为你挑了 ${picks.length} 首'
+        : daily.hasError
+        ? '每日推荐还在路上'
+        : '正在为你挑今天的歌';
+    final String subtitle = picks.isNotEmpty
+        ? (personalized ? daily.reasonSummary : '先从各平台热门里挑')
+        : daily.hasError
+        ? '点开重试一下'
+        : '每天 0 点更新 30 首';
 
-    return Container(
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.18)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            colorScheme.primary.withValues(alpha: 0.15),
-            colorScheme.primary.withValues(alpha: 0.04),
-          ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.push('/daily'),
+      child: Container(
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: colorScheme.primary.withValues(alpha: 0.18),
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              colorScheme.primary.withValues(alpha: 0.15),
+              colorScheme.primary.withValues(alpha: 0.04),
+            ],
+          ),
         ),
-      ),
-      child: Stack(
-        children: <Widget>[
-          Positioned(
-            right: -22,
-            top: -30,
-            child: Transform.rotate(
-              angle: 0.22,
-              child: _RadarDecorSquare(
-                size: 86,
-                color: colorScheme.primary.withValues(alpha: 0.1),
+        child: Stack(
+          children: <Widget>[
+            Positioned(
+              right: -22,
+              top: -30,
+              child: Transform.rotate(
+                angle: 0.22,
+                child: _RadarDecorSquare(
+                  size: 86,
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            right: 58,
-            top: -34,
-            child: Transform.rotate(
-              angle: -0.16,
-              child: _RadarDecorSquare(
-                size: 56,
-                color: colorScheme.primary.withValues(alpha: 0.07),
+            Positioned(
+              right: 58,
+              top: -34,
+              child: Transform.rotate(
+                angle: -0.16,
+                child: _RadarDecorSquare(
+                  size: 56,
+                  color: colorScheme.primary.withValues(alpha: 0.07),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: colorScheme.primary,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colorScheme.primary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        personalized ? '私人雷达 · 随收听更新' : '私人雷达',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: colorScheme.primary,
+                        const SizedBox(width: 6),
+                        Text(
+                          '每日推荐 · 每天 0 点更新',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            color: colorScheme.primary,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontSize: 22,
-                    height: 1.18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+                  const SizedBox(height: 7),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: 22,
+                      height: 1.18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 5),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.icon(
-                    onPressed: () => context.push('/radar'),
-                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                    label: const Text('开始听'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md + 2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.icon(
+                      key: const Key('dailyHeroPlayAll'),
+                      onPressed: picks.isEmpty || _isPlayingAll
+                          ? null
+                          : () => _playAll(picks),
+                      icon: _isPlayingAll
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.play_arrow_rounded, size: 18),
+                      label: Text(_isPlayingAll ? '准备中' : '开始听'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md + 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  }
-
-  static String _reasonSummary(MusicRadarState radar) {
-    final List<RadarPick> picks = radar.picks
-        .where((RadarPick pick) => pick.reason != RadarReason.coldStart)
-        .toList(growable: false);
-    if (picks.isEmpty) {
-      final int listened = radar.listenedCount;
-      return listened > 0 ? '已根据你最近收听 $listened 首歌调整' : '已根据你的收听口味挑选';
-    }
-    int familiar = 0;
-    int related = 0;
-    int explorer = 0;
-    for (final RadarPick pick in picks) {
-      switch (pick.reason) {
-        case RadarReason.familiarArtist:
-          familiar += 1;
-        case RadarReason.relatedPlaylist:
-          related += 1;
-        case RadarReason.explorer:
-          explorer += 1;
-        case RadarReason.coldStart:
-          break;
-      }
-    }
-    final List<int> shares = _percentages(<int>[familiar, related, explorer]);
-    final List<String> parts = <String>[
-      if (shares[0] > 0) '常听歌手 ${shares[0]}%',
-      if (shares[1] > 0) '同歌单 ${shares[1]}%',
-      if (shares[2] > 0) '换口味 ${shares[2]}%',
-    ];
-    return parts.isEmpty ? '已根据你的收听口味挑选' : parts.join(' · ');
-  }
-
-  /// 让三段占比取整后正好加起来 100（最大余数法）。
-  static List<int> _percentages(List<int> counts) {
-    final int total = counts.fold<int>(0, (int sum, int value) => sum + value);
-    if (total <= 0) {
-      return const <int>[0, 0, 0];
-    }
-    final List<double> exact = counts
-        .map((int value) => value * 100 / total)
-        .toList(growable: false);
-    final List<int> floors = exact
-        .map((double value) => value.floor())
-        .toList(growable: false);
-    int remainder =
-        100 - floors.fold<int>(0, (int sum, int value) => sum + value);
-    final List<int> order =
-        List<int>.generate(counts.length, (int index) => index)..sort(
-          (int a, int b) => (exact[b] - exact[b].floorToDouble()).compareTo(
-            exact[a] - exact[a].floorToDouble(),
-          ),
-        );
-    final List<int> result = List<int>.of(floors);
-    for (int index = 0; index < order.length && remainder > 0; index += 1) {
-      result[order[index]] += 1;
-      remainder -= 1;
-    }
-    return result;
   }
 }
 

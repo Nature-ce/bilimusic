@@ -23,6 +23,7 @@ class HiveKeys {
   static const String playerAudioCacheIndex = 'player.audio_cache_index';
   static const String searchHistory = 'search.history';
   static const String recentPlaybackProgress = 'recent.playback_progress';
+  static const String dailyRecommendation = 'home.daily_recommendation';
   static const String favoriteHotPlaylists = 'home.favorite_hot_playlists';
   static const String favoriteMusicCharts = 'home.favorite_music_charts';
   static const String hotPlaylistPagePrefix = 'home.hot_playlist_page.';

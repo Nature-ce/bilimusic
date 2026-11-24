@@ -2,6 +2,7 @@ import 'package:bilimusic/common/components/error_page.dart';
 import 'package:bilimusic/common/util/platform_util.dart';
 import 'package:bilimusic/feature/comment/domain/comment_target.dart';
 import 'package:bilimusic/feature/comment/ui/comment_page.dart';
+import 'package:bilimusic/feature/daily/ui/daily_recommendation_page.dart';
 import 'package:bilimusic/feature/download/ui/downloads_page.dart';
 import 'package:bilimusic/feature/auth/ui/auth_page.dart';
 import 'package:bilimusic/feature/favorites/ui/desktop/desktop_favorite_collection_page.dart';
@@ -183,6 +184,10 @@ final List<Map<String, dynamic>> mobileTabs = [
 final List<Map<String, dynamic>> mobileHiddenBranches = [
   {'path': '/search', 'builder': (context, state) => const SearchPage()},
   {
+    'path': '/daily',
+    'builder': (context, state) => const DailyRecommendationPage(),
+  },
+  {
     'path': '/up',
     'builder': (context, state) =>
         const ErrorPage(message: 'Up Page Not Found'),
@@ -262,6 +267,12 @@ final List<Map<String, dynamic>> desktopTabs = [
     'builder': (context, state) => const SearchPage(),
     'icon': Icons.search,
     'label': '搜索',
+  },
+  {
+    'path': '/daily',
+    'builder': (context, state) => const DailyRecommendationPage(),
+    'icon': Icons.wb_sunny_outlined,
+    'label': '每日推荐',
   },
   {
     'path': '/settings',

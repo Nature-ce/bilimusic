@@ -39,6 +39,11 @@ void main() {
 
     expect(detail.showBottomTabs, isFalse);
     expect(detail.showMiniPlayer, isTrue);
+
+    final MobileChromeConfig daily = MobileChromeConfig.resolve('/daily');
+
+    expect(daily.showBottomTabs, isFalse);
+    expect(daily.showMiniPlayer, isTrue);
   });
 
   test('收藏 UP 主与听歌报告页全屏', () {

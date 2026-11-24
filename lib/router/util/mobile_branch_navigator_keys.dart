@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const int mobileBranchNavigatorKeyCount = 7;
+const int mobileBranchNavigatorKeyCount = 8;
 
 // 移动端分支导航键列表
 final List<GlobalKey<NavigatorState>> mobileBranchNavigatorKeys =
