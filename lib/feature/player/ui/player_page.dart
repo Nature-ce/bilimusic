@@ -477,7 +477,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
           ),
         );
         if (useGlass) {
-          return AppGlassSheet(child: content);
+          return AppGlassSheet(tone: GlassTone.smoke, child: content);
         }
         return Material(
           color: Theme.of(sheetContext).colorScheme.surface,
@@ -597,7 +597,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
           ),
         );
         if (useGlass) {
-          return AppGlassSheet(child: content);
+          return AppGlassSheet(tone: GlassTone.smoke, child: content);
         }
         return Material(
           color: Theme.of(sheetContext).colorScheme.surface,

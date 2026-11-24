@@ -210,10 +210,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       useRootNavigator: true,
       builder: (BuildContext context) {
-        return const CollectionNameDialog(
+        return CollectionNameDialog(
           title: '新建歌单',
           hintText: '例如：深夜循环',
           confirmText: '创建',
+          glass: ref.read(appearanceSettingLogicProvider),
         );
       },
     );
@@ -252,6 +253,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       builder: (BuildContext context) {
         return RemoteCollectionImportDialog(
           collectionsFuture: controller.fetchImportableRemoteCollections(),
+          glass: ref.read(appearanceSettingLogicProvider),
         );
       },
     );

@@ -245,6 +245,7 @@ Future<void> _showRenameCollectionDialog({
         hintText: '请输入歌单名称',
         confirmText: '保存',
         initialValue: collection.name,
+        glass: ref.read(appearanceSettingLogicProvider),
       );
     },
   );

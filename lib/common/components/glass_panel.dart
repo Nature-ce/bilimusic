@@ -301,6 +301,7 @@ class AppGlassSheet extends StatelessWidget {
     super.key,
     required this.child,
     this.maxHeightFactor = 0.66,
+    this.tone = GlassTone.frost,
   });
 
   final Widget child;
@@ -308,14 +309,22 @@ class AppGlassSheet extends StatelessWidget {
   /// 弹层最高占屏幕高度的比例：内容多时在弹层内上下滑动，而不是占满整页。
   final double maxHeightFactor;
 
+  /// 浅色页面用 frost（白雾 + 深色字），深色播放页用 smoke（烟熏 + 白字）。
+  final GlassTone tone;
+
   @override
   Widget build(BuildContext context) {
     final double maxHeight =
         MediaQuery.sizeOf(context).height * maxHeightFactor;
+    final bool smoke = tone == GlassTone.smoke;
+    final Widget content = smoke
+        ? Theme(data: glassSurfaceTheme(context), child: child)
+        : child;
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
       child: GlassPanel(
-        settings: appFrostGlassSettings(context),
+        tone: smoke ? GlassTone.smoke : null,
+        settings: smoke ? null : appFrostGlassSettings(context),
         shape: const LiquidVerticalRoundedSuperellipse(
           topRadius: AppRadius.xl,
           bottomRadius: 0,
@@ -323,9 +332,51 @@ class AppGlassSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const GlassDragHandle(tone: GlassTone.frost),
-            Flexible(child: SafeArea(top: false, child: child)),
+            GlassDragHandle(tone: tone),
+            Flexible(child: SafeArea(top: false, child: content)),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 跟随玻璃开关的「内容型对话框」外壳：带输入框、列表等自定义内容的对话框用。
+class AppGlassDialogShell extends StatelessWidget {
+  const AppGlassDialogShell({
+    super.key,
+    required this.child,
+    this.maxWidth = 360,
+  });
+
+  final Widget child;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    // 不用 Dialog 包：Dialog 会对内容做 intrinsic 测量，里面放 ListView 会抛
+    // 「would require instantiating every child of the viewport」。
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: maxWidth,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.62,
+          ),
+          child: GlassPanel(
+            settings: appFrostGlassSettings(context),
+            shape: LiquidRoundedSuperellipse(
+              borderRadius: 28,
+              side: BorderSide(
+                color: colorScheme.outline.withValues(alpha: 0.2),
+                width: 0.8,
+              ),
+            ),
+            child: Material(type: MaterialType.transparency, child: child),
+          ),
         ),
       ),
     );
@@ -354,6 +405,7 @@ Future<T?> showAppHalfSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   double maxHeightFactor = 0.66,
+  GlassTone tone = GlassTone.frost,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -364,6 +416,7 @@ Future<T?> showAppHalfSheet<T>({
     builder: (BuildContext sheetContext) {
       return AppGlassSheet(
         maxHeightFactor: maxHeightFactor,
+        tone: tone,
         child: Builder(builder: builder),
       );
     },

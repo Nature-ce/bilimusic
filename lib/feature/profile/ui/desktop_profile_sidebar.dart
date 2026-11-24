@@ -9,10 +9,12 @@ import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/auth/data/bili_auth_repository.dart';
 import 'package:bilimusic/feature/auth/logic/bili_auth_controller.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
+import 'package:bilimusic/feature/favorites/ui/components/collection_name_dialog.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorite_entry.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/profile/ui/components/remote_collection_import_dialog.dart';
 import 'package:bilimusic/feature/recent/logic/recent_playback_controller.dart';
 import 'package:flutter/material.dart';
@@ -276,7 +278,12 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
       context: context,
       useRootNavigator: true,
       builder: (BuildContext context) {
-        return const _CollectionNameDialog();
+        return CollectionNameDialog(
+          title: '新建歌单',
+          hintText: '例如：深夜循环',
+          confirmText: '创建',
+          glass: ref.read(appearanceSettingLogicProvider),
+        );
       },
     );
 
@@ -313,6 +320,7 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
       builder: (BuildContext context) {
         return RemoteCollectionImportDialog(
           collectionsFuture: controller.fetchImportableRemoteCollections(),
+          glass: ref.read(appearanceSettingLogicProvider),
         );
       },
     );
@@ -571,11 +579,12 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
       context: context,
       useRootNavigator: true,
       builder: (BuildContext context) {
-        return _CollectionNameDialog(
+        return CollectionNameDialog(
           title: '重命名歌单',
           hintText: '请输入歌单名称',
           confirmText: '保存',
           initialValue: collection.name,
+          glass: ref.read(appearanceSettingLogicProvider),
         );
       },
     );
@@ -1092,65 +1101,6 @@ class _EmptyCollectionHint extends StatelessWidget {
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
         ),
       ),
-    );
-  }
-}
-
-class _CollectionNameDialog extends StatefulWidget {
-  const _CollectionNameDialog({
-    this.title = '新建歌单',
-    this.hintText = '例如：深夜循环',
-    this.confirmText = '创建',
-    this.initialValue = '',
-  });
-
-  final String title;
-  final String hintText;
-  final String confirmText;
-  final String initialValue;
-
-  @override
-  State<_CollectionNameDialog> createState() => _CollectionNameDialogState();
-}
-
-class _CollectionNameDialogState extends State<_CollectionNameDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
-        controller: _controller,
-        maxLength: 24,
-        autofocus: true,
-        decoration: InputDecoration(hintText: widget.hintText),
-        onSubmitted: (String value) {
-          Navigator.of(context).pop(value);
-        },
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(widget.confirmText),
-        ),
-      ],
     );
   }
 }

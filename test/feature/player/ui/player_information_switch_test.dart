@@ -1090,11 +1090,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AppGlassSheet), findsOneWidget);
-    // 白雾玻璃面板上文字仍是深色，保证可读。
+    // 播放页是深色页面：烟熏玻璃 + 白字。
     final BuildContext sheetContext = tester.element(find.text('定时关闭'));
     expect(
       Theme.of(sheetContext).colorScheme.onSurface.computeLuminance(),
-      lessThan(0.5),
+      greaterThan(0.5),
     );
     expect(tester.takeException(), isNull);
   });
