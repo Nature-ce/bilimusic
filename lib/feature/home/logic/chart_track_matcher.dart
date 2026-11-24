@@ -29,6 +29,13 @@ class ChartTrackMatcher {
   static const int minimumClipSeconds = 60;
 
   /// 候选时长 / 原曲时长 的允许区间：短于此值算剪辑，长于此值算拼接。
+  /// 原曲时长不可信时，用「一首完整歌的合理区间」兜底：太短是片段，太长是合集。
+  static const int _minimumPlausibleSongSeconds = 90;
+  static const int _maximumPlausibleSongSeconds = 420;
+
+  /// 认为是完整歌的时长下限（低于它的候选在兜底模式下不加分）。
+  static const int _fullSongSeconds = 150;
+
   static const double minimumDurationRatio = 0.85;
   static const double maximumDurationRatio = 1.25;
 
@@ -113,10 +120,21 @@ class ChartTrackMatcher {
     final bool titleMatched = title.isNotEmpty && candidate.contains(title);
     final bool artistMatched = artist.isNotEmpty && candidate.contains(artist);
 
+    final bool trackDurationUnreliable =
+        trackSeconds > 0 && trackSeconds < minimumClipSeconds;
+
     int durationScore = 0;
     int durationDiff = -1;
     bool durationClose = false;
-    if (trackSeconds > 0 && candidateSeconds > 0) {
+    if (trackDurationUnreliable && candidateSeconds > 0) {
+      // 原曲时长不可信：把像完整歌的候选顶上去，避免同名的翻唱片段/短版抢先。
+      if (candidateSeconds >= _fullSongSeconds) {
+        durationScore = _exactDurationScore;
+        durationClose = true;
+      } else if (candidateSeconds >= _minimumPlausibleSongSeconds) {
+        durationScore = _nearDurationScore;
+      }
+    } else if (trackSeconds > 0 && candidateSeconds > 0) {
       durationDiff = (trackSeconds - candidateSeconds).abs();
       if (durationDiff <= _exactDurationWindowSeconds) {
         durationScore = _exactDurationScore;
@@ -159,9 +177,11 @@ class ChartTrackMatcher {
       return true;
     }
     // 原曲时长本身可疑（榜单接口偶尔返回 00:29 这种片段/试听时长）时，
-    // 比例过滤会把真正的完整版判成「太长」，因此这里直接放行、只按标题歌手匹配。
+    // 比例过滤会把真正的完整版判成「太长」，改用「完整歌合理区间」兜底：
+    // 一分钟上下的翻唱片段、几十分钟的合集都挡掉。
     if (trackSeconds < minimumClipSeconds) {
-      return true;
+      // 合集/串烧直接不要；片段保留作兜底（没有完整版时才它上场）。
+      return candidateSeconds <= _maximumPlausibleSongSeconds;
     }
     final double ratio = candidateSeconds / trackSeconds;
     return ratio >= minimumDurationRatio && ratio <= maximumDurationRatio;

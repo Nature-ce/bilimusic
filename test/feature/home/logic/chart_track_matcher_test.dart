@@ -142,6 +142,59 @@ void main() {
       isNull,
     );
   });
+  test(
+    'prefers a full song over a same-name short cover when duration is unreliable',
+    () {
+      const MusicChartTrack clipDurationTrack = MusicChartTrack(
+        chart: MusicChartCatalog.defaultChart,
+        rank: 2,
+        title: '最初的记忆',
+        artist: '火鸡',
+        coverUrl: '',
+        durationSeconds: 29,
+      );
+
+      final SearchResultItem? match = ChartTrackMatcher.pickBest(
+        track: clipDurationTrack,
+        candidates: <SearchResultItem>[
+          _item(
+            title: '火鸡 - 最初的记忆 (男生版)(原唱:徐佳莹)「我很安静…',
+            duration: '01:06',
+            playCount: '3000',
+          ),
+          _item(
+            title: '在百万豪装录音棚大声听 徐佳莹《最初的记忆》',
+            duration: '04:15',
+            playCount: '5049000',
+          ),
+        ],
+      );
+
+      expect(match, isNotNull);
+      expect(match!.duration, '04:15');
+    },
+  );
+
+  test('falls back to a clip only when no full version is available', () {
+    const MusicChartTrack clipDurationTrack = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 2,
+      title: '最初的记忆',
+      artist: '火鸡',
+      coverUrl: '',
+      durationSeconds: 29,
+    );
+
+    final SearchResultItem? fallback = ChartTrackMatcher.pickBest(
+      track: clipDurationTrack,
+      candidates: <SearchResultItem>[
+        _item(title: '火鸡 - 最初的记忆', duration: '01:06'),
+      ],
+    );
+
+    // 没有完整版时仍然给出这条，但完整版一旦出现就会优先（见上一条用例）。
+    expect(fallback?.duration, '01:06');
+  });
   test('rejects candidates far shorter than the track', () {
     // 原曲 4:29，候选只有 1 分钟 → 明显是片段。
     expect(
