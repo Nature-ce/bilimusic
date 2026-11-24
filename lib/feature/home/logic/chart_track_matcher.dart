@@ -28,6 +28,20 @@ class ChartTrackMatcher {
   /// 短于这个时长的视频基本都是「剪辑片段」，不参与匹配。
   static const int minimumClipSeconds = 60;
 
+  /// 这些是 B 站上到处都有的「通用曲名」，单靠标题包含会把不相干的合集判成命中。
+  static const List<String> _genericTitleKeywords = <String>[
+    '催眠曲',
+    '纯音乐',
+    '白噪音',
+    '白噪声',
+    '轻音乐',
+    '助眠曲',
+    '助眠',
+    '睡眠曲',
+    '冥想',
+    '疗愈音乐',
+  ];
+
   /// 候选时长 / 原曲时长 的允许区间：短于此值算剪辑，长于此值算拼接。
   /// 原曲时长不可信时，用「一首完整歌的合理区间」兜底：太短是片段，太长是合集。
   static const int _minimumPlausibleSongSeconds = 90;
@@ -154,7 +168,13 @@ class ChartTrackMatcher {
         (artistMatched ? _artistScore : 0) +
         durationScore +
         keywordScore;
-    final bool isConfident = titleMatched || (artistMatched && durationClose);
+    // 「催眠曲」「纯音乐」这类超短通用标题在 B 站上到处都有，单靠标题包含会把
+    // 不相干的合集也判成命中；这种情况要求歌手命中或时长非常接近。
+    final bool genericShortTitle =
+        title.isNotEmpty && _genericTitleKeywords.contains(title);
+    final bool isConfident = genericShortTitle
+        ? artistMatched
+        : (titleMatched || (artistMatched && durationClose));
     return _MatchScore(
       total: total,
       isConfident: isConfident,

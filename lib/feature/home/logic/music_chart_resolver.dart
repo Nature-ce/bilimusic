@@ -41,6 +41,8 @@ class MusicChartResolver {
     return playerRepository.resolvePreferredPart(
       match.toPlayableItem(),
       preferredPage: 1,
+      expectedTitle: track.title,
+      expectedArtist: track.artist,
     );
   }
 

@@ -96,6 +96,38 @@ void main() {
     );
   });
 
+  test('generic short titles need artist or exact duration to match', () {
+    const MusicChartTrack genericTrack = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 3,
+      title: '催眠曲',
+      artist: '婴儿沉睡',
+      coverUrl: '',
+      durationSeconds: 211,
+    );
+
+    // 标题里出现「催眠曲」但歌手完全不搭、时长也对不上的合集，不该算命中。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: genericTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '28天失眠音疗｜助眠放松神器', duration: '03:30'),
+        ],
+      ),
+      isNull,
+    );
+
+    // 歌名和歌手都在标题里就仍然能命中。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: genericTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '催眠曲｜婴儿沉睡｜白噪音', duration: '03:31'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
   test('rejects short clips even when title and artist match', () {
     // B 站上常见的几十秒剪辑版：标题、歌手都对，但不该进播放列表。
     expect(

@@ -59,16 +59,25 @@ class BiliPlayerRepository {
     );
   }
 
+  /// 多 P 合集里优先挑「分 P 标题和曲名对得上」的那一 P，避免匹配到合集里
+  /// 挂着的无关内容（例如合集标题是催眠曲、P1 却是别的歌）。
   Future<PlayableItem> resolvePreferredPart(
     PlayableItem item, {
     int preferredPage = 1,
+    String? expectedTitle,
+    String? expectedArtist,
   }) async {
     if (!item.hasIdentity) {
       throw const BiliPlayerException('Missing video identity for playback.');
     }
 
     final _VideoViewInfo viewInfo = await _fetchVideoView(item);
-    final PlayableItem preferredItem = item.copyWith(page: preferredPage);
+    final _VideoPageInfo? matchedPage = expectedTitle == null
+        ? null
+        : viewInfo.findPageMatching(expectedTitle, expectedArtist ?? '');
+    final PlayableItem preferredItem = item.copyWith(
+      page: matchedPage?.page ?? preferredPage,
+    );
     final _VideoPageInfo pageInfo = viewInfo.resolvePage(preferredItem);
     return viewInfo.enrich(item, pageInfo);
   }
@@ -506,6 +515,48 @@ class _VideoViewInfo {
   final int? replyCount;
   final String? replyCountText;
   final String? publishTimeText;
+
+  _VideoPageInfo? findPageMatching(String title, String artist) {
+    if (pages.length < 2) {
+      return null;
+    }
+    final String wantedTitle = _normalizeForMatch(title);
+    if (wantedTitle.isEmpty) {
+      return null;
+    }
+    final String wantedArtist = _normalizeForMatch(artist);
+    _VideoPageInfo? best;
+    int bestScore = 0;
+    for (final _VideoPageInfo page in pages) {
+      final String part = _normalizeForMatch(page.part);
+      if (part.isEmpty || part == 'p${page.page}') {
+        continue;
+      }
+      int score = 0;
+      if (part.contains(wantedTitle)) {
+        score = 3;
+      } else if (wantedTitle.length >= 4 &&
+          part.length >= 4 &&
+          wantedTitle.contains(part)) {
+        score = 2;
+      }
+      if (score > 0 && wantedArtist.isNotEmpty && part.contains(wantedArtist)) {
+        score += 1;
+      }
+      if (score > bestScore) {
+        best = page;
+        bestScore = score;
+      }
+    }
+    return bestScore >= 2 ? best : null;
+  }
+
+  static String _normalizeForMatch(String value) {
+    return value.toLowerCase().replaceAll(
+      RegExp(r'''[\s\-_/\\.,，。·、:：;；|()（）\[\]【】<>《》"'`]'''),
+      '',
+    );
+  }
 
   _VideoPageInfo resolvePage(PlayableItem item) {
     final int? targetCid = item.cid;
