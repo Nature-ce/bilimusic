@@ -270,6 +270,22 @@ void main() {
 
     // 行间分割线 + 标题分隔线。
     expect(find.byType(Divider), findsWidgets);
+
+    // 清空是纯文字按钮（无背景色），模式按钮用主题色浅底。
+    final TextButton clear = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, '清空'),
+    );
+    expect(clear.style?.backgroundColor, isNull);
+    final IconButton modeButton = tester
+        .widgetList<IconButton>(find.byType(IconButton))
+        .firstWhere(
+          (IconButton button) =>
+              button.style?.backgroundColor?.resolve(<WidgetState>{}) != null,
+        );
+    expect(
+      modeButton.style?.backgroundColor?.resolve(<WidgetState>{}),
+      colorScheme.primary.withValues(alpha: 0.12),
+    );
   });
 
   for (final (PlayerQueueMode mode, Type iconType) in <(PlayerQueueMode, Type)>[

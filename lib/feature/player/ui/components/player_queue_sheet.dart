@@ -283,20 +283,19 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
               ),
               if (liveState.hasQueue)
                 TextButton(
-                  style: widget.homeStyle
-                      ? TextButton.styleFrom(
-                          foregroundColor: secondaryText,
-                          backgroundColor: colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.45),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
+                  style: TextButton.styleFrom(
+                    foregroundColor: secondaryText,
+                    padding: widget.homeStyle
+                        ? const EdgeInsets.symmetric(
+                            horizontal: 10,
                             vertical: 6,
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: const StadiumBorder(),
-                        )
-                      : TextButton.styleFrom(foregroundColor: secondaryText),
+                          )
+                        : null,
+                    minimumSize: widget.homeStyle ? Size.zero : null,
+                    tapTargetSize: widget.homeStyle
+                        ? MaterialTapTargetSize.shrinkWrap
+                        : null,
+                  ),
                   onPressed: () async {
                     await liveController.clearQueue();
                     if (!context.mounted) {
@@ -306,7 +305,25 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
                   },
                   child: const Text('清空'),
                 ),
-              if (tone == null)
+              if (widget.homeStyle)
+                IconButton(
+                  onPressed: liveState.hasQueue
+                      ? liveController.toggleQueueMode
+                      : null,
+                  style: IconButton.styleFrom(
+                    backgroundColor: colorScheme.primary.withValues(
+                      alpha: 0.12,
+                    ),
+                    foregroundColor: colorScheme.primary,
+                    disabledBackgroundColor: colorScheme.onSurface.withValues(
+                      alpha: 0.05,
+                    ),
+                    disabledForegroundColor: colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.45),
+                  ),
+                  icon: queueModeIcon(liveState.queueMode),
+                )
+              else if (tone == null)
                 IconButton.filledTonal(
                   onPressed: liveState.hasQueue
                       ? liveController.toggleQueueMode
