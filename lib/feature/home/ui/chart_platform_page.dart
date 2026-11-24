@@ -9,6 +9,7 @@ import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
+import 'package:bilimusic/feature/home/logic/chart_preview.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,57 +67,63 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
 
     return Scaffold(
       appBar: PageAppBar(title: Text(widget.platform.label)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: <Widget>[
-          _buildDefaultCard(entry: entry, chart: chart),
-          const SizedBox(height: AppSpacing.xl),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: <Widget>[
-                Text(
-                  '全部榜单',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '共 ${charts.length} 个榜单',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+      body: CustomScrollView(
+        slivers: <Widget>[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            sliver: SliverToBoxAdapter(
+              child: _buildDefaultCard(entry: entry, chart: chart),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              final double tileWidth = (constraints.maxWidth - 12) / 2;
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, AppSpacing.xl, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: Row(
                 children: <Widget>[
-                  for (final MusicChart item in otherCharts)
-                    SizedBox(
-                      width: tileWidth,
-                      child: _ChartCoverTile(
-                        chart: item,
-                        platformLabel: widget.platform.label,
-                        colors: _chartTileColors(charts.indexOf(item)),
-                        onTap: () => _openChart(item),
-                      ),
+                  Text(
+                    '全部榜单',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                      color: colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '共 ${charts.length} 个榜单',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
-              );
-            },
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, AppSpacing.sm, 16, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                mainAxisExtent: 104,
+              ),
+              delegate: SliverChildBuilderDelegate((
+                BuildContext context,
+                int index,
+              ) {
+                final MusicChart item = otherCharts[index];
+                return _ChartCoverTile(
+                  chart: item,
+                  platformLabel: widget.platform.label,
+                  colors: _chartTileColors(charts.indexOf(item)),
+                  onTap: () => _openChart(item),
+                );
+              }, childCount: otherCharts.length),
+            ),
           ),
         ],
       ),
@@ -389,8 +396,8 @@ const List<(Color, Color)> _chartTilePalette = <(Color, Color)>[
   return _chartTilePalette[index % _chartTilePalette.length];
 }
 
-/// 「全部榜单」的封面式网格卡：榜单无封面，用固定渐变色块 + 榜单名 + 平台名。
-class _ChartCoverTile extends StatelessWidget {
+/// 「全部榜单」的封面式网格卡：优先用榜单第 1 首封面（懒加载），没有时用固定渐变色块。
+class _ChartCoverTile extends ConsumerWidget {
   const _ChartCoverTile({
     required this.chart,
     required this.platformLabel,
@@ -404,19 +411,30 @@ class _ChartCoverTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final AsyncValue<String?> preview = ref.watch(
+      chartPreviewCoverProvider(chart),
+    );
+    final String cover = preview is AsyncData<String?>
+        ? (preview.value?.trim() ?? '')
+        : '';
+    final bool hasCover = cover.isNotEmpty;
+
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: Ink(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[colors.$1, colors.$2],
-          ),
+          gradient: hasCover
+              ? null
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: <Color>[colors.$1, colors.$2],
+                ),
+          color: hasCover ? theme.colorScheme.surfaceContainerHighest : null,
         ),
         child: InkWell(
           onTap: onTap,
@@ -425,6 +443,8 @@ class _ChartCoverTile extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: <Widget>[
+                if (hasCover)
+                  CommonCachedImage(imageUrl: cover, fit: BoxFit.cover),
                 DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -432,7 +452,7 @@ class _ChartCoverTile extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: <Color>[
                         Colors.transparent,
-                        Colors.black.withValues(alpha: 0.5),
+                        Colors.black.withValues(alpha: hasCover ? 0.62 : 0.42),
                       ],
                     ),
                   ),
