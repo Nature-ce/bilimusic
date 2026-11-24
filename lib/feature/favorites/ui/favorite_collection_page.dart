@@ -1086,7 +1086,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: colorScheme.surfaceContainerLow,
+      backgroundColor: colorScheme.surface,
       builder: buildSheet,
     );
   }
