@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/glass_menu.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
@@ -10,6 +12,7 @@ import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class VideoCardData {
@@ -342,7 +345,6 @@ class _VideoCardActions extends StatelessWidget {
         onPlayNext != null || onEnqueue != null || playableActions != null;
     final bool hasCollectionAction =
         onAddToCollection != null || playableActions != null;
-    final bool hasEnqueueAllPartsAction = playableActions != null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -359,68 +361,69 @@ class _VideoCardActions extends StatelessWidget {
           ),
         if (hasFavoriteAction && hasQueueActions) const SizedBox(height: 8),
         if (hasQueueActions || hasCollectionAction)
-          PopupMenuButton<_VideoCardQueueAction>(
-            tooltip: '队列操作',
-            padding: EdgeInsets.zero,
-            onSelected: (_VideoCardQueueAction action) {
-              switch (action) {
-                case _VideoCardQueueAction.playNext:
-                  unawaited(_playNext(context));
-                case _VideoCardQueueAction.enqueue:
-                  unawaited(_enqueue(context));
-                case _VideoCardQueueAction.enqueueAllParts:
-                  unawaited(_enqueueAllParts(context));
-                case _VideoCardQueueAction.addToCollection:
-                  unawaited(_addToCollection(context));
-              }
-            },
-            itemBuilder: (BuildContext context) =>
-                <PopupMenuEntry<_VideoCardQueueAction>>[
-                  if (onPlayNext != null || playableActions != null)
-                    const PopupMenuItem<_VideoCardQueueAction>(
-                      value: _VideoCardQueueAction.playNext,
-                      child: ListTile(
-                        leading: Icon(Icons.skip_next_rounded),
-                        title: Text('下一首播放'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  if (onEnqueue != null || playableActions != null)
-                    const PopupMenuItem<_VideoCardQueueAction>(
-                      value: _VideoCardQueueAction.enqueue,
-                      child: ListTile(
-                        leading: Icon(Icons.queue_music_rounded),
-                        title: Text('加入队列'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  if (hasEnqueueAllPartsAction)
-                    const PopupMenuItem<_VideoCardQueueAction>(
-                      value: _VideoCardQueueAction.enqueueAllParts,
-                      child: ListTile(
-                        leading: Icon(Icons.library_add_rounded),
-                        title: Text('添加全部分P'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  if (onAddToCollection != null || playableActions != null)
-                    const PopupMenuItem<_VideoCardQueueAction>(
-                      value: _VideoCardQueueAction.addToCollection,
-                      child: ListTile(
-                        leading: Icon(Icons.playlist_add_rounded),
-                        title: Text('添加到歌单'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                ],
-            child: const VideoCardIconAction(
+          Builder(
+            builder: (BuildContext buttonContext) => VideoCardIconAction(
               icon: Icons.more_horiz_rounded,
-              onTap: null,
               tooltip: '队列操作',
+              onTap: () => unawaited(_openActionMenu(buttonContext, context)),
             ),
           ),
       ],
     );
+  }
+
+  Future<void> _openActionMenu(
+    BuildContext buttonContext,
+    BuildContext pageContext,
+  ) async {
+    final RenderObject? renderObject = buttonContext.findRenderObject();
+    final Offset anchor = renderObject is RenderBox
+        ? renderObject.localToGlobal(renderObject.size.center(Offset.zero))
+        : Offset.zero;
+    final _VideoCardQueueAction? action =
+        await showGlassMenu<_VideoCardQueueAction>(
+          context: pageContext,
+          globalPosition: anchor,
+          entries: <GlassMenuEntry<_VideoCardQueueAction>>[
+            if (onPlayNext != null || playableActions != null)
+              const GlassMenuEntry<_VideoCardQueueAction>(
+                value: _VideoCardQueueAction.playNext,
+                icon: Icons.skip_next_rounded,
+                label: '下一首播放',
+              ),
+            if (onEnqueue != null || playableActions != null)
+              const GlassMenuEntry<_VideoCardQueueAction>(
+                value: _VideoCardQueueAction.enqueue,
+                icon: Icons.queue_music_rounded,
+                label: '加入队列',
+              ),
+            if (playableActions != null)
+              const GlassMenuEntry<_VideoCardQueueAction>(
+                value: _VideoCardQueueAction.enqueueAllParts,
+                icon: Icons.library_add_rounded,
+                label: '添加全部分P',
+              ),
+            if (onAddToCollection != null || playableActions != null)
+              const GlassMenuEntry<_VideoCardQueueAction>(
+                value: _VideoCardQueueAction.addToCollection,
+                icon: Icons.playlist_add_rounded,
+                label: '添加到歌单',
+              ),
+          ],
+        );
+    if (action == null || !pageContext.mounted) {
+      return;
+    }
+    switch (action) {
+      case _VideoCardQueueAction.playNext:
+        unawaited(_playNext(pageContext));
+      case _VideoCardQueueAction.enqueue:
+        unawaited(_enqueue(pageContext));
+      case _VideoCardQueueAction.enqueueAllParts:
+        unawaited(_enqueueAllParts(pageContext));
+      case _VideoCardQueueAction.addToCollection:
+        unawaited(_addToCollection(pageContext));
+    }
   }
 }
 
@@ -453,19 +456,26 @@ class VideoCardIconAction extends StatelessWidget {
     final Color iconColor = isActive
         ? activeColor ?? colorScheme.secondary
         : colorScheme.onSurfaceVariant;
-    final Widget button = InkResponse(
-      onTap: onTap,
-      radius: 18,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: isActive
-              ? colorScheme.secondaryContainer
-              : colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(14),
+    final Widget button = GlassPanel(
+      settings: _actionGlassSettings(context, active: isActive),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 14,
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+          width: 0.8,
         ),
-        child: Icon(icon, color: iconColor, size: 18),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 19,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+        ),
       ),
     );
 
@@ -506,4 +516,31 @@ class VideoCardTag extends StatelessWidget {
       ),
     );
   }
+}
+
+LiquidGlassSettings _actionGlassSettings(
+  BuildContext context, {
+  required bool active,
+}) {
+  final ThemeData theme = Theme.of(context);
+  final ColorScheme colorScheme = theme.colorScheme;
+  final bool isDark = theme.brightness == Brightness.dark;
+  final Color base = isDark ? const Color(0xFF12151A) : Colors.white;
+  final Color tint = Color.alphaBlend(
+    (active ? colorScheme.secondaryContainer : colorScheme.primary).withValues(
+      alpha: isDark ? 0.16 : 0.07,
+    ),
+    base,
+  );
+
+  return LiquidGlassSettings(
+    bodyMode: GlassBodyMode.clear,
+    glassColor: tint.withValues(alpha: isDark ? 0.36 : 0.3),
+    thickness: 12,
+    blur: 18,
+    chromaticAberration: 0,
+    saturation: 1.4,
+    lightIntensity: 0.6,
+    refractiveIndex: 1.08,
+  );
 }
