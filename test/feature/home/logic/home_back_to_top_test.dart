@@ -9,13 +9,25 @@ import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
 import 'package:bilimusic/feature/home/logic/home_back_to_top.dart';
 import 'package:bilimusic/feature/home/logic/hot_playlist_controller.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
+import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dart';
+import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/feature/home/ui/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
 import 'package:bilimusic/feature/radar/logic/music_radar_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _SolidAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => false;
+}
+
+class _GlassAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => true;
+}
 
 class _FakeRadar extends MusicRadarController {
   @override
@@ -117,6 +129,7 @@ void main() {
     final ProviderContainer container = ProviderContainer(
       overrides: [
         homeScrollControllerProvider.overrideWith((ref) => controller),
+        appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
       ],
     );
     addTearDown(container.dispose);
@@ -156,6 +169,7 @@ void main() {
     final ProviderContainer container = ProviderContainer(
       overrides: [
         homeScrollControllerProvider.overrideWith((ref) => controller),
+        appearanceSettingLogicProvider.overrideWith(_SolidAppearance.new),
       ],
     );
     addTearDown(container.dispose);
@@ -187,6 +201,51 @@ void main() {
     expect(controller.offset, 0);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'glassy appearance renders a glass button that still scrolls up',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final ScrollController controller = ScrollController();
+      addTearDown(controller.dispose);
+      final ProviderContainer container = ProviderContainer(
+        overrides: [
+          homeScrollControllerProvider.overrideWith((ref) => controller),
+          appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              floatingActionButton: const HomeBackToTopButton(),
+              body: _FakeChartList(controller: controller),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(GlassPanel), findsWidgets);
+      expect(find.byType(FloatingActionButton), findsNothing);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -1200));
+      await tester.pumpAndSettle();
+      expect(controller.offset, greaterThan(480));
+
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+      await tester.pumpAndSettle();
+
+      expect(controller.offset, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('home page shows the back-to-top state after scrolling', (
     WidgetTester tester,
