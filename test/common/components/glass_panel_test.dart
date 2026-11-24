@@ -36,6 +36,41 @@ void main() {
     );
   });
 
+  testWidgets('内容很高时弹层不占满整页，改为内部滚动', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    late BuildContext hostContext;
+    await _pumpHost(
+      tester,
+      child: Builder(
+        builder: (BuildContext context) {
+          hostContext = context;
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+
+    showAppHalfSheet<void>(
+      context: hostContext,
+      builder: (BuildContext sheetContext) => ListView.builder(
+        shrinkWrap: true,
+        itemCount: 40,
+        itemBuilder: (BuildContext context, int index) =>
+            ListTile(title: Text('条目 $index')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final double sheetHeight = tester
+        .getSize(find.byType(AppGlassSheet))
+        .height;
+    expect(sheetHeight, lessThanOrEqualTo(844 * 0.66 + 1));
+    expect(sheetHeight, greaterThan(300));
+    expect(find.text('条目 0'), findsOneWidget);
+  });
   testWidgets('AppGlassAlertDialog 确认返回 true、取消返回 false', (
     WidgetTester tester,
   ) async {

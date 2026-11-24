@@ -297,24 +297,36 @@ ThemeData glassSurfaceTheme(BuildContext context) {
 
 /// 跟随「玻璃材质」开关的半屏弹层：开关打开时用白雾玻璃，关闭时退回白底。
 class AppGlassSheet extends StatelessWidget {
-  const AppGlassSheet({super.key, required this.child});
+  const AppGlassSheet({
+    super.key,
+    required this.child,
+    this.maxHeightFactor = 0.66,
+  });
 
   final Widget child;
 
+  /// 弹层最高占屏幕高度的比例：内容多时在弹层内上下滑动，而不是占满整页。
+  final double maxHeightFactor;
+
   @override
   Widget build(BuildContext context) {
-    return GlassPanel(
-      settings: appFrostGlassSettings(context),
-      shape: const LiquidVerticalRoundedSuperellipse(
-        topRadius: AppRadius.xl,
-        bottomRadius: 0,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const GlassDragHandle(tone: GlassTone.frost),
-          Flexible(child: SafeArea(top: false, child: child)),
-        ],
+    final double maxHeight =
+        MediaQuery.sizeOf(context).height * maxHeightFactor;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: GlassPanel(
+        settings: appFrostGlassSettings(context),
+        shape: const LiquidVerticalRoundedSuperellipse(
+          topRadius: AppRadius.xl,
+          bottomRadius: 0,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const GlassDragHandle(tone: GlassTone.frost),
+            Flexible(child: SafeArea(top: false, child: child)),
+          ],
+        ),
       ),
     );
   }
@@ -341,6 +353,7 @@ Future<T?> showAppGlassDialog<T>({
 Future<T?> showAppHalfSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
+  double maxHeightFactor = 0.66,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -349,7 +362,10 @@ Future<T?> showAppHalfSheet<T>({
     elevation: 0,
     barrierColor: appGlassBarrierColor(),
     builder: (BuildContext sheetContext) {
-      return AppGlassSheet(child: Builder(builder: builder));
+      return AppGlassSheet(
+        maxHeightFactor: maxHeightFactor,
+        child: Builder(builder: builder),
+      );
     },
   );
 }
