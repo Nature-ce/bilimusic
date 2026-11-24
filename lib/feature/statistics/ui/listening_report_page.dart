@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/statistics/domain/daily_listening.dart';
 import 'package:bilimusic/feature/statistics/domain/listening_report.dart';
@@ -352,8 +353,8 @@ class _TopSongRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final String title = song.title.trim();
-    final String author = song.author.trim();
+    final String title = normalizeDisplayText(song.title.trim());
+    final String author = normalizeDisplayText(song.author.trim());
 
     return Row(
       children: <Widget>[

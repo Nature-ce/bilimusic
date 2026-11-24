@@ -1,6 +1,7 @@
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/statistics/domain/song_statistics.dart';
 import 'package:bilimusic/feature/statistics/logic/statistics_tracker.dart';
@@ -74,9 +75,11 @@ class _SongHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                statistics?.title.isNotEmpty == true
-                    ? statistics!.title
-                    : item.title,
+                normalizeDisplayText(
+                  statistics?.title.isNotEmpty == true
+                      ? statistics!.title
+                      : item.title,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge?.copyWith(
@@ -85,9 +88,11 @@ class _SongHeader extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                statistics?.author.isNotEmpty == true
-                    ? statistics!.author
-                    : item.author,
+                normalizeDisplayText(
+                  statistics?.author.isNotEmpty == true
+                      ? statistics!.author
+                      : item.author,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(

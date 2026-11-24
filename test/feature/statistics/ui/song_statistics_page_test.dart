@@ -25,6 +25,36 @@ void main() {
     await box.close();
   });
 
+  testWidgets('strips decorative characters from title and author', (
+    WidgetTester tester,
+  ) async {
+    final PlayableItem item = PlayableItem(
+      aid: 2,
+      bvid: 'BV2',
+      title: '【𝐇𝐢-𝐑𝐞𝐬无损音质】测试',
+      author: '𝐕𝐕音乐局',
+      coverUrl: '',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          statisticsTrackerProvider.overrideWithValue(
+            StatisticsTracker(
+              const Stream.empty(),
+              StatisticsLocalRepository(box),
+            ),
+          ),
+        ],
+        child: MaterialApp(home: SongStatisticsPage(item: item)),
+      ),
+    );
+
+    expect(find.text('【Hi-Res无损音质】测试'), findsOneWidget);
+    expect(find.text('VV音乐局'), findsOneWidget);
+    expect(find.textContaining('𝐇𝐢'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('shows empty state when song has no playback record', (
     WidgetTester tester,
   ) async {

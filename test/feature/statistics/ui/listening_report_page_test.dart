@@ -21,8 +21,8 @@ void main() {
     topSongs: <ListeningReportSong>[
       ListeningReportSong(
         stableId: 'bvid:BV1',
-        title: '测试歌曲',
-        author: '测试歌手',
+        title: '【𝐇𝐢-𝐑𝐞𝐬无损音质】测试',
+        author: '𝐕𝐕音乐局',
         listenedMs: 2400000,
         plays: 3,
       ),
@@ -60,7 +60,9 @@ void main() {
     expect(find.text('本周新增'), findsOneWidget);
     expect(find.text('4 首'), findsOneWidget);
     expect(find.text('本周最常听'), findsOneWidget);
-    expect(find.text('测试歌曲'), findsOneWidget);
+    expect(find.text('【Hi-Res无损音质】测试'), findsOneWidget);
+    expect(find.text('VV音乐局'), findsOneWidget);
+    expect(find.textContaining('𝐇𝐢'), findsNothing);
     expect(find.text('本周'), findsOneWidget);
     expect(find.text('上周'), findsOneWidget);
   });

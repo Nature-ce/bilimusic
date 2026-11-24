@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/util/display_text.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:flutter/material.dart';
@@ -64,14 +65,14 @@ class TrackRowTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        title,
+                        normalizeDisplayText(title),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.listTitle(theme),
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        artist,
+                        normalizeDisplayText(artist),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.meta(theme, fontSize: 12),
