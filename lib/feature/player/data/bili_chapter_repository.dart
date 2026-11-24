@@ -82,11 +82,27 @@ class BiliChapterRepository {
   static const int _refinementChapterLimit = 10;
   static const Duration _wholeVideoStartTolerance = Duration(minutes: 1);
 
+  /// 章节平均间隔低于这个值就认为不是「章节」，而是被误当成章节的歌词行。
+  static const Duration _minimumAverageChapterGap = Duration(seconds: 12);
+
+  static bool _isPlausibleChapterList(List<PlaybackChapter> chapters) {
+    if (chapters.length < 3) {
+      return true;
+    }
+    final Duration span = chapters.last.start - chapters.first.start;
+    if (span <= Duration.zero) {
+      return false;
+    }
+    final double averageGapMs = span.inMilliseconds / (chapters.length - 1);
+    return averageGapMs >= _minimumAverageChapterGap.inMilliseconds;
+  }
+
   List<PlaybackChapter> _chooseFiner({
     required List<PlaybackChapter> base,
     required List<PlaybackChapter> candidate,
   }) {
-    if (candidate.length < PlaybackChapterParser.minimumChapterCount) {
+    if (candidate.length < PlaybackChapterParser.minimumChapterCount ||
+        !_isPlausibleChapterList(candidate)) {
       return base;
     }
     if (base.isEmpty) {

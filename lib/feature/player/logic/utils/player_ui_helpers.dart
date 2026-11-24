@@ -44,6 +44,24 @@ String? formatPartBadge(PlayableItem? item) {
   return 'P$currentPage';
 }
 
+/// 进度条上相邻标记的最小间距（逻辑像素）：太密就不画，否则整条轨道会变成一串点。
+const double minimumChapterMarkerGap = 10;
+
+bool shouldRenderChapterMarkers({
+  required List<PlaybackChapter> chapters,
+  required Duration? total,
+  required double trackWidth,
+}) {
+  if (trackWidth <= 0) {
+    return false;
+  }
+  final List<double> ratios = resolveChapterTickRatios(chapters, total);
+  if (ratios.isEmpty) {
+    return false;
+  }
+  return trackWidth / ratios.length >= minimumChapterMarkerGap;
+}
+
 List<double> resolveChapterTickRatios(
   List<PlaybackChapter> chapters,
   Duration? total,

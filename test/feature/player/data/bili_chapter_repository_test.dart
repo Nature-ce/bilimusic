@@ -350,6 +350,54 @@ void main() {
     expect(chapters.length, 2);
     expect(chapters.last.title, '晴天');
   });
+  test('ignores a pinned comment whose timestamps are lyric-dense', () async {
+    final _FakeClient client = _FakeClient(
+      session: _session,
+      responses: <String, Map<String, dynamic>>{
+        _playerPath: <String, dynamic>{
+          'code': 0,
+          'data': <String, dynamic>{
+            'view_points': <Map<String, dynamic>>[
+              for (int index = 0; index < 3; index += 1)
+                <String, dynamic>{
+                  'from': index * 100,
+                  'to': (index + 1) * 100,
+                  'content': '第 ${index + 1} 段',
+                  'type': 1,
+                },
+            ],
+          },
+        },
+      },
+    );
+    final StringBuffer lyrics = StringBuffer();
+    for (int line = 0; line < 48; line += 1) {
+      final int seconds = 5 + line * 5;
+      final String stamp =
+          '${(seconds ~/ 60).toString().padLeft(2, '0')}:'
+          '${(seconds % 60).toString().padLeft(2, '0')}';
+      lyrics.writeln('$stamp 歌词第 $line 句');
+    }
+    final BiliChapterRepository repository = BiliChapterRepository(
+      client,
+      _FakeCommentRepository(
+        CommentPageResult(
+          topItem: _comment(lyrics.toString()),
+          page: 1,
+          pageSize: 20,
+          totalCount: 1,
+          hasMore: false,
+        ),
+      ),
+    );
+
+    final List<PlaybackChapter> chapters = await repository.fetchChapters(
+      _item(),
+    );
+
+    expect(chapters.length, 3);
+    expect(chapters.first.title, '第 1 段');
+  });
 }
 
 PlayableItem _item({String? description}) {

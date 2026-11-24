@@ -45,16 +45,20 @@ class ChapterMarkerPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final List<double> ratios = resolveChapterTickRatios(chapters, total);
-    if (ratios.isEmpty || size.width <= 0 || size.height <= 0) {
+    if (size.width <= 0 || size.height <= 0) {
       return;
     }
 
     const double edgeInset = 3;
     final double trackWidth = size.width - edgeInset * 2;
-    if (trackWidth <= 0) {
+    if (!shouldRenderChapterMarkers(
+      chapters: chapters,
+      total: total,
+      trackWidth: trackWidth,
+    )) {
       return;
     }
+    final List<double> ratios = resolveChapterTickRatios(chapters, total);
 
     final Paint paint = Paint()
       ..color = color
