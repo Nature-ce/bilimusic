@@ -4,6 +4,7 @@ import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_catalog.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_state.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_track.dart';
+import 'package:bilimusic/feature/home/ui/components/music_platform_badge.dart';
 import 'package:flutter/material.dart';
 
 /// 首页排行榜的平台卡片（对应设计稿 C-A）：
@@ -124,15 +125,24 @@ class HomeChartPlatformCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: <Widget>[
-                    Text(
-                      '共 ${MusicChartCatalog.chartsFor(entry.chart.platform).length} 个榜单',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurfaceVariant,
+                    MusicPlatformBadge(
+                      platform: entry.chart.platform,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${entry.chart.platform.label} · 共 ${MusicChartCatalog.chartsFor(entry.chart.platform).length} 个榜单',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: AppSpacing.sm),
                     Text(
                       '查看全部 ›',
                       style: TextStyle(

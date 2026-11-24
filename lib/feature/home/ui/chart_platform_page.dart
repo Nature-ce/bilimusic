@@ -72,31 +72,45 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
           _buildDefaultCard(entry: entry, chart: chart),
           const SizedBox(height: AppSpacing.xl),
           Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(
-              '全部榜单',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.4,
-                color: colorScheme.onSurfaceVariant,
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: <Widget>[
+                Text(
+                  '全部榜单',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '共 ${charts.length} 个榜单',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final double cardWidth = (constraints.maxWidth - 10) / 2;
+              final double tileWidth = (constraints.maxWidth - 12) / 2;
               return Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 12,
+                runSpacing: 12,
                 children: <Widget>[
                   for (final MusicChart item in otherCharts)
                     SizedBox(
-                      width: cardWidth,
-                      child: _ChartGridCard(
+                      width: tileWidth,
+                      child: _ChartCoverTile(
                         chart: item,
                         platformLabel: widget.platform.label,
+                        colors: _chartTileColors(charts.indexOf(item)),
                         onTap: () => _openChart(item),
                       ),
                     ),
@@ -360,97 +374,95 @@ class _DefaultChartCardError extends StatelessWidget {
   }
 }
 
-class _ChartGridCard extends StatelessWidget {
-  const _ChartGridCard({
+const List<(Color, Color)> _chartTilePalette = <(Color, Color)>[
+  (Color(0xFFF07A3C), Color(0xFFB54E1F)),
+  (Color(0xFF2FB37B), Color(0xFF12724F)),
+  (Color(0xFF4C86D8), Color(0xFF245087)),
+  (Color(0xFF8B5CC4), Color(0xFF5B3691)),
+  (Color(0xFF2E8FA6), Color(0xFF175669)),
+  (Color(0xFFD9658E), Color(0xFF9C3358)),
+  (Color(0xFF5D6B84), Color(0xFF2C3547)),
+  (Color(0xFFC9A227), Color(0xFF8A6A0E)),
+];
+
+(Color, Color) _chartTileColors(int index) {
+  return _chartTilePalette[index % _chartTilePalette.length];
+}
+
+/// 「全部榜单」的封面式网格卡：榜单无封面，用固定渐变色块 + 榜单名 + 平台名。
+class _ChartCoverTile extends StatelessWidget {
+  const _ChartCoverTile({
     required this.chart,
     required this.platformLabel,
+    required this.colors,
     required this.onTap,
   });
 
   final MusicChart chart;
   final String platformLabel;
+  final (Color, Color) colors;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    final String badgeText = chart.name.length > 2
-        ? chart.name.substring(0, 2)
-        : chart.name;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: appCardSurfaceColor(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[colors.$1, colors.$2],
+          ),
         ),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
+          child: SizedBox(
+            height: 104,
+            child: Stack(
+              fit: StackFit.expand,
               children: <Widget>[
-                Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
+                DecoratedBox(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(11),
                     gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                       colors: <Color>[
-                        colorScheme.primary,
-                        colorScheme.primary.withValues(alpha: 0.62),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.5),
                       ],
                     ),
                   ),
+                ),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 22,
                   child: Text(
-                    badgeText,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 11,
+                    chart.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: colorScheme.onPrimary,
+                      letterSpacing: -0.2,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm + 2),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        chart.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        platformLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.meta(theme, fontSize: 10.5),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  '›',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    height: 1,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                Positioned(
+                  left: 12,
+                  bottom: 8,
+                  child: Text(
+                    platformLabel,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.86),
+                    ),
                   ),
                 ),
               ],
