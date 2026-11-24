@@ -303,6 +303,40 @@ void main() {
     expect(store.load()!.dateKey, '2026-11-25');
   });
 
+  test('通用曲名（催眠曲/摇篮曲）不会进入每日推荐', () async {
+    final _FakeDailyStore store = _FakeDailyStore();
+    final List<HotPlaylistTrack> wave = <HotPlaylistTrack>[
+      for (int index = 0; index < 6; index += 1)
+        HotPlaylistTrack(
+          playlist: _playlistA,
+          rank: index + 1,
+          title: index == 0
+              ? '催眠曲'
+              : index == 1
+              ? '摇篮曲'
+              : '正常歌曲 $index',
+          artist: '歌手 $index',
+          coverUrl: 'https://example.com/$index.jpg',
+          durationSeconds: 200,
+        ),
+    ];
+    final ProviderContainer container = _container(
+      store: store,
+      loader: _FakePoolLoader(waves: <List<HotPlaylistTrack>>[wave, _wave()]),
+      recommender: _CountingRecommender(),
+      taste: _personalizedTaste(),
+    );
+
+    final DailyRecommendationState state = await _settle(container);
+
+    expect(state.picks, hasLength(30));
+    expect(
+      state.picks.where(
+        (DailyPick pick) => pick.title == '催眠曲' || pick.title == '摇篮曲',
+      ),
+      isEmpty,
+    );
+  });
   test('缺少封面的曲目会用 B 站匹配结果回填并落盘', () async {
     final _FakeDailyStore store = _FakeDailyStore(
       stored: DailyRecommendation(

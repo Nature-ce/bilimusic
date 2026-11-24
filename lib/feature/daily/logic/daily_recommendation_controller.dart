@@ -63,7 +63,15 @@ class DailyRecommendationController extends _$DailyRecommendationController {
   Future<void> load() async {
     final String today = _todayKey();
     final DailyRecommendation? stored = _readStored();
-    if (stored != null && stored.dateKey == today && stored.picks.isNotEmpty) {
+    final bool storedHasGenericTitles =
+        stored?.picks.any(
+          (DailyPick pick) => ChartTrackMatcher.isGenericTitle(pick.title),
+        ) ??
+        false;
+    if (stored != null &&
+        stored.dateKey == today &&
+        stored.picks.isNotEmpty &&
+        !storedHasGenericTitles) {
       state = DailyRecommendationState(
         picks: List<DailyPick>.unmodifiable(stored.picks),
         isLoading: false,
@@ -114,11 +122,17 @@ class DailyRecommendationController extends _$DailyRecommendationController {
         wave += 1
       ) {
         final RadarPoolResult pool = await loader.load(random: random);
-        if (pool.tracks.isEmpty) {
+        final List<HotPlaylistTrack> usableTracks = pool.tracks
+            .where(
+              (HotPlaylistTrack track) =>
+                  !ChartTrackMatcher.isGenericTitle(track.title),
+            )
+            .toList(growable: false);
+        if (usableTracks.isEmpty) {
           continue;
         }
         final List<RadarPick> wavePicks = recommender.pick(
-          pool: pool.tracks,
+          pool: usableTracks,
           taste: taste,
           limit: pickCount - picks.length,
           random: random,

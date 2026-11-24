@@ -152,8 +152,9 @@ class _SwipeRevealRowState extends State<SwipeRevealRow> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final Color background =
-        widget.backgroundColor ?? theme.scaffoldBackgroundColor;
+    final Color background = widget.backgroundColor ?? colorScheme.surface;
+    const double cardRadius = 14;
+    const double gap = 8;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -168,12 +169,14 @@ class _SwipeRevealRowState extends State<SwipeRevealRow> {
           return Stack(
             children: <Widget>[
               Positioned(
-                top: 0,
-                bottom: 0,
-                right: 0,
-                width: widget.actionWidth,
+                top: 4,
+                bottom: 4,
+                right: gap,
+                width: widget.actionWidth - gap,
                 child: Material(
                   color: colorScheme.error,
+                  borderRadius: BorderRadius.circular(cardRadius),
+                  clipBehavior: Clip.antiAlias,
                   child: InkWell(
                     onTap: _runAction,
                     child: Column(
@@ -200,15 +203,33 @@ class _SwipeRevealRowState extends State<SwipeRevealRow> {
               ),
               Transform.translate(
                 offset: Offset(value, 0),
-                child: Material(
-                  color: background,
-                  child: _isOpen
-                      ? GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _close,
-                          child: child,
-                        )
-                      : child,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: gap),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(cardRadius),
+                      boxShadow: <BoxShadow>[
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(cardRadius),
+                      child: Material(
+                        color: background,
+                        child: _isOpen
+                            ? GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _close,
+                                child: child,
+                              )
+                            : child,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

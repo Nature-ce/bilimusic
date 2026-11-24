@@ -40,6 +40,7 @@ class ChartTrackMatcher {
     '睡眠曲',
     '冥想',
     '疗愈音乐',
+    '摇篮曲',
   ];
 
   /// 候选时长 / 原曲时长 的允许区间：短于此值算剪辑，长于此值算拼接。
@@ -91,6 +92,13 @@ class ChartTrackMatcher {
   static final RegExp _ignoredCharacters = RegExp(
     r'''[\s\-_/\\.。，,、:：!！?？"'`~@#%&*+=|<>()\[\]{}（）【】「」『』《》]''',
   );
+
+  /// 通用曲名（催眠曲 / 摇篮曲 / 纯音乐…）在 B 站很难匹配到「同一首歌」，
+  /// 推荐链路应该直接跳过，避免推荐了却播不出来。
+  static bool isGenericTitle(String title) {
+    final String normalized = normalize(title);
+    return normalized.isNotEmpty && _genericTitleKeywords.contains(normalized);
+  }
 
   static SearchResultItem? pickBest({
     required MatchableTrack track,
