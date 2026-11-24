@@ -47,6 +47,9 @@ class DailyRecommendationController extends _$DailyRecommendationController {
   static const int pickCount = 30;
   static const int maxPoolWaves = 3;
 
+  /// 小于这个秒数的时长基本不可信（片段/试听），回填时允许用 B 站匹配结果纠正。
+  static const int _minimumPlausibleDuration = 60;
+
   bool _isGenerating = false;
   bool _isBackfillingCovers = false;
 
@@ -183,7 +186,11 @@ class DailyRecommendationController extends _$DailyRecommendationController {
       return;
     }
     final List<DailyPick> missing = state.picks
-        .where((DailyPick pick) => pick.coverUrl.trim().isEmpty)
+        .where(
+          (DailyPick pick) =>
+              pick.coverUrl.trim().isEmpty ||
+              pick.durationSeconds < _minimumPlausibleDuration,
+        )
         .take(maxTracks)
         .toList(growable: false);
     if (missing.isEmpty) {
@@ -194,7 +201,8 @@ class DailyRecommendationController extends _$DailyRecommendationController {
       final BiliSearchRepository repository = ref.read(
         biliSearchRepositoryProvider,
       );
-      final Map<String, String> covers = <String, String>{};
+      final Map<String, SearchResultItem> matches =
+          <String, SearchResultItem>{};
       for (final DailyPick pick in missing) {
         if (!ref.mounted) {
           return;
@@ -207,22 +215,19 @@ class DailyRecommendationController extends _$DailyRecommendationController {
             track: pick,
             candidates: result.items,
           );
-          final String cover = match?.coverUrl.trim() ?? '';
-          if (cover.isNotEmpty) {
-            covers[pick.key] = cover;
+          if (match != null) {
+            matches[pick.key] = match;
           }
         } on Object {
           // 单首失败不影响其它曲目。
         }
       }
-      if (!ref.mounted || covers.isEmpty) {
+      if (!ref.mounted || matches.isEmpty) {
         return;
       }
       final List<DailyPick> updated = <DailyPick>[
         for (final DailyPick pick in state.picks)
-          covers.containsKey(pick.key) && pick.coverUrl.trim().isEmpty
-              ? pick.copyWith(coverUrl: covers[pick.key]!)
-              : pick,
+          _backfilled(pick, matches[pick.key]),
       ];
       state = state.copyWith(picks: List<DailyPick>.unmodifiable(updated));
       await _persistPicks(updated);
@@ -231,6 +236,29 @@ class DailyRecommendationController extends _$DailyRecommendationController {
     } finally {
       _isBackfillingCovers = false;
     }
+  }
+
+  /// 用 B 站匹配结果补封面/纠正离谱时长（源接口偶尔给 00:29 这种片段时长）。
+  DailyPick _backfilled(DailyPick pick, SearchResultItem? match) {
+    if (match == null) {
+      return pick;
+    }
+    final bool needCover = pick.coverUrl.trim().isEmpty;
+    final bool needDuration = pick.durationSeconds < _minimumPlausibleDuration;
+    if (!needCover && !needDuration) {
+      return pick;
+    }
+    final int matchSeconds = ChartTrackMatcher.parseDurationSeconds(
+      match.duration,
+    );
+    return pick.copyWith(
+      coverUrl: needCover && match.coverUrl.trim().isNotEmpty
+          ? match.coverUrl.trim()
+          : pick.coverUrl,
+      durationSeconds: needDuration && matchSeconds > 0
+          ? matchSeconds
+          : pick.durationSeconds,
+    );
   }
 
   Future<void> _persistPicks(List<DailyPick> picks) async {

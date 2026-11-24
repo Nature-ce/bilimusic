@@ -350,7 +350,10 @@ void main() {
       dailyRecommendationControllerProvider,
     );
     expect(state.picks.single.coverUrl, 'https://example.com/bili.jpg');
+    // 源接口给的 00:29 不可信，回填时用匹配到的 04:00 纠正。
+    expect(state.picks.single.durationSeconds, 240);
     expect(store.load()!.picks.single.coverUrl, 'https://example.com/bili.jpg');
+    expect(store.load()!.picks.single.durationSeconds, 240);
   });
 }
 
