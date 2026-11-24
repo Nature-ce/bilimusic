@@ -761,7 +761,6 @@ class _DesktopFavoriteCollectionPageState
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: colorScheme.surface,
       builder: (BuildContext sheetContext) => ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.66,
