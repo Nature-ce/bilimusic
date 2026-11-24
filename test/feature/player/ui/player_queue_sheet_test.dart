@@ -223,6 +223,11 @@ void main() {
       playerQueueSheetGlassSettings.backerColor,
     );
 
+    final ModalBarrier barrier = tester.widget<ModalBarrier>(
+      find.byType(ModalBarrier).last,
+    );
+    expect(barrier.color, Colors.black.withValues(alpha: 0.34));
+
     final Text title = tester.widget<Text>(find.text('播放队列'));
     expect(title.style?.color, GlassTone.smoke.primaryText);
 
@@ -261,6 +266,14 @@ void main() {
       lessThan(playerQueueSheetGlassSettings.backerColor?.a ?? 1),
     );
     expect(expected.blur, greaterThan(playerQueueSheetGlassSettings.blur));
+
+    // 首页玻璃档不压暗背景。
+    expect(
+      tester
+          .widgetList<ModalBarrier>(find.byType(ModalBarrier))
+          .every((ModalBarrier barrier) => (barrier.color?.a ?? 0) < 0.2),
+      isTrue,
+    );
 
     final Text title = tester.widget<Text>(find.text('播放队列'));
     expect(title.style?.color, colorScheme.onSurface);
