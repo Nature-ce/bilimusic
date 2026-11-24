@@ -51,46 +51,6 @@ class _FavoriteUpListState extends ConsumerState<FavoriteUpList> {
     context.push('/up/${up.mid}');
   }
 
-  Future<void> _showUpActions(FavoriteUp up) {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (BuildContext sheetContext) {
-        final ColorScheme colorScheme = Theme.of(sheetContext).colorScheme;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.person_outline_rounded),
-                title: const Text('查看主页'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  _openUp(up);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.heart_broken_rounded,
-                  color: colorScheme.error,
-                ),
-                title: Text('取消收藏', style: TextStyle(color: colorScheme.error)),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  unawaited(
-                    ref
-                        .read(favoriteUpControllerProvider.notifier)
-                        .remove(up.mid),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final List<FavoriteUp> ups = ref.watch(favoriteUpControllerProvider);
@@ -152,7 +112,6 @@ class _FavoriteUpListState extends ConsumerState<FavoriteUpList> {
                       ups: visible,
                       updates: updates,
                       onTap: _openUp,
-                      onLongPress: _showUpActions,
                     ),
             ),
           ],

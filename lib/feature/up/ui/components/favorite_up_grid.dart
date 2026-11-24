@@ -98,7 +98,7 @@ class FavoriteUpGrid extends StatelessWidget {
     required this.ups,
     required this.updates,
     required this.onTap,
-    required this.onLongPress,
+    this.onLongPress,
     this.now,
   });
 
@@ -117,7 +117,7 @@ class FavoriteUpGrid extends StatelessWidget {
   final List<FavoriteUp> ups;
   final Map<int, FavoriteUpUpdate> updates;
   final ValueChanged<FavoriteUp> onTap;
-  final ValueChanged<FavoriteUp> onLongPress;
+  final ValueChanged<FavoriteUp>? onLongPress;
   final DateTime? now;
 
   @override
@@ -153,7 +153,7 @@ class FavoriteUpGrid extends StatelessWidget {
           update: updates[up.mid],
           now: now,
           onTap: () => onTap(up),
-          onLongPress: () => onLongPress(up),
+          onLongPress: onLongPress == null ? null : () => onLongPress!(up),
         );
       },
     );
