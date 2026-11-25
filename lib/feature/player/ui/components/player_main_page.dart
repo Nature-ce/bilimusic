@@ -1,6 +1,5 @@
 import 'package:bilimusic/common/bm_icons.dart';
 import 'package:bilimusic/common/components/badged_icon_button.dart';
-import 'package:bilimusic/core/theme/theme_colors.dart';
 import 'package:bilimusic/feature/download/logic/download_controller.dart';
 import 'package:bilimusic/feature/download/ui/track_download_action.dart';
 import 'package:bilimusic/feature/player/domain/audio_stream_info.dart';
@@ -389,12 +388,14 @@ class _PlayerQualityToolButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final String badgeLabel = qualityBadgeLabel(qualities: qualities);
+    // 和旁边几个图标用同一套颜色：可用时 onSurface，禁用时 38% onSurface。
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color iconColor = isEnabled
+        ? colorScheme.onSurface
+        : colorScheme.onSurface.withValues(alpha: 0.38);
     return IconButton(
       onPressed: !isEnabled ? null : () => _pickQuality(context, ref),
-      icon: PlayerQualityBadge(
-        label: badgeLabel,
-        color: neutralColorOf(context),
-      ),
+      icon: PlayerQualityBadge(label: badgeLabel, color: iconColor),
     );
   }
 
