@@ -94,7 +94,7 @@ final class HotPlaylistControllerProvider
 }
 
 String _$hotPlaylistControllerHash() =>
-    r'e3f1d0f0c9894e9f243ea132a044d0bea965ed87';
+    r'9d36f042836c377843b7e87e224591b66c6564f9';
 
 abstract class _$HotPlaylistController extends $Notifier<HotPlaylistState> {
   HotPlaylistState build();

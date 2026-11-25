@@ -12,7 +12,7 @@ abstract class CommentState with _$CommentState {
 
   const factory CommentState({
     required CommentTarget target,
-    @Default(CommentSort.time) CommentSort sort,
+    @Default(CommentSort.like) CommentSort sort,
     @Default(PagedState<CommentItem>()) PagedState<CommentItem> mainComments,
     @Default(<CommentItem>[]) List<CommentItem> hotItems,
     @Default(<CommentSort>[]) List<CommentSort> supportedSorts,

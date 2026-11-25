@@ -174,7 +174,7 @@ void main() {
     await _pumpCommentPage(tester);
 
     expect(find.byType(PlayerDynamicBackdrop), findsOneWidget);
-    final ThemeData theme = Theme.of(tester.element(find.text('最新评论')));
+    final ThemeData theme = Theme.of(tester.element(find.text('热门评论')));
     expect(theme.brightness, Brightness.dark);
     expect(theme.scaffoldBackgroundColor, Colors.transparent);
   });
@@ -201,7 +201,7 @@ void main() {
     final Text empty = tester.widget<Text>(find.text('还没有评论'));
     expect(empty.style?.color, GlassTone.smoke.primaryText);
 
-    final Text title = tester.widget<Text>(find.text('最新评论'));
+    final Text title = tester.widget<Text>(find.text('热门评论'));
     expect(title.style?.color?.computeLuminance(), greaterThan(0.5));
   });
 
@@ -220,25 +220,26 @@ void main() {
       greaterThan(0.5),
     );
   });
-  testWidgets('排序标签点一下就在按时间/按热度之间切换', (WidgetTester tester) async {
+  testWidgets('默认按热度，点一下在热度/时间之间切换', (WidgetTester tester) async {
     await _pumpCommentPage(tester, withComment: true);
 
-    expect(find.text('最新评论'), findsOneWidget);
-    expect(find.text('按时间'), findsOneWidget);
+    // 默认就是「热门评论 / 按热度」。
+    expect(find.text('热门评论'), findsOneWidget);
+    expect(find.text('按热度'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('commentSortToggle')));
     await tester.pumpAndSettle();
 
     // 只有两种排序：点一下就换成另一种，不再弹菜单。
-    expect(find.text('热门评论'), findsOneWidget);
-    expect(find.text('按热度'), findsOneWidget);
-    expect(find.text('按时间'), findsNothing);
+    expect(find.text('最新评论'), findsOneWidget);
+    expect(find.text('按时间'), findsOneWidget);
+    expect(find.text('按热度'), findsNothing);
 
     await tester.tap(find.byKey(const Key('commentSortToggle')));
     await tester.pumpAndSettle();
 
-    expect(find.text('最新评论'), findsOneWidget);
-    expect(find.text('按时间'), findsOneWidget);
+    expect(find.text('热门评论'), findsOneWidget);
+    expect(find.text('按热度'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

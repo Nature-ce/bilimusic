@@ -42,7 +42,7 @@ final class FavoriteUpControllerProvider
 }
 
 String _$favoriteUpControllerHash() =>
-    r'67caf032eef28f786775ca206970da54c2c6fb29';
+    r'8973702a86c1e0ff0856dc08f217b075f3364b7b';
 
 abstract class _$FavoriteUpController extends $Notifier<List<FavoriteUp>> {
   List<FavoriteUp> build();

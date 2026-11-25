@@ -37,16 +37,17 @@ void main() {
     );
 
     await controller.loadInitial();
-    await controller.changeSort(CommentSort.like);
+    // 默认就是按热度，切到按时间才算「换排序」。
+    await controller.changeSort(CommentSort.time);
 
     final CommentState state = container.read(
       commentControllerProvider(_target),
     );
     expect(repository.requestedSorts, <CommentSort>[
-      CommentSort.time,
       CommentSort.like,
+      CommentSort.time,
     ]);
-    expect(state.sort, CommentSort.like);
+    expect(state.sort, CommentSort.time);
     expect(state.currentPage, 1);
     expect(state.isRefreshing, isFalse);
   });

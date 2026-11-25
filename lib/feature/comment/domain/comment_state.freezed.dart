@@ -244,7 +244,7 @@ return $default(_that.target,_that.sort,_that.mainComments,_that.hotItems,_that.
 
 
 class _CommentState extends CommentState {
-  const _CommentState({required this.target, this.sort = CommentSort.time, this.mainComments = const PagedState<CommentItem>(), final  List<CommentItem> hotItems = const <CommentItem>[], final  List<CommentSort> supportedSorts = const <CommentSort>[], this.topItem, this.isLoading = false, this.isRefreshing = false, this.total = 0, this.nextOffset, this.sortTitle, this.isEnd = false, this.hasFolded = false, this.isFolded = false, this.isReadOnly = false, this.noticeText, this.errorMessage, this.loadMoreErrorMessage}): _hotItems = hotItems,_supportedSorts = supportedSorts,super._();
+  const _CommentState({required this.target, this.sort = CommentSort.like, this.mainComments = const PagedState<CommentItem>(), final  List<CommentItem> hotItems = const <CommentItem>[], final  List<CommentSort> supportedSorts = const <CommentSort>[], this.topItem, this.isLoading = false, this.isRefreshing = false, this.total = 0, this.nextOffset, this.sortTitle, this.isEnd = false, this.hasFolded = false, this.isFolded = false, this.isReadOnly = false, this.noticeText, this.errorMessage, this.loadMoreErrorMessage}): _hotItems = hotItems,_supportedSorts = supportedSorts,super._();
   
 
 @override final  CommentTarget target;

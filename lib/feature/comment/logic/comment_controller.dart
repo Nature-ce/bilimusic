@@ -25,6 +25,7 @@ class CommentController extends _$CommentController {
   @override
   CommentState build(CommentTarget target) {
     _logger.d('build target oid=${target.oid} type=${target.type}');
+    // 默认排序由 CommentState 决定（按热度）：进评论区先看大家都认可的。
     return CommentState(target: target);
   }
 
