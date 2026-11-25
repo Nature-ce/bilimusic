@@ -1,7 +1,5 @@
 import 'package:bilimusic/common/components/glass_panel.dart';
-import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
-import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/comment/domain/comment_target.dart';
 import 'package:bilimusic/feature/comment/ui/comment_page.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
@@ -460,7 +458,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   }
 
   Future<void> _showPlayerMenu(PlayableItem item) async {
-    final bool useGlass = ref.read(appearanceSettingLogicProvider);
+    // 播放页菜单固定用烟熏玻璃，不跟随「玻璃导航栏 / 播放栏」开关。
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -468,25 +466,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
       elevation: 0,
       barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (BuildContext sheetContext) {
-        final Widget content = SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _playerMenuItems(item, sheetContext),
-          ),
-        );
-        if (useGlass) {
-          return AppGlassSheet(tone: GlassTone.smoke, child: content);
-        }
-        return Material(
-          color: Theme.of(sheetContext).colorScheme.surface,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppRadius.xl),
+        return AppGlassSheet(
+          tone: GlassTone.smoke,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _playerMenuItems(item, sheetContext),
             ),
           ),
-          child: content,
         );
       },
     );

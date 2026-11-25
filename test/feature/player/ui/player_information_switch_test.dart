@@ -64,6 +64,11 @@ class _GlassAppearance extends AppearanceSettingLogic {
   bool build() => true;
 }
 
+class _SolidAppearance extends AppearanceSettingLogic {
+  @override
+  bool build() => false;
+}
+
 void main() {
   testWidgets(
     'cover double tap switches page and mini information without artwork',
@@ -1099,6 +1104,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('player menu stays glass even when the switch is off', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPlayer(
+      tester,
+      _metadata,
+      home: const PlayerPage(initialItem: _item),
+      appearance: _SolidAppearance.new,
+    );
+
+    await tester.tap(find.byKey(const Key('playerMenuButton')));
+    await tester.pumpAndSettle();
+
+    // 播放页菜单固定玻璃，不跟随开关。
+    expect(find.byType(AppGlassSheet), findsOneWidget);
+    expect(find.text('播放设置'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('compact dark landscape respects safe insets and large text', (
     WidgetTester tester,
   ) async {
@@ -1311,6 +1334,7 @@ Future<ProviderContainer> _pumpPlayer(
   List<DownloadedTrack> downloads = const <DownloadedTrack>[],
   TextScaler textScaler = TextScaler.noScaling,
   ThemeData? theme,
+  AppearanceSettingLogic Function()? appearance,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -1319,7 +1343,9 @@ Future<ProviderContainer> _pumpPlayer(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
+        appearanceSettingLogicProvider.overrideWith(
+          appearance ?? _GlassAppearance.new,
+        ),
         favoritesControllerProvider.overrideWith(_FakeFavoritesController.new),
         playerControllerProvider.overrideWith(_FakePlayerController.new),
         metadataControllerProvider.overrideWith(
