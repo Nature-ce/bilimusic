@@ -7,6 +7,7 @@ import 'package:bilimusic/feature/home/logic/favorite_music_chart_controller.dar
 import 'package:bilimusic/feature/home/logic/music_chart_controller.dart';
 import 'package:bilimusic/feature/home/ui/chart_detail_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -71,7 +72,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(home: ChartDetailPage(chart: chart)),
+        child: MaterialApp(
+          builder: FlutterSmartDialog.init(),
+          home: ChartDetailPage(chart: chart),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -91,39 +95,40 @@ void main() {
     expect(find.text('歌手 1'), findsOneWidget);
     expect(find.text('03:21'), findsOneWidget);
     expect(find.byKey(const Key('chartDetailPlayAll')), findsOneWidget);
-    expect(find.byKey(const Key('chartDetailFavorite')), findsOneWidget);
-    expect(find.byKey(const Key('chartDetailRefresh')), findsOneWidget);
+    expect(find.byKey(const Key('chartDetailDownload')), findsOneWidget);
+    expect(find.byKey(const Key('chartDetailFavorite')), findsNothing);
+    expect(find.byKey(const Key('chartDetailRefresh')), findsNothing);
     expect(find.text('播放全部'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('favorite button toggles the local chart favorite', (
+  testWidgets('action row keeps play-all and download only', (
     WidgetTester tester,
   ) async {
     await pumpPage(tester);
 
-    expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('chartDetailFavorite')));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('chartDetailFavorite')));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+    expect(find.byKey(const Key('chartDetailPlayAll')), findsOneWidget);
+    expect(find.byKey(const Key('chartDetailDownload')), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border_rounded), findsNothing);
+    expect(find.byIcon(Icons.favorite_rounded), findsNothing);
+    expect(tester.takeException(), isNull);
   });
-
-  testWidgets('refresh button reloads the chart tracks', (
+  testWidgets('pull to refresh reloads the chart without skeleton', (
     WidgetTester tester,
   ) async {
     final _FakeChartRepository repository = await pumpPage(tester);
     expect(repository.fetchCalls, 1);
 
-    await tester.tap(find.byKey(const Key('chartDetailRefresh')));
-    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, 320));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
 
+    await tester.pumpAndSettle();
     expect(repository.fetchCalls, 2);
-    expect(find.text('榜单歌曲 0'), findsOneWidget);
+    expect(find.byKey(const Key('chartDetailPlayAll')), findsOneWidget);
+    // 等「已是最新」提示自然消失，避免留下未完成的定时器。
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 }

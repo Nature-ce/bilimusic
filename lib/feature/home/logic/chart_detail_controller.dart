@@ -13,20 +13,28 @@ class ChartDetailController extends _$ChartDetailController {
     return _load(chart);
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading<ChartDetailData>();
-    try {
-      final ChartDetailData data = await _load(chart);
-      if (!ref.mounted) {
-        return;
-      }
-      state = AsyncData<ChartDetailData>(data);
-    } on Object catch (error, stackTrace) {
-      if (!ref.mounted) {
-        return;
-      }
-      state = AsyncError<ChartDetailData>(error, stackTrace);
+  /// 静默刷新：保留已有数据（页面骨架不闪），刷新失败时保留旧数据。
+  /// 返回曲目是否有变化，调用方据此提示「已是最新」。
+  Future<bool> refresh() async {
+    final ChartDetailData? previous = state.asData?.value;
+    final ChartDetailData data = await _load(chart);
+    if (!ref.mounted) {
+      return false;
     }
+    state = AsyncData<ChartDetailData>(data);
+    return !_sameTracks(previous, data);
+  }
+
+  static bool _sameTracks(ChartDetailData? previous, ChartDetailData next) {
+    if (previous == null || previous.tracks.length != next.tracks.length) {
+      return false;
+    }
+    for (int index = 0; index < next.tracks.length; index += 1) {
+      if (previous.tracks[index].key != next.tracks[index].key) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<ChartDetailData> _load(MusicChart chart) async {
