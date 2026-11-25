@@ -432,8 +432,9 @@ class _CommentSectionHeader extends StatelessWidget {
               onTap: () {
                 final RenderBox box =
                     buttonContext.findRenderObject()! as RenderBox;
+                // 用按钮右边缘当锚点：菜单右边缘贴着按钮右侧，不会往中间跑。
                 final Offset anchor = box.localToGlobal(
-                  box.size.center(Offset.zero),
+                  Offset(box.size.width, box.size.height / 2),
                 );
                 showGlassMenu<CommentSort>(
                   context: context,
