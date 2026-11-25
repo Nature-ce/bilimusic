@@ -24,6 +24,20 @@ class FavoriteUpController extends _$FavoriteUpController {
     return state.any((FavoriteUp up) => up.mid == mid);
   }
 
+  /// 按「mid 或 名字+头像」判断，兼容历史脏数据里 mid 对不上的记录。
+  bool isProfileFavorited(UpProfile profile) {
+    final String identity = favoriteUpIdentityKey(
+      name: profile.name,
+      avatarUrl: profile.avatarUrl,
+    );
+    return state.any(
+      (FavoriteUp up) =>
+          up.mid == profile.mid ||
+          favoriteUpIdentityKey(name: up.name, avatarUrl: up.avatarUrl) ==
+              identity,
+    );
+  }
+
   Future<bool> toggle(UpProfile profile) async {
     final FavoriteUp? previous = _repository.find(
       profile.mid,

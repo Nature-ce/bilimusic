@@ -1,6 +1,5 @@
 import 'package:bilimusic/feature/up/domain/favorite_up.dart';
 import 'package:bilimusic/feature/up/domain/up_profile.dart';
-import 'package:flutter/foundation.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -14,7 +13,6 @@ FavoriteUpLocalRepository favoriteUpLocalRepository(Ref ref) {
 }
 
 /// 同一个 UP 主的身份键：名字 + 头像。用来清理「同一账号存了两份」的历史数据。
-@visibleForTesting
 String favoriteUpIdentityKey({
   required String name,
   required String avatarUrl,
@@ -23,7 +21,6 @@ String favoriteUpIdentityKey({
 }
 
 /// 去重并剔除无效记录：mid<=0 的脏数据直接丢弃，同 mid / 同身份只留最新收藏的那条。
-@visibleForTesting
 List<FavoriteUp> dedupeFavoriteUps(Iterable<FavoriteUp> ups) {
   final List<FavoriteUp> sorted =
       ups.where((FavoriteUp up) => up.mid > 0).toList(growable: false)..sort(

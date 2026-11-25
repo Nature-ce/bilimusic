@@ -3,6 +3,7 @@ import 'package:bilimusic/common/util/format_util.dart';
 import 'package:bilimusic/feature/up/domain/favorite_up.dart';
 import 'package:bilimusic/feature/favorites/ui/components/favorite_like_button.dart';
 import 'package:bilimusic/feature/up/domain/up_profile.dart';
+import 'package:bilimusic/feature/up/data/favorite_up_local_repository.dart';
 import 'package:bilimusic/feature/up/logic/favorite_up_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -88,8 +89,15 @@ class _FavoriteUpButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bool isFavorited = ref.watch(
       favoriteUpControllerProvider.select(
-        (List<FavoriteUp> ups) =>
-            ups.any((FavoriteUp up) => up.mid == profile.mid),
+        (List<FavoriteUp> ups) => ups.any(
+          (FavoriteUp up) =>
+              up.mid == profile.mid ||
+              favoriteUpIdentityKey(name: up.name, avatarUrl: up.avatarUrl) ==
+                  favoriteUpIdentityKey(
+                    name: profile.name,
+                    avatarUrl: profile.avatarUrl,
+                  ),
+        ),
       ),
     );
 
