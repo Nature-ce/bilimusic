@@ -524,8 +524,9 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
                     canPlayAll: queueItems.isNotEmpty,
                     onPlayAll: () =>
                         unawaited(_playCollection(collection, queueItems)),
-                    refreshKey: const Key('favoriteCollectionRefresh'),
-                    onRefresh: () => unawaited(_refresh(collection)),
+                    downloadKey: const Key('favoriteCollectionDownload'),
+                    onDownload: () =>
+                        unawaited(_downloadCollection(collection, queueItems)),
                     playAllLabel: '播放全部',
                   ),
                   const SizedBox(height: AppSpacing.xl),
@@ -817,6 +818,38 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
       startIndex: targetIndex,
       sourceLabel: collection.name,
     );
+  }
+
+  Future<void> _downloadCollection(
+    FavoriteCollection collection,
+    List<PlayableItem> queueItems,
+  ) async {
+    if (queueItems.isEmpty) {
+      return;
+    }
+    final bool? confirmed = await showAppConfirmDialog(
+      context: context,
+      useGlass: ref.read(appearanceSettingLogicProvider),
+      title: '下载整个收藏夹？',
+      message: '将把 ${queueItems.length} 首加入下载队列。',
+      confirmLabel: '开始下载',
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    final DownloadController controller = ref.read(
+      downloadControllerProvider.notifier,
+    );
+    int queuedCount = 0;
+    for (final PlayableItem item in queueItems) {
+      if (await controller.download(item)) {
+        queuedCount += 1;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    ToastUtil.show(queuedCount == 0 ? '已下载或正在下载' : '已加入下载队列 $queuedCount 首');
   }
 
   Future<void> _downloadSelectedItems(
