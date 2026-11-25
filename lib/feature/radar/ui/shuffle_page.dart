@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
@@ -18,6 +19,22 @@ import 'package:bilimusic/router/util/shell_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+/// 进入刷歌时一次先装几首（越少启动越快）。
+@visibleForTesting
+const int kShuffleInitialBatchSize = 3;
+
+/// 之后每次补货的曲目数区间。
+@visibleForTesting
+const int kShuffleMinRefill = 5;
+@visibleForTesting
+const int kShuffleMaxRefill = 8;
+
+/// 每次补货在 [kShuffleMinRefill] ~ [kShuffleMaxRefill] 之间随机。
+@visibleForTesting
+int shuffleRefillCount(Random random) =>
+    kShuffleMinRefill +
+    random.nextInt(kShuffleMaxRefill - kShuffleMinRefill + 1);
 
 /// 是否该给刷歌队列补货。
 ///
@@ -51,12 +68,16 @@ class ShufflePage extends ConsumerStatefulWidget {
 }
 
 class _ShufflePageState extends ConsumerState<ShufflePage> {
-  /// 每次补货的曲目数。
-  static const int _batchSize = 5;
+  /// 队列前方剩余不足这么多首时补货（等于「播到最后一首」附近）。
+  static const int _bufferAhead = 2;
 
-  /// 队列里尽量保持这么多首「还没播」的歌：
-  /// 快速连点下一首也不会绕回第一首，预取的条目直接顶上。
-  static const int _bufferAhead = 5;
+  final Random _random = Random();
+
+  /// 本次补货要补几首（5~8 随机）。
+  int get _refillCount => shuffleRefillCount(_random);
+
+  /// 预取缓存的目标长度，够一次最大补货量，补货时能瞬间入队。
+  static const int _pendingTarget = kShuffleMaxRefill;
 
   /// 同时并发解析几首（每首都要搜一次 B 站，串行太慢）。
   static const int _resolveConcurrency = 3;
@@ -72,14 +93,11 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
   bool _isToppingUp = false;
   String? _errorMessage;
 
-  /// 预取缓存的目标长度（也是一次解析的量）。
-  static const int _pendingTarget = _bufferAhead;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_ensureShuffleQueue());
+      unawaited(_ensureShuffleQueue().then((_) => _startPlaybackIfNeeded()));
     });
   }
 
@@ -103,6 +121,18 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
         .setQueueMode(PlayerQueueMode.sequence);
   }
 
+  /// 进入刷歌时确保真的开始播：队列有了但停在 0:00 / 暂停时补一次 play。
+  Future<void> _startPlaybackIfNeeded() async {
+    final PlayerState player = ref.read(playerControllerProvider);
+    if (!isAutoFeedQueue(player.queueSourceLabel) ||
+        player.currentItem == null ||
+        player.isPlaying ||
+        player.position > Duration.zero) {
+      return;
+    }
+    await ref.read(playerControllerProvider.notifier).play();
+  }
+
   Future<void> _ensureShuffleQueue({bool force = false}) async {
     if (_isBootstrapping) {
       return;
@@ -122,7 +152,9 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       _pending.clear();
     }
     try {
-      final List<PlayableItem> items = await _fillBatchWithRetry(_batchSize);
+      final List<PlayableItem> items = await _fillBatchWithRetry(
+        kShuffleInitialBatchSize,
+      );
       if (!mounted) {
         return;
       }
@@ -138,6 +170,8 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
             sourceLabel: autoFeedQueueSourceLabel,
           );
       _ensureSequentialQueueMode(always: true);
+      // setQueue 默认会起播；但页面可能还没可见导致起播被拦，这里补一脚。
+      await _startPlaybackIfNeeded();
       // 队列建好后立刻在后台预取下一批，快速切歌时补货可以瞬间完成。
       unawaited(_ensurePrefetched());
     } on Object {
@@ -314,20 +348,13 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
           lead: _bufferAhead,
         );
     if (isShort) {
-      await _appendFromPending();
-      final PlayerState refreshed = ref.read(playerControllerProvider);
-      final bool stillShort = shouldTopUpShuffleQueue(
-        sourceLabel: refreshed.queueSourceLabel,
-        queueLength: refreshed.queue.length,
-        currentIndex: refreshed.currentQueueIndex,
-        lead: _bufferAhead,
-      );
-      if (stillShort && !_isToppingUp) {
+      final int want = _refillCount;
+      final int fromPending = await _appendFromPending(limit: want);
+      final int missing = want - fromPending;
+      if (missing > 0 && !_isToppingUp) {
         _isToppingUp = true;
         try {
-          final List<PlayableItem> items = await _fillBatchWithRetry(
-            _batchSize,
-          );
+          final List<PlayableItem> items = await _fillBatchWithRetry(missing);
           if (mounted && items.isNotEmpty) {
             await ref.read(playerControllerProvider.notifier).enqueue(items);
           }
@@ -341,21 +368,23 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
     unawaited(_ensurePrefetched());
   }
 
-  /// 把预取缓存立刻补进队列；缓存空的话先等一次预取。
-  Future<void> _appendFromPending() async {
+  /// 把预取缓存补进队列，最多 [limit] 首；缓存空的话先等一次预取。
+  Future<int> _appendFromPending({required int limit}) async {
     if (_pending.isEmpty) {
       await _ensurePrefetched();
     }
     if (_pending.isEmpty || !mounted) {
-      return;
+      return 0;
     }
     final PlayerState player = ref.read(playerControllerProvider);
     if (!isAutoFeedQueue(player.queueSourceLabel)) {
-      return;
+      return 0;
     }
-    final List<PlayableItem> items = List<PlayableItem>.of(_pending);
-    _pending.clear();
+    final int take = limit < _pending.length ? limit : _pending.length;
+    final List<PlayableItem> items = List<PlayableItem>.of(_pending.take(take));
+    _pending.removeRange(0, take);
     await ref.read(playerControllerProvider.notifier).enqueue(items);
+    return items.length;
   }
 
   /// 保证后台预取在跑（已在跑就复用它）。
@@ -419,10 +448,13 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
       if (previous == next || next != shuffleTabLocation) {
         return;
       }
-      unawaited(_ensureShuffleQueue());
+      unawaited(_ensureShuffleQueue().then((_) => _startPlaybackIfNeeded()));
     });
 
-    if (player.currentItem == null) {
+    // 已经装好刷歌队列才显示播放页；否则（包括队列还是别的歌单、或启动失败）
+    // 都显示「正在挑歌 / 重新取样」，避免把上一首别的队列的歌当成刷歌。
+    final bool onShuffleQueue = isAutoFeedQueue(player.queueSourceLabel);
+    if (!onShuffleQueue || player.currentItem == null) {
       if (_isBootstrapping) {
         return _ShuffleStatus(
           title: '正在为你挑歌',

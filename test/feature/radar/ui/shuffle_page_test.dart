@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
 import 'package:bilimusic/feature/home/domain/matchable_track.dart';
@@ -175,6 +177,27 @@ class _FakePlayer extends PlayerController {
   }
 }
 
+/// 队列里还是「别的歌单」的歌，用来验证不会把旧歌当成刷歌显示。
+class _OtherPlaylistPlayer extends _FakePlayer {
+  @override
+  PlayerState build() {
+    final PlayableItem item = PlayableItem(
+      aid: 9001,
+      bvid: 'BV9001',
+      cid: 1,
+      title: '别的歌单歌曲',
+      author: '某歌手',
+      coverUrl: '',
+    );
+    return PlayerState(
+      queue: <PlayableItem>[item],
+      currentQueueIndex: 0,
+      currentItem: item,
+      queueSourceLabel: '音乐',
+    );
+  }
+}
+
 /// 随机播放开着进入刷歌的场景。
 class _ShuffleModePlayer extends _FakePlayer {
   @override
@@ -214,7 +237,7 @@ Future<ProviderContainer> _pumpPage(
 }
 
 void main() {
-  testWidgets('进入刷歌时一次只装 5 首进队列', (WidgetTester tester) async {
+  testWidgets('进入刷歌时一次先装 3 首进队列', (WidgetTester tester) async {
     final ProviderContainer container = await _pumpPage(
       tester,
       controller: _LoadedFeed.new,
@@ -224,10 +247,10 @@ void main() {
         container.read(playerControllerProvider.notifier) as _FakePlayer;
     expect(player.queued, hasLength(1));
     expect(player.queuedLabels.single, '刷歌');
-    expect(player.queued.single, hasLength(5));
+    expect(player.queued.single, hasLength(kShuffleInitialBatchSize));
     expect(
       player.queued.single.map((PlayableItem item) => item.title),
-      <String>['刷歌歌曲0', '刷歌歌曲1', '刷歌歌曲2', '刷歌歌曲3', '刷歌歌曲4'],
+      <String>['刷歌歌曲0', '刷歌歌曲1', '刷歌歌曲2'],
     );
   });
 
@@ -245,7 +268,7 @@ void main() {
     // 第一轮全失败，重新 scan 后第二轮凑够 5 首。
     expect(feed.scanCalls, greaterThanOrEqualTo(1));
     expect(player.queued, hasLength(1));
-    expect(player.queued.single, hasLength(5));
+    expect(player.queued.single, hasLength(kShuffleInitialBatchSize));
   });
 
   testWidgets('切回刷歌标签时会重新拉起推荐队列', (WidgetTester tester) async {
@@ -295,7 +318,7 @@ void main() {
 
     final _FakePlayer player =
         container.read(playerControllerProvider.notifier) as _FakePlayer;
-    expect(player.queued.single, hasLength(5));
+    expect(player.queued.single, hasLength(kShuffleInitialBatchSize));
     expect(
       player.queued.single.map((PlayableItem item) => item.title),
       isNot(contains('刷歌歌曲0')),
@@ -355,11 +378,33 @@ void main() {
     final _FakePlayer player =
         container.read(playerControllerProvider.notifier) as _FakePlayer;
     expect(player.queued, hasLength(1));
-    // 建队 5 首之后还会继续解析，给下一次补货做准备。
+    // 首批 3 首之后还会继续解析到预取上限，给下一次补货做准备。
     await tester.pump(const Duration(milliseconds: 50));
     expect(probe.resolveCalls, greaterThan(5));
   });
 
+  group('补货数量', () {
+    test('每次补货落在 5~8 首之间', () {
+      final Random random = Random(7);
+      for (int index = 0; index < 200; index += 1) {
+        final int count = shuffleRefillCount(random);
+        expect(count, greaterThanOrEqualTo(kShuffleMinRefill));
+        expect(count, lessThanOrEqualTo(kShuffleMaxRefill));
+      }
+    });
+  });
+  testWidgets('队列还是别的歌单时不会把旧歌显示成刷歌', (WidgetTester tester) async {
+    await _pumpPage(
+      tester,
+      controller: _LoadedFeed.new,
+      player: _OtherPlaylistPlayer.new,
+    );
+
+    expect(find.text('刷歌歌曲0'), findsNothing);
+    expect(find.text('别的歌单歌曲'), findsNothing);
+    // 旧歌不再顶上来；队列没换成刷歌时显示空态。
+    expect(find.text('暂无歌曲'), findsOneWidget);
+  });
   group('shouldTopUpShuffleQueue', () {
     test('非刷歌队列一律不补货', () {
       expect(
