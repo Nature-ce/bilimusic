@@ -1,29 +1,14 @@
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/player/domain/player_playback_speed.dart';
-import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/player/domain/queue_source.dart';
-import 'package:bilimusic/feature/player/logic/sleep_timer_controller.dart';
+import 'package:bilimusic/feature/player/logic/player_controller.dart';
+import 'package:bilimusic/feature/player/ui/components/sleep_timer_progress_card.dart';
 import 'package:bilimusic/feature/radar/logic/radar_refresh_requests.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 睡眠定时滑杆的档位：0 = 关，之后每 5 分钟一档，最多 120 分钟。
-const int kSleepTimerMaxMinutes = 120;
-
 /// 刻度尺两端留白（逻辑像素）：避免首尾标签贴到卡片边缘。
 const double kScaleRulerEdgeInset = 16;
-const int kSleepTimerStepMinutes = 5;
-
-List<int> get _sleepTimerStops => <int>[
-  for (
-    int minutes = 0;
-    minutes <= kSleepTimerMaxMinutes;
-    minutes += kSleepTimerStepMinutes
-  )
-    minutes,
-];
-
-const Set<int> _sleepTimerLabelMinutes = <int>{0, 30, 60, 90, 120};
 
 Future<void> showPlayerSettingsSheet({
   required BuildContext context,
@@ -38,7 +23,7 @@ Future<void> showPlayerSettingsSheet({
   );
 }
 
-/// 播放页「播放设置」面板：睡眠定时（可拖动刻度）+ 倍速播放 + 外部应用打开。
+/// 播放页「播放设置」面板：睡眠定时（倒计时进度条）+ 倍速播放 + 外部应用打开。
 class PlayerSettingsSheetContent extends ConsumerWidget {
   const PlayerSettingsSheetContent({super.key, required this.onOpenExternal});
 
@@ -47,21 +32,10 @@ class PlayerSettingsSheetContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
-    final SleepTimerState sleepTimer = ref.watch(sleepTimerControllerProvider);
     final String? queueSourceLabel = ref
         .watch(playerControllerProvider)
         .queueSourceLabel;
     final double speed = ref.watch(playerControllerProvider).speed;
-
-    final List<int> sleepStops = _sleepTimerStops;
-    final int activeSleepMinutes = sleepTimer.isActive
-        ? (sleepTimer.duration?.inMinutes ?? 0).clamp(0, kSleepTimerMaxMinutes)
-        : 0;
-    final int sleepIndex = _nearestIndex(
-      sleepStops.map((int value) => value.toDouble()).toList(growable: false),
-      activeSleepMinutes.toDouble(),
-    );
-
     final int speedIndex = _nearestIndex(kPlayerPlaybackSpeeds, speed);
 
     return Padding(
@@ -82,47 +56,9 @@ class PlayerSettingsSheetContent extends ConsumerWidget {
               ),
             ),
           ),
-          _SettingsCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _CardHead(
-                  title: '睡眠定时',
-                  value: sleepTimer.isActive
-                      ? '${sleepStops[sleepIndex]} 分钟'
-                      : 'OFF',
-                  valueActive: sleepTimer.isActive,
-                ),
-                ScaleRuler(
-                  scaleKey: const Key('sleepTimerScale'),
-                  stops: sleepStops
-                      .map((int minutes) => minutes.toDouble())
-                      .toList(growable: false),
-                  labels: <int, String>{
-                    for (int index = 0; index < sleepStops.length; index += 1)
-                      if (_sleepTimerLabelMinutes.contains(sleepStops[index]))
-                        index: sleepStops[index] == 0
-                            ? '关'
-                            : '${sleepStops[index]}',
-                  },
-                  selectedIndex: sleepIndex,
-                  valueText: sleepStops[sleepIndex] == 0
-                      ? '关'
-                      : '${sleepStops[sleepIndex]} 分钟',
-                  onSelected: (int index) {
-                    final int minutes = sleepStops[index];
-                    final SleepTimerController controller = ref.read(
-                      sleepTimerControllerProvider.notifier,
-                    );
-                    if (minutes <= 0) {
-                      controller.cancel();
-                    } else {
-                      controller.start(Duration(minutes: minutes));
-                    }
-                  },
-                ),
-              ],
-            ),
+          const _SettingsCard(
+            key: Key('sleepTimerProgressCard'),
+            child: SleepTimerProgressCard(),
           ),
           const SizedBox(height: 12),
           _SettingsCard(
@@ -219,7 +155,7 @@ class PlayerSettingsSheetContent extends ConsumerWidget {
 }
 
 class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.child, this.padding});
+  const _SettingsCard({super.key, required this.child, this.padding});
 
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -279,7 +215,7 @@ class _CardHead extends StatelessWidget {
   }
 }
 
-/// 带刻度的横向尺：点按或拖动选中最近的一档，选中刻度高亮并在上方浮出当前值。
+/// 带刻度的横向尺：点按或拖动选中最近的一档（倍速播放用）。
 class ScaleRuler extends StatelessWidget {
   const ScaleRuler({
     super.key,
@@ -299,8 +235,6 @@ class ScaleRuler extends StatelessWidget {
   /// 仅用于无障碍朗读；界面上数值只显示在卡片右上角。
   final String valueText;
   final ValueChanged<int> onSelected;
-
-  static const double _rulerHeight = 52;
 
   double _trackWidth(double width) =>
       (width - kScaleRulerEdgeInset * 2).clamp(1.0, width);
@@ -340,20 +274,34 @@ class ScaleRuler extends StatelessWidget {
             onHorizontalDragUpdate: (DragUpdateDetails details) =>
                 _handlePosition(details.localPosition.dx, width),
             child: SizedBox(
-              height: _rulerHeight,
+              height: 88,
               child: Stack(
                 children: <Widget>[
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _ScaleTicksPainter(
-                        stopCount: stops.length,
-                        labeled: labels.keys.toSet(),
-                        selectedIndex: selectedIndex,
-                        accent: colorScheme.primary,
-                        edgeInset: kScaleRulerEdgeInset,
+                  for (int index = 0; index < stops.length; index += 1)
+                    Positioned(
+                      left:
+                          (kScaleRulerEdgeInset +
+                                  index / (stops.length - 1) * trackWidth -
+                                  1)
+                              .clamp(0.0, (width - 2).clamp(0.0, width)),
+                      bottom: 0,
+                      width: 2,
+                      height: index == selectedIndex
+                          ? 30
+                          : labels.containsKey(index)
+                          ? 22
+                          : 12,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: index == selectedIndex
+                              ? colorScheme.primary
+                              : Colors.white.withValues(
+                                  alpha: labels.containsKey(index) ? 0.5 : 0.28,
+                                ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
                   for (final MapEntry<int, String> label in labels.entries)
                     Positioned(
                       left:
@@ -362,7 +310,7 @@ class ScaleRuler extends StatelessWidget {
                                   24)
                               .clamp(0.0, (width - 48).clamp(0.0, width)),
                       width: 48,
-                      bottom: 24,
+                      bottom: 34,
                       child: Text(
                         label.value,
                         textAlign: TextAlign.center,
@@ -397,7 +345,7 @@ class ScaleRuler extends StatelessWidget {
                       0.0,
                       width - 8,
                     ),
-                    bottom: 34,
+                    bottom: 40,
                     width: 8,
                     height: 8,
                     child: DecoratedBox(
@@ -414,60 +362,6 @@ class ScaleRuler extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class _ScaleTicksPainter extends CustomPainter {
-  const _ScaleTicksPainter({
-    required this.stopCount,
-    required this.labeled,
-    required this.selectedIndex,
-    required this.accent,
-    required this.edgeInset,
-  });
-
-  final int stopCount;
-  final Set<int> labeled;
-  final int selectedIndex;
-  final Color accent;
-  final double edgeInset;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (stopCount < 2 || size.width <= 0) {
-      return;
-    }
-    final Paint paint = Paint()
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final double trackWidth = (size.width - edgeInset * 2).clamp(
-      1.0,
-      size.width,
-    );
-    final double step = trackWidth / (stopCount - 1);
-    for (int index = 0; index < stopCount; index += 1) {
-      final bool selected = index == selectedIndex;
-      final bool major = labeled.contains(index);
-      final double height = selected ? 30 : (major ? 22 : 12);
-      paint.color = selected
-          ? accent
-          : Colors.white.withValues(alpha: major ? 0.5 : 0.28);
-      final double x = edgeInset + index * step;
-      canvas.drawLine(
-        Offset(x, size.height - height),
-        Offset(x, size.height),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ScaleTicksPainter oldDelegate) {
-    return oldDelegate.stopCount != stopCount ||
-        oldDelegate.selectedIndex != selectedIndex ||
-        oldDelegate.labeled != labeled ||
-        oldDelegate.accent != accent ||
-        oldDelegate.edgeInset != edgeInset;
   }
 }
 

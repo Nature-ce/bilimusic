@@ -272,7 +272,7 @@ void main() {
     // 右上角按钮直接打开播放设置面板。
 
     expect(find.text('播放设置'), findsWidgets);
-    expect(find.byKey(const Key('sleepTimerScale')), findsOneWidget);
+    expect(find.byKey(const Key('sleepTimerProgressCard')), findsOneWidget);
     expect(find.byKey(const Key('playbackSpeedScale')), findsOneWidget);
     expect(find.text('外部应用打开'), findsOneWidget);
   });
@@ -336,7 +336,7 @@ void main() {
     expect(container.read(playerControllerProvider).speed, 1.5);
   });
 
-  testWidgets('播放设置面板的睡眠定时滑杆可按分钟设定', (WidgetTester tester) async {
+  testWidgets('播放设置面板的睡眠定时可按分钟设定并显示倒计时', (WidgetTester tester) async {
     _usePortraitViewport(tester);
     const PlayableItem item = _testItem;
 
@@ -371,27 +371,33 @@ void main() {
     await tester.tap(find.byKey(const Key('playerMenuButton')));
     await tester.pumpAndSettle();
 
-    final Finder sleepScale = find.byKey(const Key('sleepTimerScale'));
-    expect(sleepScale, findsOneWidget);
-    final Rect rect = tester.getRect(sleepScale);
-    // 0~120 分钟、1 分钟一档共 121 档；1/4 处 = 30 分钟（两端各有 16dp 留白）。
-    await tester.tapAt(
-      Offset(
-        rect.left +
-            kScaleRulerEdgeInset +
-            (rect.width - kScaleRulerEdgeInset * 2) * 0.25,
-        rect.center.dy,
-      ),
-    );
+    final Finder track = find.byKey(const Key('sleepTimerProgressTrack'));
+    expect(track, findsOneWidget);
+
+    // 轨道 0~90 分钟、两端各留 22dp；点 30/90 处 = 30 分钟。
+    final Rect rect = tester.getRect(track);
+    const double inset = 22;
+    final double x = rect.left + inset + (rect.width - inset * 2) * (30 / 90);
+    await tester.tapAt(Offset(x, rect.center.dy));
     await tester.pumpAndSettle();
 
     final SleepTimerState state = container.read(sleepTimerControllerProvider);
     expect(state.isActive, isTrue);
     expect(state.duration, Duration(minutes: 30));
+    // 卡片右上角显示倒计时（mm:ss，起始可能已经是 29:59）。
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is Text &&
+            RegExp(r'^\d{2}:\d{2}$').hasMatch(widget.data ?? ''),
+      ),
+      findsWidgets,
+    );
 
     container.read(sleepTimerControllerProvider.notifier).cancel();
+    await tester.pumpAndSettle();
+    expect(find.text('OFF'), findsWidgets);
   });
-
   testWidgets('sleep timer page starts fixed timer from option tap', (
     WidgetTester tester,
   ) async {
