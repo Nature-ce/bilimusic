@@ -24,8 +24,6 @@ import 'package:bilimusic/feature/player/ui/components/player_part_selector.dart
 import 'package:bilimusic/feature/player/ui/components/player_queue_sheet.dart';
 import 'package:bilimusic/feature/player/ui/components/player_settings_sheet.dart';
 import 'package:bilimusic/feature/player/ui/components/player_top_bar.dart';
-import 'package:bilimusic/feature/player/domain/queue_source.dart';
-import 'package:bilimusic/feature/radar/logic/radar_refresh_requests.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -358,7 +356,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
       onBack: widget.embedded
           ? widget.onExit
           : () => Navigator.of(context).maybePop(),
-      onOpenMenu: item == null ? null : () => _showPlayerMenu(item),
+      onOpenMenu: item == null ? null : () => _openPlayerSettings(item),
     );
     if (widget.embedded) {
       return bar;
@@ -457,61 +455,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
     );
   }
 
-  Future<void> _showPlayerMenu(PlayableItem item) async {
-    // 播放页菜单固定用烟熏玻璃，不跟随「玻璃导航栏 / 播放栏」开关。
-    await showModalBottomSheet<void>(
+  Future<void> _openPlayerSettings(PlayableItem item) {
+    return showPlayerSettingsSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      barrierColor: Colors.black.withValues(alpha: 0.3),
-      builder: (BuildContext sheetContext) {
-        return AppGlassSheet(
-          tone: GlassTone.smoke,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _playerMenuItems(item, sheetContext),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _playerMenuItems(PlayableItem item, BuildContext sheetContext) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        if (isAutoFeedQueue(
-          ref.read(playerControllerProvider).queueSourceLabel,
-        ))
-          ListTile(
-            key: const Key('radarRefreshMenuEntry'),
-            leading: const Icon(Icons.radar_rounded),
-            title: const Text('换一批推荐'),
-            subtitle: const Text('按最近的收听重新算一批'),
-            onTap: () {
-              Navigator.of(sheetContext).pop();
-              ref.read(radarRefreshRequestsProvider.notifier).request();
-            },
-          ),
-        ListTile(
-          key: const Key('playSettingsMenuEntry'),
-          leading: const Icon(Icons.tune_rounded),
-          title: const Text('播放设置'),
-          subtitle: const Text('睡眠定时 · 倍速播放 · 外部打开'),
-          onTap: () {
-            Navigator.of(sheetContext).pop();
-            showPlayerSettingsSheet(
-              context: context,
-              onOpenExternal: () => _openInBrowser(item),
-            );
-          },
-        ),
-      ],
+      onOpenExternal: () => _openInBrowser(item),
     );
   }
 }

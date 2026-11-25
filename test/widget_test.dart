@@ -269,10 +269,7 @@ void main() {
     await tester.tap(find.byKey(const Key('playerMenuButton')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('playSettingsMenuEntry')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('playSettingsMenuEntry')));
-    await tester.pumpAndSettle();
+    // 右上角按钮直接打开播放设置面板。
 
     expect(find.text('播放设置'), findsWidgets);
     expect(find.byKey(const Key('sleepTimerScale')), findsOneWidget);
@@ -316,9 +313,6 @@ void main() {
     expect(container.read(playerControllerProvider).speed, 1.0);
 
     await tester.tap(find.byKey(const Key('playerMenuButton')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('playSettingsMenuEntry')));
     await tester.pumpAndSettle();
 
     final Finder speedScale = find.byKey(const Key('playbackSpeedScale'));
@@ -375,8 +369,6 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('playerMenuButton')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('playSettingsMenuEntry')));
     await tester.pumpAndSettle();
 
     final Finder sleepScale = find.byKey(const Key('sleepTimerScale'));

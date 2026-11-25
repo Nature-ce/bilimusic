@@ -1,7 +1,9 @@
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/feature/player/domain/player_playback_speed.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
+import 'package:bilimusic/feature/player/domain/queue_source.dart';
 import 'package:bilimusic/feature/player/logic/sleep_timer_controller.dart';
+import 'package:bilimusic/feature/radar/logic/radar_refresh_requests.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,6 +48,9 @@ class PlayerSettingsSheetContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final SleepTimerState sleepTimer = ref.watch(sleepTimerControllerProvider);
+    final String? queueSourceLabel = ref
+        .watch(playerControllerProvider)
+        .queueSourceLabel;
     final double speed = ref.watch(playerControllerProvider).speed;
 
     final List<int> sleepStops = _sleepTimerStops;
@@ -157,54 +162,38 @@ class PlayerSettingsSheetContent extends ConsumerWidget {
           const SizedBox(height: 12),
           _SettingsCard(
             padding: EdgeInsets.zero,
-            child: InkWell(
-              onTap: onOpenExternal == null
-                  ? null
-                  : () {
+            child: Column(
+              children: <Widget>[
+                if (isAutoFeedQueue(queueSourceLabel))
+                  _SettingsActionRow(
+                    rowKey: const Key('radarRefreshSettingsEntry'),
+                    icon: Icons.radar_rounded,
+                    title: '换一批推荐',
+                    subtitle: '按最近的收听重新算一批',
+                    onTap: () {
                       Navigator.of(context).pop();
-                      onOpenExternal!();
+                      ref.read(radarRefreshRequestsProvider.notifier).request();
                     },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 14,
+                  ),
+                if (isAutoFeedQueue(queueSourceLabel))
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: 15,
+                    endIndent: 15,
+                    color: Colors.white.withValues(alpha: 0.07),
+                  ),
+                _SettingsActionRow(
+                  icon: Icons.open_in_new_rounded,
+                  title: '外部应用打开',
+                  onTap: onOpenExternal == null
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                          onOpenExternal!();
+                        },
                 ),
-                child: Row(
-                  children: <Widget>[
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(
-                          alpha: 0.14,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.open_in_new_rounded,
-                        size: 17,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '外部应用打开',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: Colors.white.withValues(alpha: 0.45),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
         ],
@@ -479,5 +468,78 @@ class _ScaleTicksPainter extends CustomPainter {
         oldDelegate.labeled != labeled ||
         oldDelegate.accent != accent ||
         oldDelegate.edgeInset != edgeInset;
+  }
+}
+
+class _SettingsActionRow extends StatelessWidget {
+  const _SettingsActionRow({
+    this.rowKey,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.onTap,
+  });
+
+  final Key? rowKey;
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    return InkWell(
+      key: rowKey,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+        child: Row(
+          children: <Widget>[
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 17, color: colorScheme.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  if (subtitle != null) ...<Widget>[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 11.5,
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: Colors.white.withValues(alpha: 0.45),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
