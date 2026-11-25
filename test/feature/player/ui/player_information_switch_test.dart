@@ -1091,7 +1091,7 @@ void main() {
 
     expect(find.byType(AppGlassSheet), findsOneWidget);
     // 播放页是深色页面：烟熏玻璃 + 白字。
-    final BuildContext sheetContext = tester.element(find.text('定时关闭'));
+    final BuildContext sheetContext = tester.element(find.text('播放设置'));
     expect(
       Theme.of(sheetContext).colorScheme.onSurface.computeLuminance(),
       greaterThan(0.5),

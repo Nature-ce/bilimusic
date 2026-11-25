@@ -1,0 +1,424 @@
+import 'package:bilimusic/common/components/glass_panel.dart';
+import 'package:bilimusic/feature/player/domain/player_playback_speed.dart';
+import 'package:bilimusic/feature/player/logic/player_controller.dart';
+import 'package:bilimusic/feature/player/logic/sleep_timer_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// 睡眠定时滑杆的档位：0 = 关，之后每 5 分钟一档，最多 120 分钟。
+const int kSleepTimerMaxMinutes = 120;
+const int kSleepTimerStepMinutes = 5;
+
+List<int> get _sleepTimerStops => <int>[
+  for (
+    int minutes = 0;
+    minutes <= kSleepTimerMaxMinutes;
+    minutes += kSleepTimerStepMinutes
+  )
+    minutes,
+];
+
+const Set<int> _sleepTimerLabelMinutes = <int>{0, 30, 60, 90, 120};
+
+Future<void> showPlayerSettingsSheet({
+  required BuildContext context,
+  required VoidCallback? onOpenExternal,
+}) {
+  return showAppHalfSheet<void>(
+    context: context,
+    tone: GlassTone.smoke,
+    maxHeightFactor: 0.72,
+    builder: (BuildContext sheetContext) =>
+        PlayerSettingsSheetContent(onOpenExternal: onOpenExternal),
+  );
+}
+
+/// 播放页「播放设置」面板：睡眠定时（可拖动刻度）+ 倍速播放 + 外部应用打开。
+class PlayerSettingsSheetContent extends ConsumerWidget {
+  const PlayerSettingsSheetContent({super.key, required this.onOpenExternal});
+
+  final VoidCallback? onOpenExternal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final SleepTimerState sleepTimer = ref.watch(sleepTimerControllerProvider);
+    final double speed = ref.watch(playerControllerProvider).speed;
+
+    final List<int> sleepStops = _sleepTimerStops;
+    final int activeSleepMinutes = sleepTimer.isActive
+        ? (sleepTimer.duration?.inMinutes ?? 0).clamp(0, kSleepTimerMaxMinutes)
+        : 0;
+    final int sleepIndex = _nearestIndex(
+      sleepStops.map((int value) => value.toDouble()).toList(growable: false),
+      activeSleepMinutes.toDouble(),
+    );
+
+    final int speedIndex = _nearestIndex(kPlayerPlaybackSpeeds, speed);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
+            child: Text(
+              '播放设置',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+          ),
+          _SettingsCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _CardHead(
+                  title: '睡眠定时',
+                  value: sleepTimer.isActive
+                      ? '${sleepStops[sleepIndex]} 分钟'
+                      : 'OFF',
+                  valueActive: sleepTimer.isActive,
+                ),
+                ScaleRuler(
+                  scaleKey: const Key('sleepTimerScale'),
+                  stops: sleepStops
+                      .map((int minutes) => minutes.toDouble())
+                      .toList(growable: false),
+                  labels: <int, String>{
+                    for (int index = 0; index < sleepStops.length; index += 1)
+                      if (_sleepTimerLabelMinutes.contains(sleepStops[index]))
+                        index: sleepStops[index] == 0
+                            ? '关'
+                            : '${sleepStops[index]}',
+                  },
+                  selectedIndex: sleepIndex,
+                  valueText: sleepStops[sleepIndex] == 0
+                      ? '关'
+                      : '${sleepStops[sleepIndex]} 分钟',
+                  onSelected: (int index) {
+                    final int minutes = sleepStops[index];
+                    final SleepTimerController controller = ref.read(
+                      sleepTimerControllerProvider.notifier,
+                    );
+                    if (minutes <= 0) {
+                      controller.cancel();
+                    } else {
+                      controller.start(Duration(minutes: minutes));
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SettingsCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _CardHead(
+                  title: '倍速播放',
+                  value: formatPlaybackSpeed(kPlayerPlaybackSpeeds[speedIndex]),
+                  valueActive: true,
+                ),
+                ScaleRuler(
+                  scaleKey: const Key('playbackSpeedScale'),
+                  stops: kPlayerPlaybackSpeeds,
+                  labels: <int, String>{
+                    for (
+                      int index = 0;
+                      index < kPlayerPlaybackSpeeds.length;
+                      index += 1
+                    )
+                      index: kPlayerPlaybackSpeeds[index].toStringAsFixed(1),
+                  },
+                  selectedIndex: speedIndex,
+                  valueText: formatPlaybackSpeed(
+                    kPlayerPlaybackSpeeds[speedIndex],
+                  ),
+                  onSelected: (int index) {
+                    ref
+                        .read(playerControllerProvider.notifier)
+                        .setSpeed(kPlayerPlaybackSpeeds[index]);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SettingsCard(
+            padding: EdgeInsets.zero,
+            child: InkWell(
+              onTap: onOpenExternal == null
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      onOpenExternal!();
+                    },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.14,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.open_in_new_rounded,
+                        size: 17,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '外部应用打开',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: Colors.white.withValues(alpha: 0.45),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static int _nearestIndex(List<double> stops, double value) {
+    if (stops.isEmpty) {
+      return 0;
+    }
+    int best = 0;
+    double bestDistance = (stops.first - value).abs();
+    for (int index = 1; index < stops.length; index += 1) {
+      final double distance = (stops[index] - value).abs();
+      if (distance < bestDistance) {
+        best = index;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({required this.child, this.padding});
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding ?? const EdgeInsets.fromLTRB(15, 14, 15, 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.065),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _CardHead extends StatelessWidget {
+  const _CardHead({
+    required this.title,
+    required this.value,
+    required this.valueActive,
+  });
+
+  final String title;
+  final String value;
+  final bool valueActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: valueActive
+                ? theme.colorScheme.primary
+                : Colors.white.withValues(alpha: 0.34),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 带刻度的横向尺：点按或拖动选中最近的一档，选中刻度高亮并在上方浮出当前值。
+class ScaleRuler extends StatelessWidget {
+  const ScaleRuler({
+    super.key,
+    required this.scaleKey,
+    required this.stops,
+    required this.labels,
+    required this.selectedIndex,
+    required this.valueText,
+    required this.onSelected,
+  });
+
+  final Key scaleKey;
+  final List<double> stops;
+  final Map<int, String> labels;
+  final int selectedIndex;
+  final String valueText;
+  final ValueChanged<int> onSelected;
+
+  void _handlePosition(double dx, double width) {
+    if (stops.length < 2 || width <= 0) {
+      return;
+    }
+    final double ratio = (dx / width).clamp(0.0, 1.0);
+    final int index = (ratio * (stops.length - 1)).round();
+    if (index != selectedIndex) {
+      onSelected(index);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color accent = theme.colorScheme.primary;
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double width = constraints.maxWidth;
+        final double ratio = stops.length < 2
+            ? 0
+            : selectedIndex / (stops.length - 1);
+        const double chipWidth = 64;
+        final double chipLeft = (ratio * width - chipWidth / 2).clamp(
+          0.0,
+          (width - chipWidth).clamp(0.0, width),
+        );
+
+        return Semantics(
+          label: valueText,
+          child: GestureDetector(
+            key: scaleKey,
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (TapDownDetails details) =>
+                _handlePosition(details.localPosition.dx, width),
+            onHorizontalDragUpdate: (DragUpdateDetails details) =>
+                _handlePosition(details.localPosition.dx, width),
+            child: SizedBox(
+              height: 88,
+              child: Stack(
+                children: <Widget>[
+                  for (int index = 0; index < stops.length; index += 1)
+                    Positioned(
+                      left: (index / (stops.length - 1) * width - 1).clamp(
+                        0.0,
+                        (width - 2).clamp(0.0, width),
+                      ),
+                      bottom: 0,
+                      width: 2,
+                      height: index == selectedIndex
+                          ? 30
+                          : labels.containsKey(index)
+                          ? 22
+                          : 12,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: index == selectedIndex
+                              ? accent
+                              : Colors.white.withValues(
+                                  alpha: labels.containsKey(index) ? 0.5 : 0.28,
+                                ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  for (final MapEntry<int, String> label in labels.entries)
+                    Positioned(
+                      left: (label.key / (stops.length - 1) * width - 24).clamp(
+                        0.0,
+                        (width - 48).clamp(0.0, width),
+                      ),
+                      width: 48,
+                      bottom: 34,
+                      child: Text(
+                        label.value,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: label.key == selectedIndex
+                              ? accent
+                              : Colors.white.withValues(alpha: 0.42),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: chipLeft,
+                    width: chipWidth,
+                    bottom: 56,
+                    child: Container(
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        valueText,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

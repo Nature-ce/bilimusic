@@ -6,7 +6,6 @@ import 'package:bilimusic/feature/comment/domain/comment_target.dart';
 import 'package:bilimusic/feature/comment/ui/comment_page.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
-import 'package:bilimusic/feature/player/domain/player_playback_speed.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/domain/playback_chapter.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
@@ -25,8 +24,8 @@ import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.d
 import 'package:bilimusic/feature/player/ui/components/player_meta_page.dart';
 import 'package:bilimusic/feature/player/ui/components/player_part_selector.dart';
 import 'package:bilimusic/feature/player/ui/components/player_queue_sheet.dart';
+import 'package:bilimusic/feature/player/ui/components/player_settings_sheet.dart';
 import 'package:bilimusic/feature/player/ui/components/player_top_bar.dart';
-import 'package:bilimusic/feature/player/ui/sleep_timer_page.dart';
 import 'package:bilimusic/feature/player/domain/queue_source.dart';
 import 'package:bilimusic/feature/radar/logic/radar_refresh_requests.dart';
 import 'package:flutter/material.dart';
@@ -512,104 +511,19 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
             },
           ),
         ListTile(
-          key: const Key('sleepTimerMenuEntry'),
-          leading: const Icon(Icons.timer_outlined),
-          title: const Text('定时关闭'),
+          key: const Key('playSettingsMenuEntry'),
+          leading: const Icon(Icons.tune_rounded),
+          title: const Text('播放设置'),
+          subtitle: const Text('睡眠定时 · 倍速播放 · 外部打开'),
           onTap: () {
             Navigator.of(sheetContext).pop();
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const SleepTimerPage()),
+            showPlayerSettingsSheet(
+              context: context,
+              onOpenExternal: () => _openInBrowser(item),
             );
           },
         ),
-        ListTile(
-          key: const Key('playbackSpeedMenuEntry'),
-          leading: const Icon(Icons.speed_rounded),
-          title: const Text('倍速播放'),
-          subtitle: Text(
-            formatPlaybackSpeed(ref.read(playerControllerProvider).speed),
-          ),
-          onTap: () {
-            Navigator.of(sheetContext).pop();
-            _showPlaybackSpeedSheet();
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.open_in_new_rounded),
-          title: const Text('外部应用打开'),
-          onTap: () {
-            Navigator.of(sheetContext).pop();
-            _openInBrowser(item);
-          },
-        ),
       ],
-    );
-  }
-
-  Future<void> _showPlaybackSpeedSheet() async {
-    final double currentSpeed = ref.read(playerControllerProvider).speed;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      barrierColor: Colors.black.withValues(alpha: 0.3),
-      builder: (BuildContext sheetContext) {
-        final bool useGlass = ref.read(appearanceSettingLogicProvider);
-        final Widget content = SafeArea(
-          top: false,
-          child: ListView.separated(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            itemCount: kPlayerPlaybackSpeeds.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 4),
-            itemBuilder: (BuildContext context, int index) {
-              final double speed = kPlayerPlaybackSpeeds[index];
-              final bool isSelected = speed == currentSpeed;
-              return Material(
-                color: isSelected
-                    ? Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.14)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                  ),
-                  title: Text(formatPlaybackSpeed(speed)),
-                  trailing: isSelected
-                      ? Icon(
-                          Icons.check_rounded,
-                          color: Theme.of(context).colorScheme.primary,
-                        )
-                      : null,
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    await ref
-                        .read(playerControllerProvider.notifier)
-                        .setSpeed(speed);
-                  },
-                ),
-              );
-            },
-          ),
-        );
-        if (useGlass) {
-          return AppGlassSheet(tone: GlassTone.smoke, child: content);
-        }
-        return Material(
-          color: Theme.of(sheetContext).colorScheme.surface,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppRadius.xl),
-            ),
-          ),
-          child: content,
-        );
-      },
     );
   }
 }

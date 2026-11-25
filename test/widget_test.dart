@@ -236,7 +236,7 @@ void main() {
     expect(find.text('播放'), findsOneWidget);
   });
 
-  testWidgets('player menu opens sleep timer page', (
+  testWidgets('player menu opens the play settings sheet', (
     WidgetTester tester,
   ) async {
     _usePortraitViewport(tester);
@@ -268,14 +268,15 @@ void main() {
     await tester.tap(find.byKey(const Key('playerMenuButton')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('sleepTimerMenuEntry')), findsOneWidget);
+    expect(find.byKey(const Key('playSettingsMenuEntry')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('sleepTimerMenuEntry')));
+    await tester.tap(find.byKey(const Key('playSettingsMenuEntry')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(SleepTimerPage), findsOneWidget);
-    expect(find.text('倒计时'), findsOneWidget);
-    expect(find.text('未开启'), findsOneWidget);
+    expect(find.text('播放设置'), findsWidgets);
+    expect(find.byKey(const Key('sleepTimerScale')), findsOneWidget);
+    expect(find.byKey(const Key('playbackSpeedScale')), findsOneWidget);
+    expect(find.text('外部应用打开'), findsOneWidget);
   });
 
   testWidgets('player menu applies playback speed', (
@@ -316,17 +317,67 @@ void main() {
     await tester.tap(find.byKey(const Key('playerMenuButton')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('playbackSpeedMenuEntry')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('playbackSpeedMenuEntry')));
+    await tester.tap(find.byKey(const Key('playSettingsMenuEntry')));
     await tester.pumpAndSettle();
 
-    expect(find.text('1.5x'), findsOneWidget);
-
-    await tester.tap(find.text('1.5x'));
+    final Finder speedScale = find.byKey(const Key('playbackSpeedScale'));
+    expect(speedScale, findsOneWidget);
+    // 档位是 0.5 / 1.0 / 1.5 / 2.0 / 3.0，正中间对应 1.5x。
+    await tester.tapAt(tester.getRect(speedScale).center);
     await tester.pumpAndSettle();
 
     expect(container.read(playerControllerProvider).speed, 1.5);
+  });
+
+  testWidgets('播放设置面板的睡眠定时滑杆可设成任意 5 分钟档位', (WidgetTester tester) async {
+    _usePortraitViewport(tester);
+    const PlayableItem item = _testItem;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
+          favoritesControllerProvider.overrideWith(
+            _FakeFavoritesController.new,
+          ),
+          playerControllerProvider.overrideWith(
+            () => _FakePlayerController(item),
+          ),
+          metadataControllerProvider.overrideWith(
+            () => _FakeMetadataController(item),
+          ),
+          playerLyricSettingsLogicProvider.overrideWith(
+            _FakeLyricSettingsLogic.new,
+          ),
+          playerDisplaySettingsLogicProvider.overrideWithValue(true),
+        ],
+        child: const MaterialApp(home: PlayerPage(initialItem: _testItem)),
+      ),
+    );
+    await tester.pump();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerPage)),
+      listen: false,
+    );
+
+    await tester.tap(find.byKey(const Key('playerMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('playSettingsMenuEntry')));
+    await tester.pumpAndSettle();
+
+    final Finder sleepScale = find.byKey(const Key('sleepTimerScale'));
+    expect(sleepScale, findsOneWidget);
+    final Rect rect = tester.getRect(sleepScale);
+    // 0~120 分钟、5 分钟一档共 25 档；点 1/4 处约等于 30 分钟。
+    await tester.tapAt(Offset(rect.left + rect.width * 0.25, rect.center.dy));
+    await tester.pumpAndSettle();
+
+    final SleepTimerState state = container.read(sleepTimerControllerProvider);
+    expect(state.isActive, isTrue);
+    expect(state.duration, Duration(minutes: 30));
+
+    container.read(sleepTimerControllerProvider.notifier).cancel();
   });
 
   testWidgets('sleep timer page starts fixed timer from option tap', (
