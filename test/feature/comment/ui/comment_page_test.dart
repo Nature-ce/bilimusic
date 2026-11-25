@@ -156,4 +156,19 @@ void main() {
       greaterThan(0.5),
     );
   });
+  testWidgets('排序按钮打开玻璃菜单并切换排序', (WidgetTester tester) async {
+    await _pumpCommentPage(tester, withComment: true);
+
+    await tester.tap(find.text('最新'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GlassPanel), findsWidgets);
+    expect(find.text('最热'), findsOneWidget);
+
+    await tester.tap(find.text('最热'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('最热'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

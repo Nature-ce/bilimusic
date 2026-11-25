@@ -22,6 +22,7 @@ Future<T?> showGlassMenu<T>({
   required Offset globalPosition,
   required List<GlassMenuEntry<T>> entries,
   double width = 208,
+  GlassTone tone = GlassTone.frost,
 }) {
   if (entries.isEmpty) {
     return Future<T?>.value();
@@ -68,7 +69,10 @@ Future<T?> showGlassMenu<T>({
                 top: top,
                 width: width,
                 child: GlassPanel(
-                  settings: appFrostGlassSettings(dialogContext),
+                  tone: tone == GlassTone.smoke ? GlassTone.smoke : null,
+                  settings: tone == GlassTone.smoke
+                      ? null
+                      : appFrostGlassSettings(dialogContext),
                   shape: LiquidRoundedSuperellipse(
                     borderRadius: 18,
                     side: BorderSide(
@@ -80,18 +84,24 @@ Future<T?> showGlassMenu<T>({
                   ),
                   child: Material(
                     type: MaterialType.transparency,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          for (final GlassMenuEntry<T> entry in entries)
-                            _GlassMenuItem<T>(
-                              entry: entry,
-                              onTap: () =>
-                                  Navigator.of(dialogContext).pop(entry.value),
-                            ),
-                        ],
+                    child: Theme(
+                      data: tone == GlassTone.smoke
+                          ? glassSurfaceTheme(dialogContext)
+                          : Theme.of(dialogContext),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            for (final GlassMenuEntry<T> entry in entries)
+                              _GlassMenuItem<T>(
+                                entry: entry,
+                                onTap: () => Navigator.of(
+                                  dialogContext,
+                                ).pop(entry.value),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

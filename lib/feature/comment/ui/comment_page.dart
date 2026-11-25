@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/glass_menu.dart';
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/display_text.dart';
@@ -425,50 +426,58 @@ class _CommentSectionHeader extends StatelessWidget {
           ),
         ),
         if (canChangeSort)
-          PopupMenuButton<CommentSort>(
-            initialValue: state.sort,
-            tooltip: '评论排序',
-            onSelected: controller.changeSort,
-            itemBuilder: (BuildContext context) =>
-                <PopupMenuEntry<CommentSort>>[
-                  for (final CommentSort sort in sorts)
-                    PopupMenuItem<CommentSort>(
-                      value: sort,
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            sort == state.sort
-                                ? Icons.check_rounded
-                                : Icons.sort_rounded,
-                            size: 16,
-                            color: sort == state.sort
-                                ? colorScheme.primary
-                                : colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(sort.label),
-                        ],
+          Builder(
+            builder: (BuildContext buttonContext) => InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                final RenderBox box =
+                    buttonContext.findRenderObject()! as RenderBox;
+                final Offset anchor = box.localToGlobal(
+                  box.size.center(Offset.zero),
+                );
+                showGlassMenu<CommentSort>(
+                  context: context,
+                  globalPosition: anchor,
+                  tone: GlassTone.smoke,
+                  width: 168,
+                  entries: <GlassMenuEntry<CommentSort>>[
+                    for (final CommentSort sort in sorts)
+                      GlassMenuEntry<CommentSort>(
+                        value: sort,
+                        icon: sort == state.sort
+                            ? Icons.check_rounded
+                            : Icons.sort_rounded,
+                        label: sort.label,
                       ),
-                    ),
-                ],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    state.sort.label,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  ],
+                ).then((CommentSort? value) {
+                  if (value != null) {
+                    controller.changeSort(value);
+                  }
+                });
+              },
+              child: SizedBox(
+                height: 44,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        state.sort.label,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_drop_down_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                    ],
                   ),
-                  Icon(
-                    Icons.arrow_drop_down_rounded,
-                    size: 18,
-                    color: colorScheme.primary,
-                  ),
-                ],
+                ),
               ),
             ),
           )
