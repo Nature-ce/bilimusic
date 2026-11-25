@@ -439,7 +439,7 @@ class _CommentSectionHeader extends StatelessWidget {
                   context: context,
                   globalPosition: anchor,
                   tone: GlassTone.smoke,
-                  width: 168,
+                  width: 112,
                   entries: <GlassMenuEntry<CommentSort>>[
                     for (final CommentSort sort in sorts)
                       GlassMenuEntry<CommentSort>(

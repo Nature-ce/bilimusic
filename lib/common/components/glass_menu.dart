@@ -43,7 +43,8 @@ Future<T?> showGlassMenu<T>({
           Animation<double> secondaryAnimation,
         ) {
           final Size screen = MediaQuery.sizeOf(dialogContext);
-          final double left = (globalPosition.dx - width + 12).clamp(
+          // 让菜单右边缘对齐锚点（右上角按钮这类场景更贴合，不会飘到左侧留大片空白）。
+          final double left = (globalPosition.dx - width).clamp(
             12,
             screen.width - width - 12,
           );
