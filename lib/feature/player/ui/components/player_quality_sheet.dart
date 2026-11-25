@@ -30,41 +30,48 @@ class PlayerQualitySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color accentColor = Theme.of(context).colorScheme.primary;
-
-    return GlassSheetPanel(
-      tone: GlassTone.smoke,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            AppSpacing.md,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              for (final AudioQualityOption option in qualities)
-                _QualityOptionTile(option: option, accentColor: accentColor),
-            ],
-          ),
-        ),
+    // 播放页是深色语境：挂上烟熏玻璃用的深色主题，文字/图标都从 colorScheme 取，
+    // 这样换主题色或深浅模式时会跟着变。
+    return Theme(
+      data: glassSurfaceTheme(context),
+      child: Builder(
+        builder: (BuildContext sheetContext) {
+          return GlassSheetPanel(
+            tone: GlassTone.smoke,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    for (final AudioQualityOption option in qualities)
+                      _QualityOptionTile(option: option),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _QualityOptionTile extends StatelessWidget {
-  const _QualityOptionTile({required this.option, required this.accentColor});
+  const _QualityOptionTile({required this.option});
 
   final AudioQualityOption option;
-  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
     final bool isSelected = option.isSelected;
     final BorderRadius borderRadius = BorderRadius.circular(AppRadius.lg);
 
@@ -72,7 +79,7 @@ class _QualityOptionTile extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppSpacing.xs),
       child: Material(
         color: isSelected
-            ? Colors.white.withValues(alpha: 0.14)
+            ? colorScheme.primary.withValues(alpha: 0.14)
             : Colors.transparent,
         borderRadius: borderRadius,
         clipBehavior: Clip.antiAlias,
@@ -92,18 +99,22 @@ class _QualityOptionTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: GlassTone.smoke.primaryText,
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 if (isSelected)
-                  Icon(Icons.check_rounded, color: accentColor, size: 22)
+                  Icon(
+                    Icons.check_rounded,
+                    color: colorScheme.primary,
+                    size: 22,
+                  )
                 else
                   Icon(
                     Icons.play_arrow_rounded,
-                    color: GlassTone.smoke.secondaryText,
+                    color: colorScheme.onSurfaceVariant,
                     size: 22,
                   ),
               ],

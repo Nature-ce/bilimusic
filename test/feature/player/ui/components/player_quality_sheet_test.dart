@@ -66,9 +66,13 @@ void main() {
     );
     expect(glass.settings?.glassColor, GlassTone.smoke.settings.glassColor);
 
+    // 文字颜色跟随弹层主题（深色 colorScheme.onSurface），不再写死白色。
+    final Color expectedTextColor = Theme.of(
+      tester.element(find.text('192K')),
+    ).colorScheme.onSurface;
     for (final String label in <String>['192K', '132K', '64K']) {
       final Text text = tester.widget<Text>(find.text(label));
-      expect(text.style?.color, GlassTone.smoke.primaryText, reason: label);
+      expect(text.style?.color, expectedTextColor, reason: label);
     }
 
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
