@@ -143,7 +143,7 @@ class _SleepTimerProgressCardState
                   Text(
                     _valueTextOf(remaining),
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontSize: _dragMinutes != null ? 14 : 18,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: isActive
                           ? colorScheme.primary
@@ -186,25 +186,21 @@ class _SleepTimerProgressCardState
                           ),
                         ),
                       ),
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        top: 26 + _trackHeight / 2 - 4,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            for (int index = 0; index < 13; index += 1)
-                              Container(
-                                width: 2,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.22),
-                                  borderRadius: BorderRadius.circular(1),
-                                ),
+                      // 每 5 分钟一条刻度（跳过 关/30/60/90 节点位置）：两个节点之间 5 条。
+                      for (int minute = 5; minute < maxMinutes; minute += 5)
+                        if (!nodeMinutes.contains(minute))
+                          Positioned(
+                            left: _inset + (minute / maxMinutes) * usable - 1,
+                            top: 26 + (_trackHeight - 8) / 2,
+                            width: 2,
+                            height: 8,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.22),
+                                borderRadius: BorderRadius.circular(1),
                               ),
-                          ],
-                        ),
-                      ),
+                            ),
+                          ),
                       // 节点先画，填充后画：填充边缘会把节点切掉一部分。
                       for (final int minutes in nodeMinutes)
                         Positioned(
@@ -313,10 +309,13 @@ class _SleepNode extends StatelessWidget {
         : Colors.white.withValues(alpha: inactive ? 0.16 : 0.3);
     final Color textColor = highlighted
         ? colorScheme.primary
-        : Colors.white.withValues(alpha: inactive ? 0.4 : 0.55);
+        : Colors.white.withValues(alpha: inactive ? 0.4 : 0.78);
+    final Color background = highlighted
+        ? colorScheme.primary.withValues(alpha: 0.16)
+        : Colors.white.withValues(alpha: 0.1);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xEB12100F),
+        color: background,
         shape: BoxShape.circle,
         border: Border.all(color: borderColor, width: highlighted ? 1.6 : 1),
       ),
