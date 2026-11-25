@@ -21,7 +21,7 @@ class _SleepTimerProgressCardState
   static const List<int> nodeMinutes = <int>[0, 30, 60, 90];
   static const double _inset = 22;
   static const double _trackHeight = 46;
-  static const double _nodeSize = 34;
+  static const double _nodeSize = 28;
 
   Timer? _ticker;
   int? _dragMinutes;
@@ -317,13 +317,13 @@ class _SleepNode extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         shape: BoxShape.circle,
-        border: Border.all(color: borderColor, width: highlighted ? 1.6 : 1),
+        border: Border.all(color: borderColor, width: highlighted ? 1.4 : 1),
       ),
       child: Center(
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 11.5,
+            fontSize: 10.5,
             fontWeight: FontWeight.w700,
             color: textColor,
           ),
