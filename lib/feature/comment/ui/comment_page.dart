@@ -210,7 +210,6 @@ class _CommentPageState extends ConsumerState<CommentPage> {
                         sliver: SliverList.list(
                           children: <Widget>[
                             _CommentSectionHeader(
-                              title: '全部评论',
                               state: state,
                               controller: controller,
                             ),
@@ -395,13 +394,7 @@ class _CommentHeader extends StatelessWidget {
 }
 
 class _CommentSectionHeader extends StatelessWidget {
-  const _CommentSectionHeader({
-    required this.title,
-    required this.state,
-    required this.controller,
-  });
-
-  final String title;
+  const _CommentSectionHeader({required this.state, required this.controller});
   final CommentState state;
   final CommentController controller;
 
@@ -413,22 +406,27 @@ class _CommentSectionHeader extends StatelessWidget {
         ? const <CommentSort>[CommentSort.time, CommentSort.like]
         : state.supportedSorts;
     final bool canChangeSort = sorts.length > 1;
+    final bool isLatest = state.sort == CommentSort.time;
 
     return Row(
       children: <Widget>[
         Expanded(
           child: Text(
-            title,
+            isLatest ? '最新评论' : '热门评论',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
         ),
         if (canChangeSort)
-          InkWell(
+          TextButton(
             key: const Key('commentSortToggle'),
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 44),
+              tapTargetSize: MaterialTapTargetSize.padded,
+            ),
+            onPressed: () {
               // 只有「最新 / 最热」两种，点一下直接切到另一种。
               controller.changeSort(
                 state.sort == CommentSort.time
@@ -436,29 +434,23 @@ class _CommentSectionHeader extends StatelessWidget {
                     : CommentSort.time,
               );
             },
-            child: SizedBox(
-              height: 44,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      state.sort.label,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.swap_horiz_rounded,
-                      size: 16,
-                      color: colorScheme.primary,
-                    ),
-                  ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.segment_rounded,
+                  size: 17,
+                  color: colorScheme.primary,
                 ),
-              ),
+                const SizedBox(width: 5),
+                Text(
+                  isLatest ? '按时间' : '按热度',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           )
         else

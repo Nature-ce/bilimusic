@@ -85,6 +85,15 @@ class _PinnedCommentController extends _EmptyCommentController {
   );
 }
 
+class _FixedCommentController extends _EmptyCommentController {
+  _FixedCommentController(this._state);
+
+  final CommentState _state;
+
+  @override
+  CommentState build(CommentTarget target) => _state;
+}
+
 class _OneCommentController extends _EmptyCommentController {
   @override
   CommentState build(CommentTarget target) => CommentState(
@@ -165,7 +174,7 @@ void main() {
     await _pumpCommentPage(tester);
 
     expect(find.byType(PlayerDynamicBackdrop), findsOneWidget);
-    final ThemeData theme = Theme.of(tester.element(find.text('全部评论')));
+    final ThemeData theme = Theme.of(tester.element(find.text('最新评论')));
     expect(theme.brightness, Brightness.dark);
     expect(theme.scaffoldBackgroundColor, Colors.transparent);
   });
@@ -192,7 +201,7 @@ void main() {
     final Text empty = tester.widget<Text>(find.text('还没有评论'));
     expect(empty.style?.color, GlassTone.smoke.primaryText);
 
-    final Text title = tester.widget<Text>(find.text('全部评论'));
+    final Text title = tester.widget<Text>(find.text('最新评论'));
     expect(title.style?.color?.computeLuminance(), greaterThan(0.5));
   });
 
@@ -211,23 +220,85 @@ void main() {
       greaterThan(0.5),
     );
   });
-  testWidgets('排序按钮点一下就在最新和最热之间切换', (WidgetTester tester) async {
+  testWidgets('排序标签点一下就在按时间/按热度之间切换', (WidgetTester tester) async {
     await _pumpCommentPage(tester, withComment: true);
 
-    expect(find.text('最新'), findsOneWidget);
-    expect(find.byType(GlassPanel), findsWidgets);
+    expect(find.text('最新评论'), findsOneWidget);
+    expect(find.text('按时间'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('commentSortToggle')));
     await tester.pumpAndSettle();
 
     // 只有两种排序：点一下就换成另一种，不再弹菜单。
-    expect(find.text('最热'), findsOneWidget);
-    expect(find.text('最新'), findsNothing);
+    expect(find.text('热门评论'), findsOneWidget);
+    expect(find.text('按热度'), findsOneWidget);
+    expect(find.text('按时间'), findsNothing);
 
     await tester.tap(find.byKey(const Key('commentSortToggle')));
     await tester.pumpAndSettle();
 
-    expect(find.text('最新'), findsOneWidget);
+    expect(find.text('最新评论'), findsOneWidget);
+    expect(find.text('按时间'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('超长评论默认折叠，点展开才显示全文', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const String longText =
+        '第一行歌词\n第二行歌词\n第三行歌词\n第四行歌词\n第五行歌词\n'
+        '第六行歌词\n第七行歌词\n第八行歌词\n第九行歌词\n第十行歌词\n'
+        '第十一行歌词\n第十二行歌词';
+
+    final CommentItem longComment = CommentItem(
+      rpid: 5,
+      oid: _target.oid,
+      type: _target.type,
+      root: 0,
+      parent: 0,
+      replyCount: 0,
+      likeCount: 0,
+      action: 0,
+      publishedAt: DateTime(2026, 1, 3),
+      message: longText,
+      memberName: '长评论作者',
+      memberAvatarUrl: '',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          playerControllerProvider.overrideWith(_FakePlayerController.new),
+          commentControllerProvider(_target).overrideWith(
+            () => _FixedCommentController(
+              CommentState(
+                target: _target,
+                mainComments: PagedState<CommentItem>(
+                  items: <CommentItem>[longComment],
+                ),
+              ),
+            ),
+          ),
+        ],
+        child: MaterialApp(home: CommentPage(target: _target)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('展开'), findsOneWidget);
+    final Text collapsed = tester.widget<Text>(find.text(longText));
+    expect(collapsed.maxLines, 10);
+    expect(collapsed.overflow, TextOverflow.ellipsis);
+
+    await tester.tap(find.text('展开'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('收起'), findsOneWidget);
+    final Text expanded = tester.widget<Text>(find.text(longText));
+    expect(expanded.maxLines, isNull);
     expect(tester.takeException(), isNull);
   });
 }

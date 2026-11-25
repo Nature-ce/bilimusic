@@ -82,8 +82,8 @@ class CommentCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     if (item.message.isNotEmpty)
-                      Text(
-                        item.message,
+                      _CollapsibleMessage(
+                        text: item.message,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurface,
                           height: 1.55,
@@ -290,6 +290,75 @@ class _CommentLikeButton extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 超长评论（歌词、长段落）默认只显示前 [maxLines] 行，超出部分折叠，点「展开」再看全文。
+class _CollapsibleMessage extends StatefulWidget {
+  const _CollapsibleMessage({required this.text, required this.style});
+
+  static const int _maxLines = 10;
+
+  final String text;
+  final TextStyle? style;
+
+  @override
+  State<_CollapsibleMessage> createState() => _CollapsibleMessageState();
+}
+
+class _CollapsibleMessageState extends State<_CollapsibleMessage> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final TextPainter painter = TextPainter(
+          text: TextSpan(text: widget.text, style: widget.style),
+          maxLines: _CollapsibleMessage._maxLines,
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout(maxWidth: constraints.maxWidth);
+        final bool overflows = painter.didExceedMaxLines;
+        painter.dispose();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              widget.text,
+              style: widget.style,
+              maxLines: _expanded ? null : _CollapsibleMessage._maxLines,
+              overflow: _expanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
+            ),
+            if (overflows)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      _expanded ? '收起' : '展开',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
