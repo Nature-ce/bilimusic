@@ -12,6 +12,7 @@ import 'package:bilimusic/feature/player/logic/display/player_cover_color_provid
 import 'package:bilimusic/feature/player/logic/display/player_display_settings_logic.dart';
 import 'package:bilimusic/feature/player/logic/lyrics/player_lyric_settings_logic.dart';
 import 'package:bilimusic/feature/player/logic/sleep_timer_controller.dart';
+import 'package:bilimusic/feature/player/ui/components/player_settings_sheet.dart';
 import 'package:bilimusic/feature/player/ui/lyrics/player_lyric_panel.dart';
 import 'package:bilimusic/feature/player/ui/desktop/desktop_player_page.dart';
 import 'package:bilimusic/feature/player/ui/components/player_main_page.dart';
@@ -326,10 +327,15 @@ void main() {
     expect(find.text('0.5x'), findsOneWidget);
     expect(find.text('3.0x'), findsOneWidget);
     expect(find.text('0.55x'), findsNothing);
-    // 档位 0.5x~3.0x、0.05x 一档共 51 档；40% 位置对应 1.5x。
+    // 档位 0.5x~3.0x、0.05x 一档共 51 档；40% 位置对应 1.5x（两端各有 16dp 留白）。
     final Rect speedRect = tester.getRect(speedScale);
     await tester.tapAt(
-      Offset(speedRect.left + speedRect.width * 0.4, speedRect.center.dy),
+      Offset(
+        speedRect.left +
+            kScaleRulerEdgeInset +
+            (speedRect.width - kScaleRulerEdgeInset * 2) * 0.4,
+        speedRect.center.dy,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -376,8 +382,15 @@ void main() {
     final Finder sleepScale = find.byKey(const Key('sleepTimerScale'));
     expect(sleepScale, findsOneWidget);
     final Rect rect = tester.getRect(sleepScale);
-    // 0~120 分钟、5 分钟一档共 25 档；点 1/4 处约等于 30 分钟。
-    await tester.tapAt(Offset(rect.left + rect.width * 0.25, rect.center.dy));
+    // 0~120 分钟、1 分钟一档共 121 档；1/4 处 = 30 分钟（两端各有 16dp 留白）。
+    await tester.tapAt(
+      Offset(
+        rect.left +
+            kScaleRulerEdgeInset +
+            (rect.width - kScaleRulerEdgeInset * 2) * 0.25,
+        rect.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
 
     final SleepTimerState state = container.read(sleepTimerControllerProvider);

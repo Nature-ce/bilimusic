@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 睡眠定时滑杆的档位：0 = 关，之后每 5 分钟一档，最多 120 分钟。
 const int kSleepTimerMaxMinutes = 120;
+
+/// 刻度尺两端留白（逻辑像素）：避免首尾标签贴到卡片边缘。
+const double kScaleRulerEdgeInset = 16;
 const int kSleepTimerStepMinutes = 5;
 
 List<int> get _sleepTimerStops => <int>[
@@ -310,11 +313,15 @@ class ScaleRuler extends StatelessWidget {
 
   static const double _rulerHeight = 52;
 
+  double _trackWidth(double width) =>
+      (width - kScaleRulerEdgeInset * 2).clamp(1.0, width);
+
   void _handlePosition(double dx, double width) {
     if (stops.length < 2 || width <= 0) {
       return;
     }
-    final double ratio = (dx / width).clamp(0.0, 1.0);
+    final double ratio = ((dx - kScaleRulerEdgeInset) / _trackWidth(width))
+        .clamp(0.0, 1.0);
     final int index = (ratio * (stops.length - 1)).round();
     if (index != selectedIndex) {
       onSelected(index);
@@ -329,6 +336,7 @@ class ScaleRuler extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double width = constraints.maxWidth;
+        final double trackWidth = _trackWidth(width);
         final double ratio = stops.length < 2
             ? 0
             : selectedIndex / (stops.length - 1);
@@ -353,15 +361,17 @@ class ScaleRuler extends StatelessWidget {
                         labeled: labels.keys.toSet(),
                         selectedIndex: selectedIndex,
                         accent: colorScheme.primary,
+                        edgeInset: kScaleRulerEdgeInset,
                       ),
                     ),
                   ),
                   for (final MapEntry<int, String> label in labels.entries)
                     Positioned(
-                      left: (label.key / (stops.length - 1) * width - 24).clamp(
-                        0.0,
-                        (width - 48).clamp(0.0, width),
-                      ),
+                      left:
+                          (kScaleRulerEdgeInset +
+                                  label.key / (stops.length - 1) * trackWidth -
+                                  24)
+                              .clamp(0.0, (width - 48).clamp(0.0, width)),
                       width: 48,
                       bottom: 24,
                       child: Text(
@@ -379,7 +389,10 @@ class ScaleRuler extends StatelessWidget {
                       ),
                     ),
                   Positioned(
-                    left: (ratio * width - 1).clamp(0.0, (width - 2)),
+                    left: (kScaleRulerEdgeInset + ratio * trackWidth - 1).clamp(
+                      0.0,
+                      width - 2,
+                    ),
                     bottom: 0,
                     width: 2,
                     height: 30,
@@ -391,7 +404,10 @@ class ScaleRuler extends StatelessWidget {
                     ),
                   ),
                   Positioned(
-                    left: (ratio * width - 4).clamp(0.0, (width - 8)),
+                    left: (kScaleRulerEdgeInset + ratio * trackWidth - 4).clamp(
+                      0.0,
+                      width - 8,
+                    ),
                     bottom: 34,
                     width: 8,
                     height: 8,
@@ -418,12 +434,14 @@ class _ScaleTicksPainter extends CustomPainter {
     required this.labeled,
     required this.selectedIndex,
     required this.accent,
+    required this.edgeInset,
   });
 
   final int stopCount;
   final Set<int> labeled;
   final int selectedIndex;
   final Color accent;
+  final double edgeInset;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -433,7 +451,11 @@ class _ScaleTicksPainter extends CustomPainter {
     final Paint paint = Paint()
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
-    final double step = size.width / (stopCount - 1);
+    final double trackWidth = (size.width - edgeInset * 2).clamp(
+      1.0,
+      size.width,
+    );
+    final double step = trackWidth / (stopCount - 1);
     for (int index = 0; index < stopCount; index += 1) {
       final bool selected = index == selectedIndex;
       final bool major = labeled.contains(index);
@@ -441,7 +463,7 @@ class _ScaleTicksPainter extends CustomPainter {
       paint.color = selected
           ? accent
           : Colors.white.withValues(alpha: major ? 0.5 : 0.28);
-      final double x = index * step;
+      final double x = edgeInset + index * step;
       canvas.drawLine(
         Offset(x, size.height - height),
         Offset(x, size.height),
@@ -455,6 +477,7 @@ class _ScaleTicksPainter extends CustomPainter {
     return oldDelegate.stopCount != stopCount ||
         oldDelegate.selectedIndex != selectedIndex ||
         oldDelegate.labeled != labeled ||
-        oldDelegate.accent != accent;
+        oldDelegate.accent != accent ||
+        oldDelegate.edgeInset != edgeInset;
   }
 }
