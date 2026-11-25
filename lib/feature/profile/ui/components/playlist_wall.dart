@@ -1,6 +1,3 @@
-import 'dart:math' as math;
-import 'dart:ui' show PathMetric;
-
 import 'package:bilimusic/common/components/cached_image.dart';
 import 'package:bilimusic/common/util/relative_time.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
@@ -110,61 +107,6 @@ class PlaylistWallCard extends StatelessWidget {
   }
 }
 
-class CreatePlaylistWallCard extends StatelessWidget {
-  const CreatePlaylistWallCard({super.key, required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(
-        width: playlistWallCoverSize,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            CustomPaint(
-              painter: _DashedBorderPainter(
-                color: colorScheme.outline.withValues(alpha: 0.34),
-                radius: _coverRadius,
-              ),
-              child: SizedBox(
-                width: playlistWallCoverSize,
-                height: playlistWallCoverSize,
-                child: Center(
-                  child: Icon(
-                    Icons.add,
-                    size: 24,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              '新建歌单',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12.5,
-                height: 1.25,
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _CountBadge extends StatelessWidget {
   const _CountBadge({required this.trackCount});
 
@@ -212,40 +154,5 @@ class _WallCoverFallback extends StatelessWidget {
       ),
       child: Icon(Icons.queue_music_rounded, color: primary, size: 30),
     );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  static const double _dash = 5;
-  static const double _gap = 4;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    final Path path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
-      );
-    for (final PathMetric metric in path.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final double end = math.min(distance + _dash, metric.length);
-        canvas.drawPath(metric.extractPath(distance, end), paint);
-        distance += _dash + _gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }

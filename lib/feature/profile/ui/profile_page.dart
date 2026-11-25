@@ -148,9 +148,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         },
                       ),
                     ),
-                  CreatePlaylistWallCard(
-                    onTap: () => _showCreateCollectionDialog(context),
-                  ),
                 ],
               ),
             ),
