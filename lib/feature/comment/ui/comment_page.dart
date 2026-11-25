@@ -150,6 +150,11 @@ class _CommentPageState extends ConsumerState<CommentPage> {
                 onRefresh: controller.refresh,
                 child: CustomScrollView(
                   controller: _scrollController,
+                  // 用 clamp 滚动：顶部/底部过度滚动时不再拉伸页面，
+                  // 否则玻璃卡片后面的背景被拉伸、颜色会突然变深。
+                  physics: const ClampingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
                   slivers: <Widget>[
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
