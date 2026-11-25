@@ -37,10 +37,14 @@ Future<bool?> showPlayerCollectionItemsSheet({
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+      // 玻璃弹层用轻遮罩，和其它玻璃弹层保持一致。
+      barrierColor: appGlassBarrierColor(),
       builder: (BuildContext sheetContext) {
+        // 烟熏玻璃（深色语境）用深色主题；浅色页面的白雾玻璃保持原主题（深色文字）。
         return Theme(
-          data: glassSurfaceTheme(sheetContext),
+          data: glass == GlassTone.smoke
+              ? glassSurfaceTheme(sheetContext)
+              : Theme.of(sheetContext),
           child: GlassSheetPanel(
             tone: glass,
             child: Flexible(

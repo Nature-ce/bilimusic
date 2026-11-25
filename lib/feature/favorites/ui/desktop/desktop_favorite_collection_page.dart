@@ -234,6 +234,7 @@ class _DesktopFavoriteCollectionPageState
     final bool? added = await showPlayerCollectionItemsSheet(
       context: context,
       items: selectedItems,
+      glass: ref.read(appearanceSettingLogicProvider) ? GlassTone.frost : null,
     );
     if (added == true && mounted) {
       _setSelectionMode(false);
@@ -676,6 +677,9 @@ class _DesktopFavoriteCollectionPageState
                     await showPlayerCollectionSheet(
                       context: context,
                       item: playableItem,
+                      glass: ref.read(appearanceSettingLogicProvider)
+                          ? GlassTone.frost
+                          : null,
                     );
                   },
                 ),

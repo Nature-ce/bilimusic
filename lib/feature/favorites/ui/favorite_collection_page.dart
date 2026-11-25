@@ -897,6 +897,7 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
     final bool? added = await showPlayerCollectionItemsSheet(
       context: context,
       items: selectedItems,
+      glass: ref.read(appearanceSettingLogicProvider) ? GlassTone.frost : null,
     );
     if (added == true && mounted) {
       _exitSelectionMode();
@@ -1024,6 +1025,9 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
                     await showPlayerCollectionSheet(
                       context: context,
                       item: playableItem,
+                      glass: ref.read(appearanceSettingLogicProvider)
+                          ? GlassTone.frost
+                          : null,
                     );
                   },
                 ),
