@@ -152,7 +152,7 @@ class _SleepTimerProgressCardState
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               GestureDetector(
                 key: const Key('sleepTimerProgressTrack'),
                 behavior: HitTestBehavior.opaque,
@@ -170,14 +170,14 @@ class _SleepTimerProgressCardState
                     _updateDrag(details.localPosition.dx, width),
                 onTapUp: (TapUpDetails details) => _commitDrag(),
                 child: SizedBox(
-                  height: _trackHeight + 26,
+                  height: _trackHeight + 20,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: <Widget>[
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: 26,
+                        top: 20,
                         height: _trackHeight,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
@@ -191,7 +191,7 @@ class _SleepTimerProgressCardState
                         if (!nodeMinutes.contains(minute))
                           Positioned(
                             left: _inset + (minute / maxMinutes) * usable - 1,
-                            top: 26 + (_trackHeight - 8) / 2,
+                            top: 20 + (_trackHeight - 8) / 2,
                             width: 2,
                             height: 8,
                             child: DecoratedBox(
@@ -208,7 +208,7 @@ class _SleepTimerProgressCardState
                               _inset +
                               (minutes / maxMinutes) * usable -
                               _nodeSize / 2,
-                          top: 26 + (_trackHeight - _nodeSize) / 2,
+                          top: 20 + (_trackHeight - _nodeSize) / 2,
                           width: _nodeSize,
                           height: _nodeSize,
                           child: _SleepNode(
@@ -223,7 +223,7 @@ class _SleepTimerProgressCardState
                       if (isActive && fillEnd > 0)
                         Positioned(
                           left: 0,
-                          top: 26,
+                          top: 20,
                           width: fillEnd,
                           height: _trackHeight,
                           child: DecoratedBox(
@@ -239,7 +239,7 @@ class _SleepTimerProgressCardState
                       if (isActive)
                         Positioned(
                           left: (fillEnd - 1.5).clamp(0.0, width - 3),
-                          top: 24,
+                          top: 18,
                           width: 3,
                           height: _trackHeight + 4,
                           child: DecoratedBox(

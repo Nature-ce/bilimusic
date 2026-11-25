@@ -274,7 +274,7 @@ class ScaleRuler extends StatelessWidget {
             onHorizontalDragUpdate: (DragUpdateDetails details) =>
                 _handlePosition(details.localPosition.dx, width),
             child: SizedBox(
-              height: 88,
+              height: 74,
               child: Stack(
                 children: <Widget>[
                   for (int index = 0; index < stops.length; index += 1)
@@ -310,7 +310,7 @@ class ScaleRuler extends StatelessWidget {
                                   24)
                               .clamp(0.0, (width - 48).clamp(0.0, width)),
                       width: 48,
-                      bottom: 34,
+                      bottom: 28,
                       child: Text(
                         label.value,
                         textAlign: TextAlign.center,
@@ -345,7 +345,7 @@ class ScaleRuler extends StatelessWidget {
                       0.0,
                       width - 8,
                     ),
-                    bottom: 40,
+                    bottom: 44,
                     width: 8,
                     height: 8,
                     child: DecoratedBox(
