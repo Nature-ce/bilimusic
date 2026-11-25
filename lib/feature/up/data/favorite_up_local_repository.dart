@@ -59,50 +59,72 @@ class FavoriteUpLocalRepository {
     return _box.get(mid);
   }
 
-  /// 按 mid 找；找不到时用「名字 + 头像」兜底，兼容历史脏数据里的不同 mid。
+  /// 按 mid 找；找不到时依次用「名字 + 头像」「名字」兜底，
+  /// 兼容历史脏数据里 mid 不同、头像 URL 参数不同的同一条收藏。
   FavoriteUp? find(int mid, {UpProfile? profile}) {
-    final FavoriteUp? byMid = _box.get(mid);
-    if (byMid != null || profile == null) {
-      return byMid;
+    final FavoriteUp? byKey = _box.get(mid);
+    if (byKey != null) {
+      return byKey;
+    }
+    // 历史版本可能用自增 key 写入（key != mid），这里再按记录里的 mid 找一次。
+    for (final FavoriteUp up in _box.values) {
+      if (up.mid == mid) {
+        return up;
+      }
+    }
+    if (profile == null) {
+      return null;
     }
     final String identity = favoriteUpIdentityKey(
       name: profile.name,
       avatarUrl: profile.avatarUrl,
     );
+    final String name = profile.name.trim();
+    FavoriteUp? byName;
     for (final FavoriteUp up in _box.values) {
       if (favoriteUpIdentityKey(name: up.name, avatarUrl: up.avatarUrl) ==
           identity) {
         return up;
       }
+      if (name.isNotEmpty && up.name.trim() == name) {
+        byName ??= up;
+      }
     }
-    return null;
+    return byName;
+  }
+
+  /// 删除所有指向同一个 UP 的记录（同名或同 mid），返回删掉的数量。
+  Future<int> deleteMatching({required int mid, required String name}) async {
+    final String trimmed = name.trim();
+    final List<dynamic> keys = <dynamic>[
+      for (final MapEntry<dynamic, FavoriteUp> entry in _box.toMap().entries)
+        if (entry.value.mid == mid ||
+            (trimmed.isNotEmpty && entry.value.name.trim() == trimmed))
+          entry.key,
+    ];
+    for (final dynamic key in keys) {
+      await _box.delete(key);
+    }
+    return keys.length;
   }
 
   Future<List<FavoriteUp>> save(FavoriteUp up) async {
-    final String identity = favoriteUpIdentityKey(
-      name: up.name,
-      avatarUrl: up.avatarUrl,
-    );
-    final List<FavoriteUp> duplicates = _box.values
-        .where(
-          (FavoriteUp existing) =>
-              existing.mid != up.mid &&
-              favoriteUpIdentityKey(
-                    name: existing.name,
-                    avatarUrl: existing.avatarUrl,
-                  ) ==
-                  identity,
-        )
-        .toList(growable: false);
-    for (final FavoriteUp duplicate in duplicates) {
-      await _box.delete(duplicate.mid);
-    }
+    // 先把同 mid / 同名的旧记录清掉（按真实 key 删，兼容自增 key 的旧数据）。
+    await deleteMatching(mid: up.mid, name: up.name);
     await _box.put(up.mid, up);
     return load();
   }
 
   Future<List<FavoriteUp>> delete(int mid) async {
     await _box.delete(mid);
+    // 旧数据可能用自增 key 存，这里再按记录里的 mid 删一遍。
+    final List<dynamic> keys = <dynamic>[
+      for (final MapEntry<dynamic, FavoriteUp> entry in _box.toMap().entries)
+        if (entry.value.mid == mid) entry.key,
+    ];
+    for (final dynamic key in keys) {
+      await _box.delete(key);
+    }
     return load();
   }
 }

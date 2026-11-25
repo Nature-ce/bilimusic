@@ -34,7 +34,9 @@ class FavoriteUpController extends _$FavoriteUpController {
       (FavoriteUp up) =>
           up.mid == profile.mid ||
           favoriteUpIdentityKey(name: up.name, avatarUrl: up.avatarUrl) ==
-              identity,
+              identity ||
+          (profile.name.trim().isNotEmpty &&
+              up.name.trim() == profile.name.trim()),
     );
   }
 
@@ -44,7 +46,9 @@ class FavoriteUpController extends _$FavoriteUpController {
       profile: profile,
     );
     if (previous != null) {
-      // 按实际命中的记录删除：历史脏数据里的 mid 可能和 profile.mid 不一致。
+      // 把指向同一个 UP 的记录一次删干净：历史脏数据里 mid / 头像可能都对不上。
+      await _repository.deleteMatching(mid: profile.mid, name: profile.name);
+      await _repository.deleteMatching(mid: previous.mid, name: previous.name);
       state = await _repository.delete(previous.mid);
       return false;
     }
