@@ -200,8 +200,7 @@ class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final MusicChart chart = widget.chart;
     final AsyncValue<ChartDetailData> detail = ref.watch(
       chartDetailControllerProvider(chart),
@@ -238,7 +237,6 @@ class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
 
   List<Widget> _buildContent(ChartDetailData data) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     final MusicChart chart = widget.chart;
     final List<MusicChartTrack> tracks = data.tracks;
 
@@ -285,14 +283,6 @@ class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
             '歌曲',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            '按热度排序',
-            style: AppTextStyles.meta(theme, fontSize: 11.5).copyWith(
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
