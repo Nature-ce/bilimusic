@@ -25,9 +25,13 @@ class FavoriteUpController extends _$FavoriteUpController {
   }
 
   Future<bool> toggle(UpProfile profile) async {
-    final FavoriteUp? previous = _repository.get(profile.mid);
+    final FavoriteUp? previous = _repository.find(
+      profile.mid,
+      profile: profile,
+    );
     if (previous != null) {
-      state = await _repository.delete(profile.mid);
+      // 按实际命中的记录删除：历史脏数据里的 mid 可能和 profile.mid 不一致。
+      state = await _repository.delete(previous.mid);
       return false;
     }
 

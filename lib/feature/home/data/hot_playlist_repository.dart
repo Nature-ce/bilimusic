@@ -341,6 +341,38 @@ class HotPlaylistRepository {
     return trackIds;
   }
 
+  /// QQ 音乐的歌单列表接口不带曲目数，这里单独查一次（结果会缓存）。
+  final Map<String, int> _trackCountCache = <String, int>{};
+
+  /// 补曲目数时同时并发几个请求。
+  static const int trackCountConcurrency = 3;
+
+  /// 拉某个歌单的曲目数；已经有数量的平台直接返回原值。
+  Future<int> fetchTrackCount(HotPlaylist playlist) async {
+    if (playlist.trackCount > 0) {
+      return playlist.trackCount;
+    }
+    final int? cached = _trackCountCache[playlist.key];
+    if (cached != null) {
+      return cached;
+    }
+    if (playlist.platform != MusicChartPlatform.tencent) {
+      return 0;
+    }
+    final Object? payload = await _httpGet(_tencentTracksUrl, <String, dynamic>{
+      'id': playlist.id,
+      'format': 'json',
+      'newsong': '1',
+      'song_begin': '0',
+      'song_num': '1',
+    }, _tencentHeaders);
+    final int total = _tencentTotal(payload);
+    if (total > 0) {
+      _trackCountCache[playlist.key] = total;
+    }
+    return total;
+  }
+
   Future<HotPlaylistTrackPage> _fetchTencentTrackPage(
     HotPlaylist playlist, {
     required int offset,
