@@ -203,9 +203,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Future<void> _showCreateCollectionDialog(BuildContext context) async {
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
     final String? result = await showDialog<String>(
       context: context,
       useRootNavigator: true,
+      barrierColor: useGlass ? appGlassBarrierColor() : null,
       builder: (BuildContext context) {
         return CollectionNameDialog(
           title: '新建歌单',
@@ -244,9 +246,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final FavoritesController controller = ref.read(
       favoritesControllerProvider.notifier,
     );
+    // 玻璃模式下遮罩要跟弹层一致（黑 54% 会显得像多压了一层）。
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
+    final Color? barrierColor = useGlass ? appGlassBarrierColor() : null;
     final FavoriteCollection? collection = await showDialog<FavoriteCollection>(
       context: context,
       useRootNavigator: true,
+      barrierColor: barrierColor,
       builder: (BuildContext context) {
         return RemoteCollectionImportDialog(
           collectionsFuture: controller.fetchImportableRemoteCollections(),
@@ -261,6 +267,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     final _RemoteImportMode? mode = await showDialog<_RemoteImportMode>(
       context: context,
+      barrierColor: barrierColor,
       builder: (BuildContext context) {
         return SimpleDialog(
           title: Text('导入“${collection.name}”'),
