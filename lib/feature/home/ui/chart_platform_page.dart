@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/core/theme/theme_colors.dart';
@@ -103,7 +104,7 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, AppSpacing.sm, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, AppSpacing.sm, 16, 8),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -125,6 +126,7 @@ class _ChartPlatformPageState extends ConsumerState<ChartPlatformPage> {
               }, childCount: otherCharts.length),
             ),
           ),
+          const SliverToBoxAdapter(child: BottomPageSpacer()),
         ],
       ),
     );

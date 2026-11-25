@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/player_util.dart';
@@ -139,20 +140,23 @@ class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
         onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          children: detail.when<List<Widget>>(
-            data: (ChartDetailData data) => _buildContent(data, isFavorite),
-            loading: () => const <Widget>[_ChartDetailLoading()],
-            error: (Object error, StackTrace stackTrace) => <Widget>[
-              StatusView(
-                icon: Icons.cloud_off_rounded,
-                iconColor: colorScheme.error,
-                title: '榜单加载失败',
-                description: '网络不太稳定，请稍后重试',
-                onRetry: _refresh,
-              ),
-            ],
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          children: <Widget>[
+            ...detail.when<List<Widget>>(
+              data: (ChartDetailData data) => _buildContent(data, isFavorite),
+              loading: () => const <Widget>[_ChartDetailLoading()],
+              error: (Object error, StackTrace stackTrace) => <Widget>[
+                StatusView(
+                  icon: Icons.cloud_off_rounded,
+                  iconColor: colorScheme.error,
+                  title: '榜单加载失败',
+                  description: '网络不太稳定，请稍后重试',
+                  onRetry: _refresh,
+                ),
+              ],
+            ),
+            const BottomPageSpacer(),
+          ],
         ),
       ),
     );
