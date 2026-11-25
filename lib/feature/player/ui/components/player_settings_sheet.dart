@@ -130,12 +130,13 @@ class PlayerSettingsSheetContent extends ConsumerWidget {
                   scaleKey: const Key('playbackSpeedScale'),
                   stops: kPlayerPlaybackSpeeds,
                   labels: <int, String>{
+                    // 51 档太密：每 0.5x（10 档）标一个数字。
                     for (
                       int index = 0;
                       index < kPlayerPlaybackSpeeds.length;
-                      index += 1
+                      index += 10
                     )
-                      index: kPlayerPlaybackSpeeds[index].toStringAsFixed(1),
+                      index: formatPlaybackSpeed(kPlayerPlaybackSpeeds[index]),
                   },
                   selectedIndex: speedIndex,
                   valueText: formatPlaybackSpeed(
@@ -302,8 +303,12 @@ class ScaleRuler extends StatelessWidget {
   final List<double> stops;
   final Map<int, String> labels;
   final int selectedIndex;
+
+  /// 仅用于无障碍朗读；界面上数值只显示在卡片右上角。
   final String valueText;
   final ValueChanged<int> onSelected;
+
+  static const double _rulerHeight = 52;
 
   void _handlePosition(double dx, double width) {
     if (stops.length < 2 || width <= 0) {
@@ -319,7 +324,7 @@ class ScaleRuler extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color accent = theme.colorScheme.primary;
+    final ColorScheme colorScheme = theme.colorScheme;
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -327,11 +332,6 @@ class ScaleRuler extends StatelessWidget {
         final double ratio = stops.length < 2
             ? 0
             : selectedIndex / (stops.length - 1);
-        const double chipWidth = 64;
-        final double chipLeft = (ratio * width - chipWidth / 2).clamp(
-          0.0,
-          (width - chipWidth).clamp(0.0, width),
-        );
 
         return Semantics(
           label: valueText,
@@ -343,33 +343,19 @@ class ScaleRuler extends StatelessWidget {
             onHorizontalDragUpdate: (DragUpdateDetails details) =>
                 _handlePosition(details.localPosition.dx, width),
             child: SizedBox(
-              height: 88,
+              height: _rulerHeight,
               child: Stack(
                 children: <Widget>[
-                  for (int index = 0; index < stops.length; index += 1)
-                    Positioned(
-                      left: (index / (stops.length - 1) * width - 1).clamp(
-                        0.0,
-                        (width - 2).clamp(0.0, width),
-                      ),
-                      bottom: 0,
-                      width: 2,
-                      height: index == selectedIndex
-                          ? 30
-                          : labels.containsKey(index)
-                          ? 22
-                          : 12,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: index == selectedIndex
-                              ? accent
-                              : Colors.white.withValues(
-                                  alpha: labels.containsKey(index) ? 0.5 : 0.28,
-                                ),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _ScaleTicksPainter(
+                        stopCount: stops.length,
+                        labeled: labels.keys.toSet(),
+                        selectedIndex: selectedIndex,
+                        accent: colorScheme.primary,
                       ),
                     ),
+                  ),
                   for (final MapEntry<int, String> label in labels.entries)
                     Positioned(
                       left: (label.key / (stops.length - 1) * width - 24).clamp(
@@ -377,7 +363,7 @@ class ScaleRuler extends StatelessWidget {
                         (width - 48).clamp(0.0, width),
                       ),
                       width: 48,
-                      bottom: 34,
+                      bottom: 24,
                       child: Text(
                         label.value,
                         textAlign: TextAlign.center,
@@ -387,29 +373,32 @@ class ScaleRuler extends StatelessWidget {
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: label.key == selectedIndex
-                              ? accent
+                              ? colorScheme.primary
                               : Colors.white.withValues(alpha: 0.42),
                         ),
                       ),
                     ),
                   Positioned(
-                    left: chipLeft,
-                    width: chipWidth,
-                    bottom: 56,
-                    child: Container(
-                      height: 24,
-                      alignment: Alignment.center,
+                    left: (ratio * width - 1).clamp(0.0, (width - 2)),
+                    bottom: 0,
+                    width: 2,
+                    height: 30,
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: accent,
-                        borderRadius: BorderRadius.circular(8),
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      child: Text(
-                        valueText,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.onPrimary,
-                        ),
+                    ),
+                  ),
+                  Positioned(
+                    left: (ratio * width - 4).clamp(0.0, (width - 8)),
+                    bottom: 34,
+                    width: 8,
+                    height: 8,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        shape: BoxShape.circle,
                       ),
                     ),
                   ),
@@ -420,5 +409,52 @@ class ScaleRuler extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _ScaleTicksPainter extends CustomPainter {
+  const _ScaleTicksPainter({
+    required this.stopCount,
+    required this.labeled,
+    required this.selectedIndex,
+    required this.accent,
+  });
+
+  final int stopCount;
+  final Set<int> labeled;
+  final int selectedIndex;
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (stopCount < 2 || size.width <= 0) {
+      return;
+    }
+    final Paint paint = Paint()
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    final double step = size.width / (stopCount - 1);
+    for (int index = 0; index < stopCount; index += 1) {
+      final bool selected = index == selectedIndex;
+      final bool major = labeled.contains(index);
+      final double height = selected ? 30 : (major ? 22 : 12);
+      paint.color = selected
+          ? accent
+          : Colors.white.withValues(alpha: major ? 0.5 : 0.28);
+      final double x = index * step;
+      canvas.drawLine(
+        Offset(x, size.height - height),
+        Offset(x, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScaleTicksPainter oldDelegate) {
+    return oldDelegate.stopCount != stopCount ||
+        oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.labeled != labeled ||
+        oldDelegate.accent != accent;
   }
 }

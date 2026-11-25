@@ -557,7 +557,7 @@ class _PlaybackSpeedAttach extends ConsumerWidget {
         ref.read(playerControllerProvider.notifier).setSpeed(value);
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<double>>[
-        for (final double value in kPlayerPlaybackSpeeds)
+        for (final double value in kPlayerPlaybackSpeedPresets)
           PopupMenuItem<double>(
             value: value,
             child: Row(

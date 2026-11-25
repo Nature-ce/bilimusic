@@ -322,14 +322,21 @@ void main() {
 
     final Finder speedScale = find.byKey(const Key('playbackSpeedScale'));
     expect(speedScale, findsOneWidget);
-    // 档位是 0.5 / 1.0 / 1.5 / 2.0 / 3.0，正中间对应 1.5x。
-    await tester.tapAt(tester.getRect(speedScale).center);
+    // 51 档只标注 0.5x 整档，细档位不显示数字，避免刻度标签挤成一片。
+    expect(find.text('0.5x'), findsOneWidget);
+    expect(find.text('3.0x'), findsOneWidget);
+    expect(find.text('0.55x'), findsNothing);
+    // 档位 0.5x~3.0x、0.05x 一档共 51 档；40% 位置对应 1.5x。
+    final Rect speedRect = tester.getRect(speedScale);
+    await tester.tapAt(
+      Offset(speedRect.left + speedRect.width * 0.4, speedRect.center.dy),
+    );
     await tester.pumpAndSettle();
 
     expect(container.read(playerControllerProvider).speed, 1.5);
   });
 
-  testWidgets('播放设置面板的睡眠定时滑杆可设成任意 5 分钟档位', (WidgetTester tester) async {
+  testWidgets('播放设置面板的睡眠定时滑杆可按分钟设定', (WidgetTester tester) async {
     _usePortraitViewport(tester);
     const PlayableItem item = _testItem;
 
