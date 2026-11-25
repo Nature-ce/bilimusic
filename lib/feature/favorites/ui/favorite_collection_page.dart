@@ -512,7 +512,11 @@ class _FavoriteCollectionPageState extends ConsumerState<FavoriteCollectionPage>
                       if (visibleItems.isNotEmpty)
                         Text(
                           '共 ${visibleItems.length} 首',
-                          style: AppTextStyles.meta(theme, fontSize: 11.5),
+                          style: AppTextStyles.meta(theme, fontSize: 11.5)
+                              .copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                         ),
                     ],
                   ),

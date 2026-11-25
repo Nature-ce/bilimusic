@@ -312,7 +312,10 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
                 if (state.tracks.isNotEmpty)
                   Text(
                     '共 ${state.tracks.length} 首',
-                    style: AppTextStyles.meta(theme, fontSize: 11.5),
+                    style: AppTextStyles.meta(theme, fontSize: 11.5).copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
               ],
             ),
