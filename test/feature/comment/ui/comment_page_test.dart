@@ -7,6 +7,7 @@ import 'package:bilimusic/feature/comment/logic/comment_controller.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:bilimusic/feature/comment/ui/comment_page.dart';
+import 'package:bilimusic/feature/comment/ui/components/comment_card.dart';
 import 'package:bilimusic/feature/player/ui/components/player_dynamic_backdrop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,6 +58,33 @@ CommentItem _comment() {
   );
 }
 
+CommentItem _pinnedComment() {
+  return CommentItem(
+    rpid: 99,
+    oid: _target.oid,
+    type: _target.type,
+    root: 0,
+    parent: 0,
+    replyCount: 0,
+    likeCount: 12,
+    action: 0,
+    publishedAt: DateTime(2026, 1, 2),
+    message: 'Pinned lyric info',
+    memberName: 'Pinned author',
+    memberAvatarUrl: '',
+    isTop: true,
+  );
+}
+
+class _PinnedCommentController extends _EmptyCommentController {
+  @override
+  CommentState build(CommentTarget target) => CommentState(
+    target: target,
+    mainComments: PagedState<CommentItem>(items: <CommentItem>[_comment()]),
+    topItem: _pinnedComment(),
+  );
+}
+
 class _OneCommentController extends _EmptyCommentController {
   @override
   CommentState build(CommentTarget target) => CommentState(
@@ -90,6 +118,33 @@ Future<void> _pumpCommentPage(
 }
 
 void main() {
+  testWidgets('pinned comment sits at the top of all comments', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          playerControllerProvider.overrideWith(_FakePlayerController.new),
+          commentControllerProvider(
+            _target,
+          ).overrideWith(_PinnedCommentController.new),
+        ],
+        child: MaterialApp(home: CommentPage(target: _target)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pinned lyric info'), findsOneWidget);
+    expect(find.byType(CommentCard), findsNWidgets(2));
+    // 置顶角标出现，且不再有独立的置顶评论分段标题（只有「全部评论」一个标题）。
+    expect(find.text('置顶'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('评论页顶部标题会把装饰字体还原成普通字符', (WidgetTester tester) async {
     const CommentTarget stylized = CommentTarget(
       oid: 2,
@@ -156,19 +211,23 @@ void main() {
       greaterThan(0.5),
     );
   });
-  testWidgets('排序按钮打开玻璃菜单并切换排序', (WidgetTester tester) async {
+  testWidgets('排序按钮点一下就在最新和最热之间切换', (WidgetTester tester) async {
     await _pumpCommentPage(tester, withComment: true);
 
-    await tester.tap(find.text('最新'));
-    await tester.pumpAndSettle();
-
+    expect(find.text('最新'), findsOneWidget);
     expect(find.byType(GlassPanel), findsWidgets);
-    expect(find.text('最热'), findsOneWidget);
 
-    await tester.tap(find.text('最热'));
+    await tester.tap(find.byKey(const Key('commentSortToggle')));
     await tester.pumpAndSettle();
 
+    // 只有两种排序：点一下就换成另一种，不再弹菜单。
     expect(find.text('最热'), findsOneWidget);
+    expect(find.text('最新'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('commentSortToggle')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('最新'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

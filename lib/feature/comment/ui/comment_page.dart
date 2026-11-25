@@ -1,5 +1,4 @@
 import 'package:bilimusic/common/components/cached_image.dart';
-import 'package:bilimusic/common/components/glass_menu.dart';
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/display_text.dart';
@@ -185,24 +184,6 @@ class _CommentPageState extends ConsumerState<CommentPage> {
                         ),
                       )
                     else ...<Widget>[
-                      if (state.topItem != null)
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverList.list(
-                            children: <Widget>[
-                              _CommentSectionTitle(title: '置顶评论'),
-                              const SizedBox(height: 8),
-                              CommentCard(
-                                item: state.topItem!,
-                                onToggleLike: () =>
-                                    controller.toggleLike(state.topItem!),
-                                onTap: () =>
-                                    _openComposer(replyTo: state.topItem),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
-                        ),
                       if (state.hotItems.isNotEmpty) ...<Widget>[
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -237,7 +218,7 @@ class _CommentPageState extends ConsumerState<CommentPage> {
                           ],
                         ),
                       ),
-                      if (state.items.isEmpty)
+                      if (_visibleComments(state).isEmpty)
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           sliver: SliverToBoxAdapter(
@@ -250,9 +231,11 @@ class _CommentPageState extends ConsumerState<CommentPage> {
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           sliver: SliverList.builder(
-                            itemCount: state.items.length,
+                            itemCount: _visibleComments(state).length,
                             itemBuilder: (BuildContext context, int index) {
-                              return _buildCommentCard(state.items[index]);
+                              return _buildCommentCard(
+                                _visibleComments(state)[index],
+                              );
                             },
                           ),
                         ),
@@ -300,6 +283,21 @@ class _CommentPageState extends ConsumerState<CommentPage> {
     );
   }
 
+  /// 置顶评论不再单独成段，直接排到「全部评论」最前面（带置顶角标）。
+  List<CommentItem> _visibleComments(CommentState state) {
+    final CommentItem? top = state.topItem;
+    if (top == null) {
+      return state.items;
+    }
+    final bool alreadyListed = state.items.any(
+      (CommentItem item) => item.rpid == top.rpid,
+    );
+    if (alreadyListed) {
+      return state.items;
+    }
+    return <CommentItem>[top, ...state.items];
+  }
+
   Widget _buildCommentCard(CommentItem item) {
     final CommentController controller = ref.read(
       commentControllerProvider(widget.target).notifier,
@@ -313,6 +311,7 @@ class _CommentPageState extends ConsumerState<CommentPage> {
         padding: const EdgeInsets.all(16),
         child: CommentCard(
           item: item,
+          showTopBadge: true,
           showReplyPreview: true,
           showReplyEntry: true,
           onToggleLike: () => controller.toggleLike(item),
@@ -426,58 +425,38 @@ class _CommentSectionHeader extends StatelessWidget {
           ),
         ),
         if (canChangeSort)
-          Builder(
-            builder: (BuildContext buttonContext) => InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () {
-                final RenderBox box =
-                    buttonContext.findRenderObject()! as RenderBox;
-                // 用按钮右边缘当锚点：菜单右边缘贴着按钮右侧，不会往中间跑。
-                final Offset anchor = box.localToGlobal(
-                  Offset(box.size.width, box.size.height / 2),
-                );
-                showGlassMenu<CommentSort>(
-                  context: context,
-                  globalPosition: anchor,
-                  tone: GlassTone.smoke,
-                  width: 112,
-                  entries: <GlassMenuEntry<CommentSort>>[
-                    for (final CommentSort sort in sorts)
-                      GlassMenuEntry<CommentSort>(
-                        value: sort,
-                        icon: sort == state.sort
-                            ? Icons.check_rounded
-                            : Icons.sort_rounded,
-                        label: sort.label,
-                      ),
-                  ],
-                ).then((CommentSort? value) {
-                  if (value != null) {
-                    controller.changeSort(value);
-                  }
-                });
-              },
-              child: SizedBox(
-                height: 44,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        state.sort.label,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_drop_down_rounded,
-                        size: 18,
+          InkWell(
+            key: const Key('commentSortToggle'),
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              // 只有「最新 / 最热」两种，点一下直接切到另一种。
+              controller.changeSort(
+                state.sort == CommentSort.time
+                    ? CommentSort.like
+                    : CommentSort.time,
+              );
+            },
+            child: SizedBox(
+              height: 44,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      state.sort.label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.swap_horiz_rounded,
+                      size: 16,
+                      color: colorScheme.primary,
+                    ),
+                  ],
                 ),
               ),
             ),
