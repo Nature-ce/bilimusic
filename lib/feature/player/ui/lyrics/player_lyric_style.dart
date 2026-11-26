@@ -115,7 +115,7 @@ LyricPreset buildPlayerLyricPreset({
       PlayerLyricMotion.off => const LyricWordEffects(),
     },
     distanceBlur: motion == PlayerLyricMotion.full
-        ? base.distanceBlur
+        ? const LyricDistanceBlur(maxSigma: 2, sigmaPerLine: 0.9)
         : const LyricDistanceBlur(),
   );
 }

@@ -358,12 +358,13 @@ void main() {
   testWidgets('ordinary progress rebuilds preserve an in-flight scroll', (
     tester,
   ) async {
-    await _pumpPanel(tester);
+    await _pumpPanel(tester, isPlaying: true);
     final LyricPreset preset = tester
         .widget<LyricView>(find.byType(LyricView))
         .preset!;
     await _pumpPanel(
       tester,
+      isPlaying: true,
       position: const Duration(seconds: 5),
       settleDuration: Duration.zero,
     );
@@ -377,6 +378,7 @@ void main() {
     final double before = scrollable.position.pixels;
     await _pumpPanel(
       tester,
+      isPlaying: true,
       position: const Duration(seconds: 5),
       settleDuration: Duration.zero,
     );
@@ -592,6 +594,7 @@ void main() {
           activeTranslationTextStyle: base.activeTranslationTextStyle,
           highlight: base.highlight,
           countdown: base.countdown,
+          distanceBlur: base.distanceBlur,
           clearSelectedTextColor: true,
           clearSelectedTranslationTextColor: true,
           clearSelectionForegroundBuilder: true,

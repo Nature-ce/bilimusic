@@ -237,19 +237,21 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
             ? const EdgeInsets.symmetric(horizontal: 30)
             : EdgeInsets.zero,
         child: TickerMode(
-          enabled: widget.isActive,
-          child: LyricView(
-            controller: _lyricController,
-            preset: _buildLyricPreset(context, useSubtitles: useSubtitles),
-            onLineTap: (LyricLineDetails details) {
-              if (_loadedStableId != widget.item?.stableId) return;
-              final int baseOffsetMs = useSubtitles
-                  ? 0
-                  : (metadataState.metadata?.lyricBaseOffsetMs ?? 0);
-              widget.onSeek(
-                details.seekPosition - Duration(milliseconds: baseOffsetMs),
-              );
-            },
+          enabled: widget.isActive && widget.state.isPlaying,
+          child: RepaintBoundary(
+            child: LyricView(
+              controller: _lyricController,
+              preset: _buildLyricPreset(context, useSubtitles: useSubtitles),
+              onLineTap: (LyricLineDetails details) {
+                if (_loadedStableId != widget.item?.stableId) return;
+                final int baseOffsetMs = useSubtitles
+                    ? 0
+                    : (metadataState.metadata?.lyricBaseOffsetMs ?? 0);
+                widget.onSeek(
+                  details.seekPosition - Duration(milliseconds: baseOffsetMs),
+                );
+              },
+            ),
           ),
         ),
       );

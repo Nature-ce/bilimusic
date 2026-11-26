@@ -34,55 +34,60 @@ class PlayerDynamicBackdrop extends StatelessWidget {
     );
 
     return IgnorePointer(
-      child: RepaintBoundary(
-        child: TweenAnimationBuilder<_BackdropColors>(
-          tween: _BackdropColorsTween(end: colors),
-          duration: _colorTransitionDuration,
-          curve: Curves.easeOutCubic,
-          builder:
-              (
-                BuildContext context,
-                _BackdropColors animatedColors,
-                Widget? child,
-              ) {
-                return Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    const ColoredBox(color: Color(0xFF15100E)),
-                    _buildBlurredCover(),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: <Color>[
-                            animatedColors.top,
-                            animatedColors.center,
-                            animatedColors.bottom,
-                          ],
-                          stops: const <double>[0, 0.55, 1],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          const ColoredBox(color: Color(0xFF15100E)),
+          RepaintBoundary(child: _buildBlurredCover()),
+          RepaintBoundary(
+            child: TweenAnimationBuilder<_BackdropColors>(
+              tween: _BackdropColorsTween(end: colors),
+              duration: _colorTransitionDuration,
+              curve: Curves.easeOutCubic,
+              builder:
+                  (
+                    BuildContext context,
+                    _BackdropColors animatedColors,
+                    Widget? child,
+                  ) {
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: <Widget>[
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: <Color>[
+                                animatedColors.top,
+                                animatedColors.center,
+                                animatedColors.bottom,
+                              ],
+                              stops: const <double>[0, 0.55, 1],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    _BackdropGlow(
-                      alignment: variant == PlayerBackdropVariant.desktop
-                          ? const Alignment(-0.42, -0.08)
-                          : const Alignment(-0.34, -0.28),
-                      color: animatedColors.glow,
-                      widthFactor: variant == PlayerBackdropVariant.desktop
-                          ? 0.52
-                          : 0.64,
-                      heightFactor: variant == PlayerBackdropVariant.desktop
-                          ? 0.72
-                          : 0.42,
-                      opacity: variant == PlayerBackdropVariant.desktop
-                          ? 0.24
-                          : 0.20,
-                    ),
-                  ],
-                );
-              },
-        ),
+                        _BackdropGlow(
+                          alignment: variant == PlayerBackdropVariant.desktop
+                              ? const Alignment(-0.42, -0.08)
+                              : const Alignment(-0.34, -0.28),
+                          color: animatedColors.glow,
+                          widthFactor: variant == PlayerBackdropVariant.desktop
+                              ? 0.52
+                              : 0.64,
+                          heightFactor: variant == PlayerBackdropVariant.desktop
+                              ? 0.72
+                              : 0.42,
+                          opacity: variant == PlayerBackdropVariant.desktop
+                              ? 0.24
+                              : 0.20,
+                        ),
+                      ],
+                    );
+                  },
+            ),
+          ),
+        ],
       ),
     );
   }

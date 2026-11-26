@@ -95,7 +95,8 @@ void main() {
     expect(preset.lineTransition, base.lineTransition);
     expect(preset.lineMotion, base.lineMotion);
     expect(preset.wordEffects, base.wordEffects);
-    expect(preset.distanceBlur, base.distanceBlur);
+    expect(preset.distanceBlur.maxSigma, 2);
+    expect(preset.distanceBlur.sigmaPerLine, 0.9);
     expect(preset.edgeFade, base.edgeFade);
     expect(preset.highlight.tailFadeWidth, base.highlight.tailFadeWidth);
   });
