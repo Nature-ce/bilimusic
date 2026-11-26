@@ -146,17 +146,28 @@ class PlayerController extends Notifier<PlayerState>
     }
     _isDisposed = true;
     _nextGeneration();
+    _logger.i('dispose player controller');
     _audioHandler.detachTarget(this);
     WindowsTaskbarThumbnailToolbar.instance.detachTarget(this);
-    await _audioSessionCoordinator.dispose();
+    try {
+      await _audioSessionCoordinator.dispose();
+    } on Object {
+      // Ignore audio session dispose failures.
+    }
 
     for (final StreamSubscription<dynamic> subscription in _subscriptions) {
       await subscription.cancel();
     }
+    _subscriptions.clear();
 
     try {
-      await _audioEngine.stop();
-      await _audioEngine.dispose();
+      await _audioEngine.stop().timeout(const Duration(seconds: 3));
+    } on Object {
+      // Ignore engine stop failures.
+    }
+    try {
+      await _audioEngine.dispose().timeout(const Duration(seconds: 8));
+      _logger.i('player engine disposed');
     } on Object {
       // Ignore engine dispose failures.
     }

@@ -11,6 +11,9 @@ class PlayerAudioEngine {
     ]);
   }
 
+  static const Duration _operationTimeout = Duration(seconds: 3);
+  static const Duration _disposeDrainDelay = Duration(milliseconds: 280);
+
   final media_kit.Player _player;
   final StreamController<PlayerEngineState> _playerStateController =
       StreamController<PlayerEngineState>.broadcast();
@@ -18,6 +21,10 @@ class PlayerAudioEngine {
       <StreamSubscription<dynamic>>[];
   bool _hasSource = false;
   bool _isOpening = false;
+  bool _disposed = false;
+  Future<void>? _disposeFuture;
+
+  bool get isDisposed => _disposed;
 
   bool get playing => _player.state.playing;
   double get volume => _player.state.volume / 100.0;
@@ -46,6 +53,9 @@ class PlayerAudioEngine {
       media_kit.Media(uri.toString(), httpHeaders: headers),
       initialPosition: initialPosition,
     );
+    if (_disposed) {
+      return null;
+    }
     return _durationOrNull;
   }
 
@@ -57,18 +67,30 @@ class PlayerAudioEngine {
       media_kit.Media(Uri.file(filePath).toString()),
       initialPosition: initialPosition,
     );
+    if (_disposed) {
+      return null;
+    }
     return _durationOrNull;
   }
 
   Future<void> play() {
+    if (_disposed) {
+      return Future<void>.value();
+    }
     return _player.play();
   }
 
   Future<void> pause() {
+    if (_disposed) {
+      return Future<void>.value();
+    }
     return _player.pause();
   }
 
   Future<void> stop() async {
+    if (_disposed) {
+      return;
+    }
     await _player.stop();
     _hasSource = false;
     _isOpening = false;
@@ -76,36 +98,89 @@ class PlayerAudioEngine {
   }
 
   Future<void> seek(Duration position) {
+    if (_disposed) {
+      return Future<void>.value();
+    }
     return _player.seek(position);
   }
 
   Future<void> setVolume(double volume) {
+    if (_disposed) {
+      return Future<void>.value();
+    }
     return _player.setVolume(volume.clamp(0.0, 1.0) * 100.0);
   }
 
   // 依赖 mpv 的 speed 是 player 级属性（换源不重置），故 open 后不重放速率。
   // ponytail: 若某平台实测换源后回到 1.0x，在 _openMedia 里补一次 setRate。
   Future<void> setRate(double rate) {
+    if (_disposed) {
+      return Future<void>.value();
+    }
     return _player.setRate(rate);
   }
 
-  Future<void> dispose() async {
+  Future<void> dispose() {
+    return _disposeFuture ??= _performDispose();
+  }
+
+  Future<void> _performDispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     for (final StreamSubscription<dynamic> subscription in _subscriptions) {
       await subscription.cancel();
     }
-    await _playerStateController.close();
-    await _player.dispose();
+    _subscriptions.clear();
+    if (!_playerStateController.isClosed) {
+      await _playerStateController.close();
+    }
+    await _waitForOpenToSettle();
+    try {
+      await _player.setVolume(0).timeout(_operationTimeout);
+    } on Object {
+      // Ignore volume failures while tearing down.
+    }
+    try {
+      await _player.stop().timeout(_operationTimeout);
+    } on Object {
+      // Ignore stop failures while tearing down.
+    }
+    // media_kit 释放 Player 时会立刻 close 掉注册给 mpv 的 Dart 回调，但
+    // mpv_terminate_destroy 要 5 秒后才执行；此时 mpv 仍可能从解复用线程回调，
+    // 触发 Dart VM 的 “Callback invoked after it has been deleted” 直接 abort。
+    // 留一段静默期再释放，让待处理的 wakeup 事件先排空。
+    await Future<void>.delayed(_disposeDrainDelay);
+    try {
+      await _player.dispose().timeout(_operationTimeout);
+    } on Object {
+      // Ignore player dispose failures.
+    }
+  }
+
+  Future<void> _waitForOpenToSettle() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
+    while (_isOpening && stopwatch.elapsed < _operationTimeout) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
   }
 
   Future<void> _openMedia(
     media_kit.Media media, {
     Duration? initialPosition,
   }) async {
+    if (_disposed) {
+      return;
+    }
     _hasSource = false;
     _isOpening = true;
     _emitPlayerState();
     try {
       await _player.open(media, play: false);
+      if (_disposed) {
+        return;
+      }
       _hasSource = true;
       final Duration? position = initialPosition;
       if (position != null && position > Duration.zero) {
@@ -117,6 +192,9 @@ class PlayerAudioEngine {
                 const Duration(seconds: 5),
                 onTimeout: () => Duration.zero,
               );
+        }
+        if (_disposed) {
+          return;
         }
         await _player.seek(position);
       }

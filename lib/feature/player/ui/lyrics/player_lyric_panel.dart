@@ -392,7 +392,7 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
 class _PlayerLyricProgressSource implements LyricProgressSource {
   _PlayerLyricProgressSource(this._state, this._enabled, this._stableId)
     : _position = _state.position,
-      _sampledAt = SchedulerBinding.instance.currentFrameTimeStamp;
+      _sampledAt = _readFrameTimeStamp();
 
   final StreamController<void> _changes = StreamController<void>.broadcast(
     sync: true,
@@ -401,7 +401,15 @@ class _PlayerLyricProgressSource implements LyricProgressSource {
   bool _enabled;
   String? _stableId;
   Duration _position;
-  Duration _sampledAt;
+  Duration? _sampledAt;
+
+  static Duration? _readFrameTimeStamp() {
+    try {
+      return SchedulerBinding.instance.currentFrameTimeStamp;
+    } on Object {
+      return null;
+    }
+  }
 
   @override
   Stream<void> get changes => _changes.stream;
@@ -417,8 +425,11 @@ class _PlayerLyricProgressSource implements LyricProgressSource {
 
   @override
   Duration get position {
-    final Duration elapsed = isAdvancing
-        ? SchedulerBinding.instance.currentFrameTimeStamp - _sampledAt
+    final Duration? sampledAt = _sampledAt;
+    final Duration? frameTimeStamp = _readFrameTimeStamp();
+    final Duration elapsed =
+        isAdvancing && sampledAt != null && frameTimeStamp != null
+        ? frameTimeStamp - sampledAt
         : Duration.zero;
     final Duration next =
         _position +
@@ -450,7 +461,7 @@ class _PlayerLyricProgressSource implements LyricProgressSource {
             _enabled != enabled
         ? state.position
         : position;
-    _sampledAt = SchedulerBinding.instance.currentFrameTimeStamp;
+    _sampledAt = _readFrameTimeStamp();
     _state = state;
     _enabled = enabled;
     _stableId = stableId;
