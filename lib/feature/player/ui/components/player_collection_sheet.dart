@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/cached_image.dart';
+import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/common/components/glass_panel.dart';
 import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/common/components/status_view.dart';
@@ -6,7 +7,9 @@ import 'package:bilimusic/feature/favorites/domain/favorite_collection.dart';
 import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
+import 'package:bilimusic/feature/player/ui/components/player_queue_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<bool?> showPlayerCollectionSheet({
@@ -31,20 +34,44 @@ Future<bool?> showPlayerCollectionItemsSheet({
   }
 
   if (glass != null) {
+    final bool frost = glass == GlassTone.frost;
     return showModalBottomSheet<bool>(
       useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
-      // 玻璃弹层用轻遮罩，和其它玻璃弹层保持一致。
-      barrierColor: appGlassBarrierColor(),
+      // 白雾玻璃和首页播放队列用同一套：无遮罩、顶部圆角、带拖拽手柄。
+      barrierColor: frost
+          ? Colors.transparent
+          : Colors.black.withValues(alpha: 0.34),
+      clipBehavior: frost ? Clip.none : Clip.antiAlias,
+      shape: frost ? null : const RoundedRectangleBorder(),
       builder: (BuildContext sheetContext) {
-        // 烟熏玻璃（深色语境）用深色主题；浅色页面的白雾玻璃保持原主题（深色文字）。
+        if (frost) {
+          return GlassPanel(
+            settings: homeQueueSheetGlassSettings(sheetContext),
+            shape: const LiquidVerticalRoundedSuperellipse(
+              topRadius: AppRadius.xl,
+              bottomRadius: 0,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const GlassDragHandle(tone: GlassTone.frost),
+                Flexible(
+                  child: SafeArea(
+                    top: false,
+                    child: _PlayerCollectionSheet(items: items),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        // 烟熏玻璃（深色语境）用深色主题。
         return Theme(
-          data: glass == GlassTone.smoke
-              ? glassSurfaceTheme(sheetContext)
-              : Theme.of(sheetContext),
+          data: glassSurfaceTheme(sheetContext),
           child: GlassSheetPanel(
             tone: glass,
             child: Flexible(
