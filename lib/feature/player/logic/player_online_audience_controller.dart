@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bilimusic/core/app/app_foreground.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_online_audience.dart';
@@ -108,6 +109,11 @@ class PlayerOnlineAudienceController extends _$PlayerOnlineAudienceController {
 
   void _startPolling(PlayableItem item) {
     _pollTimer = Timer.periodic(_pollInterval, (_) {
+      // 后台时不再轮询在线人数：这个数字只有前台页面会展示，
+      // 息屏后继续请求只会白白唤醒网络。
+      if (!ref.read(appForegroundProvider)) {
+        return;
+      }
       unawaited(_fetchForItem(item, preserveLastValueOnError: true));
     });
   }

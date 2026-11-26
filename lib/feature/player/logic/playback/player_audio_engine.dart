@@ -12,8 +12,12 @@ class PlayerAudioEngine {
     ]);
   }
 
-  // 只关掉视频轨解码（vid=no）：本应用只放声音，B 站视频流的视频帧从不显示，
-  // 关掉可省掉解码/色彩转换的开销。音频采样率、位深、声道一律不动，音质不变。
+  // 只调“解复用/缓冲”层面的参数，不碰采样率、位深、声道等音频格式，
+  // 因此不影响音质：
+  // - vid=no：本应用只放声音，不再解码从未显示的视频帧
+  // - cache-secs / demuxer-readahead-secs：多缓冲一段时间，减少弱网下
+  //   频繁小包请求带来的无线电唤醒
+  // - audio-buffer：给音频输出多一点缓冲，减少欠载与重连
   Future<void> _applyAudioTuning() async {
     final Object? platform = _player.platform;
     if (platform == null) {
@@ -21,7 +25,12 @@ class PlayerAudioEngine {
     }
     try {
       // ignore: avoid_dynamic_calls
-      await (platform as dynamic).setProperty('vid', 'no');
+      final dynamic player = platform;
+      await player.setProperty('vid', 'no');
+      await player.setProperty('cache', 'yes');
+      await player.setProperty('cache-secs', '30');
+      await player.setProperty('demuxer-readahead-secs', '30');
+      await player.setProperty('audio-buffer', '1.0');
     } on Object {
       // Ignore tuning failures; playback still works with defaults.
     }

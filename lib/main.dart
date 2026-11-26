@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:bilimusic/common/util/platform_util.dart';
+import 'package:bilimusic/core/app/app_foreground.dart';
 import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/core/hive/hive.dart';
 import 'package:bilimusic/core/theme/desktop_chinese_font.dart';
@@ -150,6 +151,9 @@ class _AppBootstrapState extends ConsumerState<_AppBootstrap>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    ref
+        .read(appForegroundProvider.notifier)
+        .update(state == AppLifecycleState.resumed);
     if (state == AppLifecycleState.resumed) {
       unawaited(ref.read(sleepTimerControllerProvider.notifier).expireIfDue());
     }

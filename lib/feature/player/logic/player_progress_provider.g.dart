@@ -48,4 +48,4 @@ final class PlayerProgressProvider
   }
 }
 
-String _$playerProgressHash() => r'bcfdf206699bf32a0eb1230627b7a9c6de370e46';
+String _$playerProgressHash() => r'afe4ee0ba7d71d572eb758e038bf3ec74e9d712a';

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bilimusic/core/app/app_foreground.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -30,10 +31,24 @@ Stream<PlayerProgressSnapshot> playerProgress(Ref ref) {
     ));
   }
 
-  emitCurrentSnapshot();
-  timer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+  void syncTimer() {
+    final bool foreground = ref.read(appForegroundProvider);
+    if (!foreground) {
+      timer?.cancel();
+      timer = null;
+      return;
+    }
+    if (timer != null) {
+      return;
+    }
     emitCurrentSnapshot();
-  });
+    timer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      emitCurrentSnapshot();
+    });
+  }
+
+  syncTimer();
+  ref.listen<bool>(appForegroundProvider, (_, _) => syncTimer());
 
   ref.onDispose(() {
     timer?.cancel();

@@ -39,7 +39,7 @@ final class PlayerOnlineAudienceControllerProvider
 }
 
 String _$playerOnlineAudienceControllerHash() =>
-    r'8a286f965b897d3fe99877e2afa11a7980f975d5';
+    r'79478c74c39dfa785a8141ead8e766593ac78ad0';
 
 abstract class _$PlayerOnlineAudienceController
     extends $AsyncNotifier<PlayerOnlineAudience?> {
