@@ -236,16 +236,19 @@ Future<void> _showRenameCollectionDialog({
   required WidgetRef ref,
   required FavoriteCollection collection,
 }) async {
+  final bool useGlass = ref.read(appearanceSettingLogicProvider);
   final String? result = await showDialog<String>(
     context: context,
     useRootNavigator: true,
+    // 玻璃模式下用轻遮罩，和弹层材质一致。
+    barrierColor: useGlass ? appGlassBarrierColor() : null,
     builder: (BuildContext context) {
       return CollectionNameDialog(
         title: '重命名歌单',
         hintText: '请输入歌单名称',
         confirmText: '保存',
         initialValue: collection.name,
-        glass: ref.read(appearanceSettingLogicProvider),
+        glass: useGlass,
       );
     },
   );

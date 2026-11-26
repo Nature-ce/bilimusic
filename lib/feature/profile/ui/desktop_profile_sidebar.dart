@@ -582,9 +582,11 @@ class _DesktopProfileSidebarState extends ConsumerState<DesktopProfileSidebar> {
     WidgetRef ref,
     FavoriteCollection collection,
   ) async {
+    final bool useGlass = ref.read(appearanceSettingLogicProvider);
     final String? result = await showDialog<String>(
       context: context,
       useRootNavigator: true,
+      barrierColor: useGlass ? appGlassBarrierColor() : null,
       builder: (BuildContext context) {
         return CollectionNameDialog(
           title: '重命名歌单',
