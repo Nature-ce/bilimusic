@@ -38,13 +38,15 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.11.0
 
-  # 网络与数据处�?  connectivity_plus: ^7.3.1
+  # 网络与数据处理
+  connectivity_plus: ^7.3.1
   dio: ^5.9.2
   crypto: ^3.0.6
   logger: ^2.7.0
   webdav_client: ^1.2.2
 
-  # 本地存储与文�?  hive_ce: 2.19.3
+  # 本地存储与文件
+  hive_ce: 2.19.3
   hive_ce_flutter: 2.3.4
   path_provider: ^2.1.5
   file_picker: ^12.0.0-beta.4
@@ -83,7 +85,8 @@ dependencies:
   package_info_plus: ^10.2.2
   url_launcher: ^6.3.2
 
-  # 桌面�?  window_manager: ^0.5.1
+  # 桌面端
+  window_manager: ^0.5.1
   hugeicons: ^1.1.6
   chinese_font_library: ^1.2.0
   tray_manager: ^0.5.2
@@ -124,7 +127,7 @@ dev_dependencies:
   hive_ce_generator: 1.11.0
   flutter_launcher_icons: ^0.14.4
   icon_font_generator: ^4.1.0
-  image: ^4.8.0 # scripts/gen_icons.dart �?macOS 源图补边距用
+  image: ^4.8.0 # scripts/gen_icons.dart 给 macOS 源图补边距用
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -191,7 +194,9 @@ flutter_launcher_icons:
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    # macOS 图标网格要求图形本体�?824/1024 并居中；icon3.png 是满画布图形�?    # 直接用会�?Dock 图标比系统图标大一圈，故改用预�?100px 透明边距的版本�?    image_path: "assets/icons/icon3_macos.png"
+    # macOS 图标网格要求图形本体占 824/1024 并居中；icon3.png 是满画布图形，
+    # 直接用会让 Dock 图标比系统图标大一圈，故改用预留 100px 透明边距的版本。
+    image_path: "assets/icons/icon3_macos.png"
 
 # dart run icon_font_generator:generator
 icon_font:
