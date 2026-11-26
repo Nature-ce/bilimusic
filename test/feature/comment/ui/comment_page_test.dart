@@ -191,7 +191,11 @@ void main() {
     final GlassContainer container = tester.widget<GlassContainer>(
       find.byType(GlassContainer).first,
     );
-    expect(container.settings?.glassColor, GlassTone.smoke.settings.glassColor);
+    // 空态卡片用更透的烟熏玻璃，避免在深色背景上糊成一块灰。
+    expect(
+      container.settings?.glassColor,
+      appLightSmokeGlassSettings.glassColor,
+    );
     expect(tester.takeException(), isNull);
   });
 

@@ -148,136 +148,142 @@ class _CommentPageState extends ConsumerState<CommentPage> {
             body: SafeArea(
               child: RefreshIndicator(
                 onRefresh: controller.refresh,
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  // 用 clamp 滚动：顶部/底部过度滚动时不再拉伸页面，
-                  // 否则玻璃卡片后面的背景被拉伸、颜色会突然变深。
-                  physics: const ClampingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics(),
-                  ),
-                  slivers: <Widget>[
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      sliver: SliverList.list(
-                        children: <Widget>[
-                          _CommentHeader(target: widget.target),
-                          const SizedBox(height: 36),
-                        ],
-                      ),
+                child: ScrollConfiguration(
+                  // 关掉过度滚动指示器：拉到头时不再在边缘画灰/发光。
+                  behavior: ScrollConfiguration.of(
+                    context,
+                  ).copyWith(overscroll: false),
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    // 用 clamp 滚动：顶部/底部过度滚动时不再拉伸页面，
+                    // 否则玻璃卡片后面的背景被拉伸、颜色会突然变深。
+                    physics: const ClampingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
                     ),
-                    if (state.isLoading &&
-                        state.items.isEmpty &&
-                        state.hotItems.isEmpty &&
-                        state.topItem == null)
-                      const SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 48),
-                          child: Center(child: CircularProgressIndicator()),
+                    slivers: <Widget>[
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        sliver: SliverList.list(
+                          children: <Widget>[
+                            _CommentHeader(target: widget.target),
+                            const SizedBox(height: 36),
+                          ],
                         ),
-                      )
-                    else if (state.errorMessage != null &&
-                        state.items.isEmpty &&
-                        state.hotItems.isEmpty &&
-                        state.topItem == null)
-                      SliverStatusView(
-                        child: StatusView(
-                          icon: Icons.error_outline_rounded,
-                          iconColor: Theme.of(context).colorScheme.error,
-                          title: '评论加载失败',
-                          description: state.errorMessage!,
-                          onRetry: controller.loadInitial,
-                        ),
-                      )
-                    else ...<Widget>[
-                      if (state.hotItems.isNotEmpty) ...<Widget>[
+                      ),
+                      if (state.isLoading &&
+                          state.items.isEmpty &&
+                          state.hotItems.isEmpty &&
+                          state.topItem == null)
+                        const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 48),
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        )
+                      else if (state.errorMessage != null &&
+                          state.items.isEmpty &&
+                          state.hotItems.isEmpty &&
+                          state.topItem == null)
+                        SliverStatusView(
+                          child: StatusView(
+                            icon: Icons.error_outline_rounded,
+                            iconColor: Theme.of(context).colorScheme.error,
+                            title: '评论加载失败',
+                            description: state.errorMessage!,
+                            onRetry: controller.loadInitial,
+                          ),
+                        )
+                      else ...<Widget>[
+                        if (state.hotItems.isNotEmpty) ...<Widget>[
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverList.list(
+                              children: <Widget>[
+                                _CommentSectionTitle(title: '热评'),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverList.builder(
+                              itemCount: state.hotItems.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                return _buildCommentCard(state.hotItems[index]);
+                              },
+                            ),
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                        ],
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           sliver: SliverList.list(
                             children: <Widget>[
-                              _CommentSectionTitle(title: '热评'),
+                              _CommentSectionHeader(
+                                state: state,
+                                controller: controller,
+                              ),
                               const SizedBox(height: 8),
                             ],
                           ),
                         ),
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverList.builder(
-                            itemCount: state.hotItems.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              return _buildCommentCard(state.hotItems[index]);
-                            },
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                      ],
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        sliver: SliverList.list(
-                          children: <Widget>[
-                            _CommentSectionHeader(
-                              state: state,
-                              controller: controller,
+                        if (_visibleComments(state).isEmpty)
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverToBoxAdapter(
+                              child: _CommentEmptyCard(
+                                isReadOnly: state.isReadOnly,
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                          ],
-                        ),
-                      ),
-                      if (_visibleComments(state).isEmpty)
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverToBoxAdapter(
-                            child: _CommentEmptyCard(
-                              isReadOnly: state.isReadOnly,
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverList.builder(
+                              itemCount: _visibleComments(state).length,
+                              itemBuilder: (BuildContext context, int index) {
+                                return _buildCommentCard(
+                                  _visibleComments(state)[index],
+                                );
+                              },
                             ),
                           ),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverList.builder(
-                            itemCount: _visibleComments(state).length,
-                            itemBuilder: (BuildContext context, int index) {
-                              return _buildCommentCard(
-                                _visibleComments(state)[index],
-                              );
-                            },
-                          ),
-                        ),
-                      if (state.loadMoreErrorMessage != null)
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                          sliver: SliverToBoxAdapter(
-                            child: _CommentLoadMoreError(
-                              message: state.loadMoreErrorMessage!,
-                              onRetry: controller.loadNextPage,
+                        if (state.loadMoreErrorMessage != null)
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            sliver: SliverToBoxAdapter(
+                              child: _CommentLoadMoreError(
+                                message: state.loadMoreErrorMessage!,
+                                onRetry: controller.loadNextPage,
+                              ),
                             ),
                           ),
-                        ),
-                      if (state.isLoadingMore)
-                        const SliverToBoxAdapter(
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 16),
-                            child: Center(child: CircularProgressIndicator()),
+                        if (state.isLoadingMore)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 16),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
                           ),
-                        ),
-                      if (!state.isLoadingMore && state.items.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 16),
-                            child: Center(
-                              child: Text(
-                                state.hasMore ? '继续上滑加载更多' : '没有更多评论了',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
+                        if (!state.isLoadingMore && state.items.isNotEmpty)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Center(
+                                child: Text(
+                                  state.hasMore ? '继续上滑加载更多' : '没有更多评论了',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                      ],
+                      const SliverToBoxAdapter(child: SizedBox(height: 96)),
                     ],
-                    const SliverToBoxAdapter(child: SizedBox(height: 96)),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -522,7 +528,9 @@ class _CommentEmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassPanel(
+      // tone 只用于文字配色与测试断言，实际玻璃参数由 settings 覆盖。
       tone: GlassTone.smoke,
+      settings: appLightSmokeGlassSettings,
       shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       padding: const EdgeInsets.all(24),
       child: Text(

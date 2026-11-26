@@ -32,6 +32,19 @@ LiquidGlassSettings appFrostGlassSettings(BuildContext context) {
 /// 玻璃本体走 [GlassBodyMode.clear]，让 glassColor 的 alpha 直接决定透明度，
 /// 而不是被着色器做一遍保亮度归一化 —— 这样深色玻璃才会真的变深、
 /// 白字才压得住，浅色玻璃也才能稳定落在「灰白磨砂」这一档。
+/// 更透的烟熏玻璃：卡片压在深色背景上时不至于糊成一块灰。
+const LiquidGlassSettings appLightSmokeGlassSettings = LiquidGlassSettings(
+  bodyMode: GlassBodyMode.clear,
+  glassColor: Color(0x33FFFFFF),
+  backerColor: Color(0x2E000000),
+  thickness: 18,
+  blur: 22,
+  chromaticAberration: 0,
+  saturation: 1.5,
+  lightIntensity: 0.5,
+  refractiveIndex: 1.1,
+);
+
 enum GlassTone {
   /// 烟熏黑玻璃：模糊后的封面透出来，配白色文字。
   smoke(
