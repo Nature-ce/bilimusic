@@ -91,7 +91,11 @@ Future<bool?> showPlayerCollectionItemsSheet({
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
+    // 和其它底部弹层保持一致：优先用主题的 bottomSheetTheme 背景（纯白），
+    // 否则 colorScheme.surface 带种子色，和长按菜单的白底对不上。
+    backgroundColor:
+        Theme.of(context).bottomSheetTheme.backgroundColor ??
+        Theme.of(context).colorScheme.surface,
     builder: (BuildContext context) {
       return SafeArea(child: _PlayerCollectionSheet(items: items));
     },
