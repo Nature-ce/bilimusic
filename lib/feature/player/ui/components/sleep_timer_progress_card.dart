@@ -68,7 +68,8 @@ class _SleepTimerProgressCardState
   String _valueTextOf(Duration? left) {
     final int? drag = _dragMinutes;
     if (drag != null) {
-      return drag <= 0 ? 'OFF' : '$drag 分';
+      // 拖动时也用 mm:ss，避免中文让面板高度变化。
+      return drag <= 0 ? 'OFF' : _dragText;
     }
     if (left == null) {
       return 'OFF';
@@ -77,6 +78,12 @@ class _SleepTimerProgressCardState
     final String minutesPart = (seconds ~/ 60).toString().padLeft(2, '0');
     final String secondsPart = (seconds % 60).toString().padLeft(2, '0');
     return '$minutesPart:$secondsPart';
+  }
+
+  /// 拖动中的数值文案：mm:00，和倒计时同一种写法（不出现中文，避免高度变化）。
+  String get _dragText {
+    final int minutes = (_dragMinutes ?? 0).clamp(0, maxMinutes);
+    return '${minutes.toString().padLeft(2, '0')}:00';
   }
 
   void _updateDrag(double dx, double width) {
@@ -268,7 +275,7 @@ class _SleepTimerProgressCardState
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                '${_dragMinutes!} 分',
+                                _dragText,
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800,

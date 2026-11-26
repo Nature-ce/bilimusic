@@ -398,6 +398,65 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('OFF'), findsWidgets);
   });
+  testWidgets('拖动睡眠定时显示 mm:ss 而不是中文分钟', (WidgetTester tester) async {
+    _usePortraitViewport(tester);
+    const PlayableItem item = _testItem;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appearanceSettingLogicProvider.overrideWith(_GlassAppearance.new),
+          favoritesControllerProvider.overrideWith(
+            _FakeFavoritesController.new,
+          ),
+          playerControllerProvider.overrideWith(
+            () => _FakePlayerController(item),
+          ),
+          metadataControllerProvider.overrideWith(
+            () => _FakeMetadataController(item),
+          ),
+          playerLyricSettingsLogicProvider.overrideWith(
+            _FakeLyricSettingsLogic.new,
+          ),
+          playerDisplaySettingsLogicProvider.overrideWithValue(true),
+        ],
+        child: const MaterialApp(home: PlayerPage(initialItem: _testItem)),
+      ),
+    );
+    await tester.pump();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byType(PlayerPage)),
+      listen: false,
+    );
+
+    await tester.tap(find.byKey(const Key('playerMenuButton')));
+    await tester.pumpAndSettle();
+
+    final Finder track = find.byKey(const Key('sleepTimerProgressTrack'));
+    final Rect rect = tester.getRect(track);
+    final TestGesture gesture = await tester.startGesture(
+      Offset(rect.left + 40, rect.center.dy),
+    );
+    await tester.pump();
+    await gesture.moveTo(Offset(rect.left + rect.width * 0.42, rect.center.dy));
+    await tester.pump();
+
+    // 拖动中显示 mm:00（不再出现「xx 分」中文）。
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is Text && RegExp(r'^\d{2}:00$').hasMatch(widget.data ?? ''),
+      ),
+      findsWidgets,
+    );
+    expect(find.textContaining('分'), findsNothing);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    container.read(sleepTimerControllerProvider.notifier).cancel();
+    await tester.pumpAndSettle();
+  });
   testWidgets('sleep timer page starts fixed timer from option tap', (
     WidgetTester tester,
   ) async {
