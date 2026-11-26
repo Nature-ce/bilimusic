@@ -242,6 +242,7 @@ class _PlayerLyricPanelState extends ConsumerState<PlayerLyricPanel> {
             child: LyricView(
               controller: _lyricController,
               preset: _buildLyricPreset(context, useSubtitles: useSubtitles),
+              frameRateLimit: 60,
               onLineTap: (LyricLineDetails details) {
                 if (_loadedStableId != widget.item?.stableId) return;
                 final int baseOffsetMs = useSubtitles

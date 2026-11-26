@@ -102,8 +102,8 @@ dependency_overrides:
   liquid_glass_widgets: 1.13.0
   flutter_lyric: 
        git:
-        url: https://github.com/AprDeci/flutter_lyric.git
-        ref: main
+        url: https://github.com/Nature-ce/flutter_lyric.git
+        ref: 76f72b46ab16445eaaa117c0c417c405adcbdcd0
   audio_service_win:
       git:
         url: https://github.com/Predidit/audio_service_win.git

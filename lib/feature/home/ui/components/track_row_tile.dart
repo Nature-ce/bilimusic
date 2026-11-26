@@ -48,14 +48,16 @@ class TrackRowTile extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.sm),
-                  child: CommonCachedImage(
-                    imageUrl: coverUrl,
-                    width: AppSizes.listCover,
-                    height: AppSizes.listCover,
-                    fit: BoxFit.cover,
-                    fallbackIcon: Icons.music_note_rounded,
-                    iconColor: colorScheme.onSurfaceVariant,
-                    backgroundColor: appSkeletonColor(context),
+                  child: RepaintBoundary(
+                    child: CommonCachedImage(
+                      imageUrl: coverUrl,
+                      width: AppSizes.listCover,
+                      height: AppSizes.listCover,
+                      fit: BoxFit.cover,
+                      fallbackIcon: Icons.music_note_rounded,
+                      iconColor: colorScheme.onSurfaceVariant,
+                      backgroundColor: appSkeletonColor(context),
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),

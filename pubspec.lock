@@ -504,9 +504,9 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
-      resolved-ref: "511865bd26c0d2e8de8704b12131b4260d997b85"
-      url: "https://github.com/AprDeci/flutter_lyric.git"
+      ref: "76f72b46ab16445eaaa117c0c417c405adcbdcd0"
+      resolved-ref: "76f72b46ab16445eaaa117c0c417c405adcbdcd0"
+      url: "https://github.com/Nature-ce/flutter_lyric.git"
     source: git
     version: "4.1.0"
   flutter_plugin_android_lifecycle:

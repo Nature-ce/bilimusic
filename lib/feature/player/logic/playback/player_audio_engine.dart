@@ -4,11 +4,27 @@ import 'package:media_kit/media_kit.dart' as media_kit;
 
 class PlayerAudioEngine {
   PlayerAudioEngine() : _player = media_kit.Player() {
+    _applyAudioTuning();
     _subscriptions.addAll(<StreamSubscription<dynamic>>[
       _player.stream.playing.listen((_) => _emitPlayerState()),
       _player.stream.buffering.listen((_) => _emitPlayerState()),
       _player.stream.completed.listen((_) => _emitPlayerState()),
     ]);
+  }
+
+  // 只关掉视频轨解码（vid=no）：本应用只放声音，B 站视频流的视频帧从不显示，
+  // 关掉可省掉解码/色彩转换的开销。音频采样率、位深、声道一律不动，音质不变。
+  Future<void> _applyAudioTuning() async {
+    final Object? platform = _player.platform;
+    if (platform == null) {
+      return;
+    }
+    try {
+      // ignore: avoid_dynamic_calls
+      await (platform as dynamic).setProperty('vid', 'no');
+    } on Object {
+      // Ignore tuning failures; playback still works with defaults.
+    }
   }
 
   static const Duration _operationTimeout = Duration(seconds: 3);
