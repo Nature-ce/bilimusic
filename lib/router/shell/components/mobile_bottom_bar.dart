@@ -138,7 +138,8 @@ class MobileBottomBar extends ConsumerWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: appCardSurfaceColor(context),
+        // 关掉玻璃时用页面底色：纯白和带主题色的页面在圆角处会显出明显的色差。
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(mobileBottomBarRadius),
         ),
