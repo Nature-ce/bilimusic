@@ -138,8 +138,7 @@ class MobileBottomBar extends ConsumerWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        // 关掉玻璃时用页面底色：纯白和带主题色的页面在圆角处会显出明显的色差。
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: appCardSurfaceColor(context),
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(mobileBottomBarRadius),
         ),
@@ -149,13 +148,7 @@ class MobileBottomBar extends ConsumerWidget {
             width: 0.8,
           ),
         ),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: appShadowColor(context),
-            blurRadius: 24,
-            offset: const Offset(0, -6),
-          ),
-        ],
+        // 不加投影：投影会从圆角外侧的缺口往上渗，看起来像圆角处盖了一层灰色蒙版。
       ),
       child: content,
     );
