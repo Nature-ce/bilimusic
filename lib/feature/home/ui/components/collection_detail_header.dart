@@ -158,7 +158,9 @@ class CollectionActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final String label = busy ? '匹配中 $resolved/$total' : playAllLabel;
+    // 不显示「匹配中 x/y」这类进度：播放已经开始就可能一直在后台补队列，
+    // 数字会让用户以为卡住了，只保留 spinner 表示正在准备。
+    final String label = playAllLabel;
 
     return Row(
       children: <Widget>[

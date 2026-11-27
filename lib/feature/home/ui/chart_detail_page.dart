@@ -34,8 +34,6 @@ class ChartDetailPage extends ConsumerStatefulWidget {
 class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
   String? _resolvingTrackKey;
   bool _isPlayingAll = false;
-  int _playAllResolved = 0;
-  int _playAllTotal = 0;
   bool _isRefreshing = false;
   bool _isDownloading = false;
   int _downloadResolved = 0;
@@ -131,33 +129,21 @@ class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
     if (_isPlayingAll || tracks.isEmpty) {
       return;
     }
-    setState(() {
-      _isPlayingAll = true;
-      _playAllResolved = 0;
-      _playAllTotal = tracks.length;
-    });
+    setState(() => _isPlayingAll = true);
     try {
       await CollectionPlayAllRunner(
         context: context,
         ref: ref,
         sourceLabel: widget.chart.name,
-        onProgress: (int resolved, int total) {
-          if (!mounted) {
-            return;
+        onInitialFilled: () {
+          if (mounted) {
+            setState(() => _isPlayingAll = false);
           }
-          setState(() {
-            _playAllResolved = resolved;
-            _playAllTotal = total;
-          });
         },
       ).run(tracks);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isPlayingAll = false;
-          _playAllResolved = 0;
-          _playAllTotal = 0;
-        });
+      if (mounted && _isPlayingAll) {
+        setState(() => _isPlayingAll = false);
       }
     }
   }
@@ -271,8 +257,6 @@ class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
         downloadResolved: _downloadResolved,
         downloadTotal: _downloadTotal,
         busy: _isPlayingAll,
-        resolved: _playAllResolved,
-        total: _playAllTotal,
         playAllLabel: '播放全部',
       ),
       const SizedBox(height: AppSpacing.xl),

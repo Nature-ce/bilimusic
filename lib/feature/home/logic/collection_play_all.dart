@@ -26,6 +26,7 @@ class CollectionPlayAllRunner {
     required this.ref,
     required this.sourceLabel,
     this.onProgress,
+    this.onInitialFilled,
     this.startPlayback,
     this.isActive,
     this.initialQueueSize = 30,
@@ -41,6 +42,11 @@ class CollectionPlayAllRunner {
   final WidgetRef ref;
   final String sourceLabel;
   final void Function(int resolved, int total)? onProgress;
+
+  /// 首批队列已经补好（或提前失败）时回调一次：页面据此结束「匹配中」状态，
+  /// 后续的懒加载补充在后台继续，不再占用按钮状态。
+  final void Function()? onInitialFilled;
+
   final CollectionStartPlayback? startPlayback;
   final bool Function()? isActive;
 
@@ -115,7 +121,9 @@ class CollectionPlayAllRunner {
       if (started && resolved.length > queued) {
         await player.enqueue(resolved.sublist(queued));
         queued = resolved.length;
-      } else if (!started) {
+      }
+      if (!started) {
+        onInitialFilled?.call();
         final MatchRateLimitedException? limited = rateLimit;
         if (limited != null) {
           ToastUtil.show(
@@ -133,6 +141,12 @@ class CollectionPlayAllRunner {
       if (rateLimit != null) {
         ToastUtil.show('已开始播放，但搜索被限流，队列暂时补到 ${resolved.length} 首');
       }
+
+      // 首批已经补进队列：页面可以收起「匹配中」，剩下的后台慢慢补。
+      onInitialFilled?.call();
+
+      // 首批已经补进队列：页面可以收起「匹配中」，剩下的后台慢慢补。
+      onInitialFilled?.call();
 
       final bool hasMore = rateLimit == null && cursor < tracks.length;
       if (hasMore) {
