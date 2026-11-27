@@ -25,7 +25,7 @@ class TrackMatchCache {
   static String _keyFor(MatchableTrack track) {
     final String title = ChartTrackMatcher.normalize(track.title);
     final String artist = ChartTrackMatcher.normalize(track.artist);
-    return 'match.v3|$title|$artist';
+    return 'match.v4|$title|$artist';
   }
 
   PlayableItem? readHit(MatchableTrack track) {
@@ -116,7 +116,7 @@ class TrackMatchCache {
   Future<void> _pruneIfNeeded() async {
     final List<dynamic> keys = _box.keys
         .whereType<String>()
-        .where((String key) => key.startsWith('match.v3|'))
+        .where((String key) => key.startsWith('match.v4|'))
         .toList(growable: false);
     if (keys.length <= maxEntries) {
       return;

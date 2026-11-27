@@ -18,6 +18,7 @@ SearchResultItem _item({
   String author = '',
   String duration = '00:00',
   String playCount = '',
+  String tagText = '',
 }) {
   return SearchResultItem(
     aid: 1,
@@ -30,7 +31,7 @@ SearchResultItem _item({
     playCountText: playCount,
     danmakuCountText: '',
     publishTimeText: '',
-    tagText: '',
+    tagText: tagText,
   );
 }
 
@@ -525,6 +526,184 @@ void main() {
         track: track,
         candidates: <SearchResultItem>[
           _item(title: 'ｷﾀﾆﾀﾂﾔ - LOSER', author: '文火', duration: '03:23'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
+
+  test('教学视频即使带歌名和歌手也不认', () {
+    // 「5分钟教你弹《晴天》」04:50，原曲 04:29 —— 时长比例 1.08，
+    // 时长闸门挡不住，只能靠教学词拦。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '5分钟教你弹《晴天》副歌 周杰伦', duration: '04:50'),
+        ],
+      ),
+      isNull,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '【吉他指弹教学】晴天 - 周杰伦', duration: '04:30'),
+        ],
+      ),
+      isNull,
+    );
+
+    // 原曲时长未知时，15 分钟的教学视频以前一路放行，现在两道闸门都拦。
+    const MusicChartTrack unknownDuration = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '晴天',
+      artist: '周杰伦',
+      coverUrl: '',
+      durationSeconds: 0,
+    );
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: unknownDuration,
+        candidates: <SearchResultItem>[
+          _item(title: '零基础吉他教学《晴天》周杰伦', duration: '15:20'),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('教学视频与正版 MV 同列时选正版', () {
+    final SearchResultItem? match = ChartTrackMatcher.pickBest(
+      track: _track,
+      candidates: <SearchResultItem>[
+        _item(title: '零基础吉他教学《晴天》周杰伦', duration: '04:30', playCount: '500万'),
+        _item(title: '晴天 - 周杰伦 官方MV', duration: '04:29', playCount: '1万'),
+      ],
+    );
+
+    expect(match?.title, contains('官方MV'));
+  });
+
+  test('歌名自带教学类词不影响匹配', () {
+    // 刘若英《练习》：歌名本身带「练习」，不能被当成教学视频拒掉。
+    const MusicChartTrack practiceTrack = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '练习',
+      artist: '刘若英',
+      coverUrl: '',
+      durationSeconds: 265,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: practiceTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '刘若英 - 练习', author: '音乐搬运工', duration: '04:25'),
+        ],
+      ),
+      isNotNull,
+    );
+
+    // 但《练习》的教学视频仍然要拒：去掉歌名和歌手后剩下「吉他教学」。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: practiceTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '《练习》吉他教学 刘若英', duration: '04:25'),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('非音乐内容不再享受「歌手命中」豁免', () {
+    // 标题里歌名、歌手都在，但其实是游戏实况 —— 以前会放行。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 游戏实况 周杰伦', duration: '04:29'),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('游戏主题曲的正式 MV 不被误杀', () {
+    // 「游戏」只是降权词：游戏主题曲 / 英雄联盟主题曲的正式投稿照样能匹配。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 英雄联盟游戏主题曲 官方MV 周杰伦', duration: '04:29'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
+
+  test('原曲时长未知时过长的候选被拒', () {
+    const MusicChartTrack unknownDuration = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '晴天',
+      artist: '周杰伦',
+      coverUrl: '',
+      durationSeconds: 0,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: unknownDuration,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '15:00'),
+        ],
+      ),
+      isNull,
+    );
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: unknownDuration,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天 - 周杰伦', duration: '04:29'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
+
+  test('同分时优先音乐分区的候选', () {
+    final SearchResultItem? match = ChartTrackMatcher.pickBest(
+      track: _track,
+      candidates: <SearchResultItem>[
+        _item(
+          title: '晴天 - 周杰伦',
+          duration: '04:29',
+          playCount: '300万',
+          tagText: '日常',
+        ),
+        _item(
+          title: '晴天 - 周杰伦',
+          duration: '04:29',
+          playCount: '5000',
+          tagText: '音乐',
+        ),
+      ],
+    );
+
+    expect(match?.tagText, '音乐');
+  });
+
+  test('演唱会现场等内容不受教学词影响', () {
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '周杰伦《晴天》演唱会现场', duration: '04:30'),
         ],
       ),
       isNotNull,

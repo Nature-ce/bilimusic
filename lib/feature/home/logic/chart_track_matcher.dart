@@ -90,10 +90,98 @@ class ChartTrackMatcher {
     '改编',
   ];
 
-  /// 明显不是「这首歌本身」的内容：游戏实况、攻略解说、搞笑剪辑等。
-  /// 命中这些词时，只有歌手也对上才认，否则直接判为不匹配。
-  static const List<String> _nonMusicMarkers = <String>[
+  /// 教学 / 教程类投稿：标题里出现这些词，视频是在「教你怎么唱、怎么弹」，
+  /// 不是这首歌本身，命中即判不匹配。
+  ///
+  /// 以前只靠 [_nonMusicMarkers] 兜着，而它的豁免条件是「歌手命中」——
+  /// 教学视频的标题必然带歌手名（不带就搜不出来），那层豁免等于没有，
+  /// 「零基础吉他教学《晴天》周杰伦」照样被当成正常音频收下。
+  static const List<String> _teachingMarkers = <String>[
+    '教学',
+    '教程',
+    '零基础',
+    '手把手',
+    '保姆级',
+    '教你',
+    '怎么弹',
+    '怎么唱',
+    '如何唱',
+    '怎样唱',
+    '扒谱',
+    '简谱',
+    '吉他谱',
+    '钢琴谱',
+    '琴谱',
+    '谱子',
+    '曲谱',
+    '识谱',
+    '教唱',
+    '学唱',
+    '跟唱',
+    '视唱',
+    '声乐',
+    '乐理',
+    '指法',
+    '和弦',
+    '考级',
+    '公开课',
+    '音乐课',
+    '微课堂',
+    '跟练',
+    '示范',
+    '学吉他',
+    '学钢琴',
+    '学尤克里里',
+    '学琴',
+    '学唱歌',
+  ];
+
+  /// 弱特征：单独出现时也可能只是普通描述，扣分降权、让正版顶上来即可，
+  /// 不必一刀切。教学向的词（入门 / 速成 / 讲解…）和「游戏」这类主题词都在
+  /// 这里：游戏主题曲、英雄联盟主题曲的标题常常带「游戏」，硬拒会误杀正版。
+  static const List<String> _weakPenaltyMarkers = <String>[
+    '入门',
+    '自学',
+    '速成',
+    '进阶',
+    '讲解',
+    '解析',
+    '赏析',
+    '编曲',
+    '干货',
+    '必学',
+    '必看',
+    '课堂',
+    '练习',
+    '学会',
+    '涨知识',
     '游戏',
+    '赛事',
+    '比赛',
+    '开黑',
+  ];
+
+  /// 搜索结果里的 `typename`（存在 `SearchResultItem.tagText`）命中这些词，
+  /// 说明投稿在音乐分区。只作为同分时的偏好，不改分数、不改置信判定。
+  static const List<String> _musicPartitionHints = <String>[
+    '音乐',
+    'mv',
+    '演奏',
+    '现场',
+    '原创',
+    '翻唱',
+    'vocaloid',
+    '电音',
+    '说唱',
+    '器乐',
+    '歌曲',
+  ];
+
+  /// 明显不是「这首歌本身」的内容：游戏实况、攻略解说、搞笑剪辑等。
+  /// 命中即判不匹配——以前还要求歌手也对上，但这类标题里往往歌手、歌名都
+  /// 齐全，豁免等于形同虚设。主题词「游戏」放在 [_weakPenaltyMarkers] 里
+  /// 降权，避免误杀游戏主题曲的正式 MV。
+  static const List<String> _nonMusicMarkers = <String>[
     '实况',
     '攻略',
     '解说',
@@ -192,9 +280,13 @@ class ChartTrackMatcher {
       if (!candidateTitle.contains(title)) {
         continue;
       }
-      if (_nonMusicMarkers.any(
-        (String marker) => candidateTitle.contains(marker),
-      )) {
+      final String residualTitle = _residualTitle(
+        candidateTitle,
+        title,
+        artist,
+      );
+      if (_containsAny(residualTitle, _teachingMarkers) ||
+          _containsAny(residualTitle, _nonMusicMarkers)) {
         continue;
       }
       final bool artistMatched =
@@ -208,10 +300,14 @@ class ChartTrackMatcher {
         continue;
       }
       final _MatchScore score = _MatchScore(
-        total: _keywordScore(candidateTitle) + (artistMatched ? 1 : 0),
+        total:
+            _keywordScore(candidateTitle) +
+            _weakPenalty(residualTitle) +
+            (artistMatched ? 1 : 0),
         isConfident: true,
         durationDiff: -1,
         playCount: _parsePlayCount(item.playCountText),
+        isMusicPartition: _isMusicPartition(item.tagText),
       );
       if (bestScore == null || score.isBetterThan(bestScore)) {
         best = item;
@@ -262,9 +358,9 @@ class ChartTrackMatcher {
     final bool variantMarked = _variantMarkers.any(
       (String marker) => candidateTitle.contains(marker),
     );
-    final bool nonMusicMarked = _nonMusicMarkers.any(
-      (String marker) => candidateTitle.contains(marker),
-    );
+    final String residualTitle = _residualTitle(candidateTitle, title, artist);
+    final bool teachingMarked = _containsAny(residualTitle, _teachingMarkers);
+    final bool nonMusicMarked = _containsAny(residualTitle, _nonMusicMarkers);
 
     final bool trackDurationUnreliable =
         trackSeconds > 0 && trackSeconds < minimumClipSeconds;
@@ -299,26 +395,32 @@ class ChartTrackMatcher {
         (titleMatched ? _titleScore : 0) +
         (artistMatched ? _artistScore : 0) +
         durationScore +
-        keywordScore;
+        keywordScore +
+        _weakPenalty(residualTitle);
     // 标题必须命中；再要求「歌手命中」或「时长接近」二选一。
     // 之前的规则允许「歌手命中 + 时长接近」单独成立，会把同一位 UP 主的
     // 另一首歌（如推荐《光年之外》却播成《雾里》）判成命中。
-    // 短标题 / 通用曲名 / 翻唱版本 / 非音乐内容再额外要求歌手命中，
+    // 短标题 / 通用曲名 / 翻唱版本再额外要求歌手命中，
     // 但「候选标题 == 歌名」这种完全同名的情况可以直接放行。
+    //
+    // 教学 / 教程类内容和游戏实况这类非音乐内容不给豁免：它们的标题里
+    // 一定带歌手名，靠「歌手命中」放行等于没有拦截。
     final bool genericShortTitle =
         title.isNotEmpty && _genericTitleKeywords.contains(title);
     final bool isConfident =
+        !teachingMarked &&
+        !nonMusicMarked &&
         titleMatched &&
         (artistMatched || durationClose || exactTitleMatched) &&
         (!shortTitle || artistMatched || exactTitleMatched) &&
         (!genericShortTitle || artistMatched || exactTitleMatched) &&
-        (!variantMarked || artistMatched || exactTitleMatched) &&
-        (!nonMusicMarked || artistMatched);
+        (!variantMarked || artistMatched || exactTitleMatched);
     return _MatchScore(
       total: total,
       isConfident: isConfident,
       durationDiff: durationDiff,
       playCount: _parsePlayCount(item.playCountText),
+      isMusicPartition: _isMusicPartition(item.tagText),
     );
   }
 
@@ -332,8 +434,11 @@ class ChartTrackMatcher {
     if (candidateSeconds < minimumClipSeconds) {
       return false;
     }
+    // 原曲时长未知（榜单接口偶尔不给 duration）时以前的策略是「一律放行」，
+    // 于是 20 分钟的教学视频也能进。改用「一首完整歌的合理区间」兜底，
+    // 和 [pickTitleFallback] 的规则保持一致。
     if (trackSeconds <= 0) {
-      return true;
+      return candidateSeconds <= _maximumPlausibleSongSeconds;
     }
     // 原曲时长本身可疑（榜单接口偶尔返回 00:29 这种片段/试听时长）时，
     // 比例过滤会把真正的完整版判成「太长」，改用「完整歌合理区间」兜底：
@@ -362,6 +467,51 @@ class ChartTrackMatcher {
       }
     }
     return score;
+  }
+
+  /// 去掉候选标题里的歌名与歌手后剩下的部分。
+  ///
+  /// 教学 / 非音乐 / 弱特征词都只在残差上判断：歌名本身就带这些词的
+  /// （如刘若英《练习》、某些叫《和弦》的歌）不会被误杀，歌手名恰好含有
+  /// 「教学」这类词的投稿同理。
+  static String _residualTitle(
+    String candidateTitle,
+    String title,
+    String artist,
+  ) {
+    String residual = candidateTitle;
+    if (title.isNotEmpty) {
+      residual = residual.replaceFirst(title, '');
+    }
+    if (artist.isNotEmpty && artist != title) {
+      residual = residual.replaceFirst(artist, '');
+    }
+    return residual;
+  }
+
+  static bool _containsAny(String value, List<String> markers) {
+    if (value.isEmpty) {
+      return false;
+    }
+    for (final String marker in markers) {
+      if (value.contains(marker)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// 弱特征扣分（教学向词、游戏主题词），让正版视频在排序里顶上来。
+  static int _weakPenalty(String residualTitle) {
+    return _containsAny(residualTitle, _weakPenaltyMarkers) ? _clipPenalty : 0;
+  }
+
+  /// 搜索结果的分区名（`typename`）是否属于音乐分区，仅用于同分时的偏好。
+  static bool _isMusicPartition(String partitionName) {
+    if (partitionName.isEmpty) {
+      return false;
+    }
+    return _containsAny(normalize(partitionName), _musicPartitionHints);
   }
 
   /// 播放量文案（如 `4.1万`、`5097`）换算成数字，用来做同分时的质量偏好。
@@ -418,13 +568,15 @@ class _MatchScore {
     required this.isConfident,
     required this.durationDiff,
     required this.playCount,
+    required this.isMusicPartition,
   });
 
   const _MatchScore.rejected()
     : total = 0,
       isConfident = false,
       durationDiff = -1,
-      playCount = 0;
+      playCount = 0,
+      isMusicPartition = false;
 
   final int total;
   final bool isConfident;
@@ -433,7 +585,10 @@ class _MatchScore {
   final int durationDiff;
   final int playCount;
 
-  /// 分数高的优先；同分时选时长更接近的，再选播放量更高的。
+  /// 候选是否来自音乐分区；只做同分裁决，不影响分数与置信判定。
+  final bool isMusicPartition;
+
+  /// 分数高的优先；同分时选时长更接近的，再优先音乐分区，最后看播放量。
   bool isBetterThan(_MatchScore other) {
     if (total != other.total) {
       return total > other.total;
@@ -444,6 +599,9 @@ class _MatchScore {
       }
     } else if (durationDiff >= 0 != (other.durationDiff >= 0)) {
       return durationDiff >= 0;
+    }
+    if (isMusicPartition != other.isMusicPartition) {
+      return isMusicPartition;
     }
     return playCount > other.playCount;
   }
