@@ -53,6 +53,7 @@ class CollectionPlayAllRunner {
     final Set<String> seen = <String>{};
     int queued = 0;
     int duplicateCount = 0;
+    int errorCount = 0;
     bool started = false;
 
     try {
@@ -66,6 +67,7 @@ class CollectionPlayAllRunner {
           item = track.directItem ?? await resolver.resolve(track);
         } on Object {
           item = null;
+          errorCount += 1;
         }
         if (item != null) {
           if (seen.add(item.stableId)) {
@@ -95,7 +97,11 @@ class CollectionPlayAllRunner {
       if (started && resolved.length > queued) {
         await player.enqueue(resolved.sublist(queued));
       } else if (!started) {
-        ToastUtil.show('没有匹配到可播放的 B 站视频');
+        final bool looksLikeThrottled =
+            errorCount > 0 && errorCount >= resolved.length + 1;
+        ToastUtil.show(
+          looksLikeThrottled ? '搜索太频繁被限流了，稍等一会再试' : '没有匹配到可播放的 B 站视频',
+        );
         return;
       }
       final int unmatched = tracks.length - resolved.length;
