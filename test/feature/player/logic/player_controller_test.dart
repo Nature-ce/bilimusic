@@ -206,6 +206,32 @@ void main() {
     },
   );
 
+  test('歌单队列不会再被塞进当前视频的分 P', () async {
+    final _PlaybackEngine engine = _PlaybackEngine();
+    final ProviderContainer container = _playbackContainer(
+      engine,
+      queueSourceLabel: '我的歌单',
+    );
+    addTearDown(container.dispose);
+    final PlayerController player = container.read(
+      playerControllerProvider.notifier,
+    );
+    final PlayableItem thirdPart = _first.copyWith(cid: 900);
+
+    await player.enqueueAvailableParts(<PlayableItem>[
+      _first,
+      thirdPart,
+      _second,
+    ]);
+
+    final PlayerState state = container.read(playerControllerProvider);
+    expect(
+      state.queue.map((PlayableItem item) => item.stableId).toList(),
+      <String>[_first.stableId, _second.stableId],
+    );
+    await player.shutdown();
+  });
+
   test('enqueueAvailableParts ignores single part videos', () async {
     final _PlaybackEngine engine = _PlaybackEngine();
     final ProviderContainer container = _playbackContainer(engine);
@@ -247,6 +273,7 @@ class _SessionBarrier {
 ProviderContainer _playbackContainer(
   _PlaybackEngine engine, {
   _SourceLookupCache? cache,
+  String? queueSourceLabel,
 }) {
   const MethodChannel channel = MethodChannel(
     'dev.fluttercommunity.plus/connectivity',
@@ -259,7 +286,9 @@ ProviderContainer _playbackContainer(
   });
   return ProviderContainer(
     overrides: [
-      playerControllerProvider.overrideWith(() => _PlayingController(engine)),
+      playerControllerProvider.overrideWith(
+        () => _PlayingController(engine, queueSourceLabel: queueSourceLabel),
+      ),
       appAudioHandlerProvider.overrideWithValue(AppAudioHandler()),
       appSettingsStoreProvider.overrideWithValue(_DefaultSettings()),
       biliSessionControllerProvider.overrideWith(_GuestSession.new),
@@ -399,15 +428,19 @@ class _PlaybackEngine implements PlayerAudioEngine {
 }
 
 class _PlayingController extends PlayerController {
-  _PlayingController(PlayerAudioEngine engine) : super(audioEngine: engine);
+  _PlayingController(PlayerAudioEngine engine, {this.queueSourceLabel})
+    : super(audioEngine: engine);
+
+  final String? queueSourceLabel;
 
   @override
-  PlayerState build() => const PlayerState(
+  PlayerState build() => PlayerState(
     currentItem: _first,
-    queue: <PlayableItem>[_first, _second],
+    queue: const <PlayableItem>[_first, _second],
     currentQueueIndex: 0,
     isPlaying: true,
     isReady: true,
+    queueSourceLabel: queueSourceLabel,
   );
 }
 

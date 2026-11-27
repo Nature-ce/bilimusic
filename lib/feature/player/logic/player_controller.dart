@@ -534,6 +534,12 @@ class PlayerController extends Notifier<PlayerState>
     if (parts.length < 2) {
       return;
     }
+    // 队列来自歌单/榜单这类合集（带来源标签）时，不要再把当前视频的分 P
+    // 插进去：那样「播放全部」匹配了 25 首，队列却显示 27 首，还会打乱顺序。
+    final String sourceLabel = state.queueSourceLabel?.trim() ?? '';
+    if (sourceLabel.isNotEmpty) {
+      return;
+    }
 
     final Set<String> queuedIds = state.queue
         .map((PlayableItem item) => item.stableId)
