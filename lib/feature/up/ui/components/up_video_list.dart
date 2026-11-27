@@ -1,4 +1,5 @@
 import 'package:bilimusic/common/components/status_view.dart';
+import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/video_card.dart';
 import 'package:bilimusic/common/util/player_util.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
@@ -54,6 +55,7 @@ class UpVideoList extends ConsumerWidget {
         return false;
       },
       child: ListView.builder(
+        padding: EdgeInsets.only(bottom: bottomPageInset(context)),
         itemCount: items.length + 1,
         itemBuilder: (BuildContext context, int index) {
           if (index == items.length) {

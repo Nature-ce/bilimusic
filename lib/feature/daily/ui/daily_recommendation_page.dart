@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/common/components/page_app_bar.dart';
 import 'package:bilimusic/common/components/status_view.dart';
 import 'package:bilimusic/common/util/player_util.dart';
@@ -133,10 +134,13 @@ class _DailyRecommendationPageState
       appBar: PageAppBar(title: const Text('每日推荐')),
       body: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         children: state.picks.isEmpty
-            ? _buildEmptyState(state, colorScheme)
-            : _buildContent(state),
+            ? <Widget>[
+                ..._buildEmptyState(state, colorScheme),
+                const BottomPageSpacer(),
+              ]
+            : <Widget>[..._buildContent(state), const BottomPageSpacer()],
       ),
     );
   }

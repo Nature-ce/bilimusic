@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/components/bottom_page_spacer.dart';
 import 'package:bilimusic/feature/daily/domain/daily_recommendation.dart';
 import 'package:bilimusic/feature/daily/domain/daily_recommendation_state.dart';
 import 'package:bilimusic/feature/daily/logic/daily_recommendation_controller.dart';
@@ -43,8 +44,10 @@ Future<_FakeDailyController> _pumpPage(
   WidgetTester tester, {
   required DailyRecommendationState state,
   MusicChartResolver? resolver,
+  Size viewportSize = const Size(400, 2800),
+  double bottomInset = 0,
 }) async {
-  tester.view.physicalSize = const Size(400, 2800);
+  tester.view.physicalSize = viewportSize;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -64,7 +67,15 @@ Future<_FakeDailyController> _pumpPage(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: DailyRecommendationPage()),
+      child: MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(
+            size: viewportSize,
+            padding: EdgeInsets.only(bottom: bottomInset),
+          ),
+          child: const DailyRecommendationPage(),
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -158,6 +169,35 @@ void main() {
     expect(find.text('每日推荐加载失败'), findsNothing);
     expect(find.byType(TrackRowTile), findsNothing);
     expect(find.text('播放全部'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('列表最后一行留出底部播放栏空间', (WidgetTester tester) async {
+    const double bottomInset = 60;
+    await _pumpPage(
+      tester,
+      state: _state(),
+      viewportSize: const Size(400, 900),
+      bottomInset: bottomInset,
+    );
+
+    final Finder spacer = find.byType(BottomPageSpacer);
+    await tester.scrollUntilVisible(spacer, 400);
+    await tester.pumpAndSettle();
+
+    expect(spacer, findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(ListView), matching: spacer),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(spacer).height,
+      greaterThanOrEqualTo(bottomInset + 16 - 0.01),
+    );
+    expect(
+      tester.getRect(find.byType(TrackRowTile).last).bottom,
+      lessThanOrEqualTo(tester.view.physicalSize.height - bottomInset),
+    );
     expect(tester.takeException(), isNull);
   });
 }
