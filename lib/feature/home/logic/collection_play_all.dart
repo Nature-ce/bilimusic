@@ -84,7 +84,8 @@ class CollectionPlayAllRunner {
 
     try {
       while (cursor < tracks.length && resolved.length < initialLimit) {
-        if (!_alive || !context.mounted) {
+        // 只判断业务活性；页面被关掉不影响继续补队列（UI 相关的调用各自判断）。
+        if (!_alive) {
           break;
         }
         final MatchableTrack track = tracks[cursor];
@@ -263,8 +264,13 @@ class CollectionPlayAllRunner {
 
   /// 限流提示带上登录建议：登录后搜索配额更高，更不容易被拦。
   String _rateLimitMessage(Duration retryAfter) {
-    final BiliSession? session = ref.read(biliSessionControllerProvider);
-    final bool loggedIn = session?.isLoggedIn ?? false;
+    bool loggedIn = false;
+    try {
+      final BiliSession? session = ref.read(biliSessionControllerProvider);
+      loggedIn = session?.isLoggedIn ?? false;
+    } on Object {
+      // 页面已经销毁时 ref 不可用，按游客文案处理即可。
+    }
     final String base = '搜索被限流了，约 ${retryAfter.inSeconds} 秒后再试';
     return loggedIn ? '$base（已匹配的不会重复搜）' : '$base；登录 B 站账号可减少限流';
   }

@@ -304,6 +304,33 @@ void main() {
     expect(player.enqueuedTotal, 29);
   });
 
+  testWidgets('退出歌单页后仍然继续补满首批 30 首', (WidgetTester tester) async {
+    final _PlayAllRecorder player = _PlayAllRecorder();
+    await _pumpPage(
+      tester,
+      total: 60,
+      resolver: _FakeResolver(),
+      player: player,
+      playAll:
+          (
+            BuildContext context,
+            WidgetRef ref,
+            List<PlayableItem> items,
+            String sourceLabel,
+          ) async {},
+    );
+
+    await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
+    await tester.pump();
+
+    // 模拟用户点返回，歌单页被销毁。
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pumpAndSettle();
+
+    // 页面没了也要继续匹配，补满首批 30 首（起播 1 + 入队 29）。
+    expect(player.enqueuedTotal, 29);
+  });
+
   testWidgets('播放接近队尾时再按 5 首补充', (WidgetTester tester) async {
     final _PlayAllRecorder player = _PlayAllRecorder()
       ..reportQueueNearEnd = true;
