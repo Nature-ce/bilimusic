@@ -34,6 +34,7 @@ class CollectionPlayAllRunner {
     this.initialQueueSize = 30,
     this.refillSize = 5,
     this.refillWhenRemaining = 3,
+    this.refillCooldown = const Duration(seconds: 25),
   });
 
   /// 匹配到第一首就开播。
@@ -60,6 +61,9 @@ class CollectionPlayAllRunner {
 
   /// 队列里「当前曲目之后还剩几首」时触发补充。
   final int refillWhenRemaining;
+
+  /// 首批补完后、以及每次补歌之后的冷却时间：避免播放器状态没同步时误判队尾。
+  final Duration refillCooldown;
 
   bool get _alive => isActive?.call() ?? true;
 
@@ -191,6 +195,7 @@ class CollectionPlayAllRunner {
   }) async {
     int next = cursor;
     int queuedCount = queued;
+    await Future<void>.delayed(refillCooldown);
     while (next < tracks.length) {
       final bool needsRefill = await _waitForRefillWindow(
         player,
@@ -223,6 +228,7 @@ class CollectionPlayAllRunner {
       if (resolved.length > queuedCount) {
         await player.enqueue(resolved.sublist(queuedCount));
         queuedCount = resolved.length;
+        await Future<void>.delayed(refillCooldown);
       }
     }
   }
@@ -235,7 +241,9 @@ class CollectionPlayAllRunner {
     PlayerController player, {
     required int expectedQueue,
   }) async {
+    int expected = expectedQueue;
     int lagTicks = 0;
+    bool lastSampleTriggered = false;
     while (_alive) {
       PlayerState state;
       try {
@@ -246,17 +254,33 @@ class CollectionPlayAllRunner {
       if (!state.hasQueue) {
         return false;
       }
-      if (state.queue.length < expectedQueue && lagTicks < 6) {
+      if (state.queue.length < expected) {
         lagTicks += 1;
-        await Future<void>.delayed(const Duration(milliseconds: 400));
+        if (lagTicks <= 10) {
+          await Future<void>.delayed(const Duration(milliseconds: 400));
+          continue;
+        }
+        // 宽限期过了仍对不上（例如播放器去重丢了几首）：重新对齐，
+        // 并且本轮不触发，避免用错位数据判断。
+        expected = state.queue.length;
+        lagTicks = 0;
+        lastSampleTriggered = false;
+        await Future<void>.delayed(const Duration(seconds: 2));
         continue;
       }
       lagTicks = 0;
       final int index = state.currentQueueIndex ?? 0;
       final int remaining = state.queue.length - 1 - index;
-      if (remaining <= refillWhenRemaining) {
-        return true;
+      if (remaining <= refillWhenRemaining && index > 0) {
+        // 连续两次采样都满足才补，过滤播放器状态抖动。
+        if (lastSampleTriggered) {
+          return true;
+        }
+        lastSampleTriggered = true;
+        await Future<void>.delayed(const Duration(seconds: 1));
+        continue;
       }
+      lastSampleTriggered = false;
       await Future<void>.delayed(const Duration(seconds: 2));
     }
     return false;

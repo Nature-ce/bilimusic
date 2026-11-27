@@ -302,6 +302,7 @@ void main() {
 
     // 起播 1 首 + 补到 30 首，剩下的不一次性搜完。
     expect(player.enqueuedTotal, 29);
+    await _drainTimers(tester);
   });
 
   testWidgets('退出歌单页后仍然继续补满首批 30 首', (WidgetTester tester) async {
@@ -329,6 +330,7 @@ void main() {
 
     // 页面没了也要继续匹配，补满首批 30 首（起播 1 + 入队 29）。
     expect(player.enqueuedTotal, 29);
+    await _drainTimers(tester);
   });
 
   testWidgets('播放接近队尾时再按 5 首补充', (WidgetTester tester) async {
@@ -350,6 +352,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
     await tester.pumpAndSettle();
+
+    // 每轮补歌要等冷却（25s）+ 两次采样，这里推进足够时间。
+    await _drainTimers(tester, seconds: 200);
 
     // 队列走到尾声后继续补，直到整张歌单补完（40 首 = 1 + 39）。
     expect(player.enqueuedTotal, 39);
@@ -443,5 +448,11 @@ class _PlayAllRecorder extends PlayerController {
   @override
   Future<void> enqueue(List<PlayableItem> items) async {
     enqueued.add(items);
+  }
+}
+
+Future<void> _drainTimers(WidgetTester tester, {int seconds = 40}) async {
+  for (int index = 0; index < seconds; index += 1) {
+    await tester.pump(const Duration(seconds: 1));
   }
 }
