@@ -169,14 +169,16 @@ class CollectionActionRow extends StatelessWidget {
             height: 42,
             child: FilledButton.icon(
               key: playAllKey,
-              onPressed: canPlayAll && !busy ? onPlayAll : null,
-              icon: busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.play_arrow_rounded, size: 22),
+              onPressed: canPlayAll
+                  ? () {
+                      // 匹配中外观保持和平时一样，只静默拦掉重复点击。
+                      if (busy) {
+                        return;
+                      }
+                      onPlayAll();
+                    }
+                  : null,
+              icon: const Icon(Icons.play_arrow_rounded, size: 22),
               label: Text(
                 label,
                 maxLines: 1,
