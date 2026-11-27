@@ -5,6 +5,7 @@ import 'package:bilimusic/feature/home/ui/components/home_back_to_top_button.dar
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
+import 'package:bilimusic/feature/player/logic/utils/player_state_selectors.dart';
 import 'package:bilimusic/feature/player/ui/components/player_queue_sheet.dart';
 import 'package:bilimusic/feature/player/ui/player_gestures.dart';
 import 'package:bilimusic/feature/setting/logic/appearance_setting_logic.dart';
@@ -80,7 +81,11 @@ class _MobileShellScaffoldState extends ConsumerState<MobileShellScaffold> {
   }
 
   Widget _buildScaffold(BuildContext context, bool isPlayerPageVisible) {
-    final PlayerState playerState = ref.watch(playerControllerProvider);
+    // 根外壳不需要播放进度：底栏只读 currentItem / isPlaying / statusHint。
+    // 去掉 position 后，播放中每秒变化多次的进度就不会再重建整个 App 外壳。
+    final PlayerState playerState = ref.watch(
+      playerControllerProvider.select(withoutPlaybackPosition),
+    );
     final bool useGlassBar = ref.watch(appearanceSettingLogicProvider);
     final bool showTabs = widget.chrome.showBottomTabs && !isPlayerPageVisible;
     final bool showMiniPlayer =

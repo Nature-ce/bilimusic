@@ -23,6 +23,7 @@ import 'package:bilimusic/feature/player/ui/components/player_meta_page.dart';
 import 'package:bilimusic/feature/player/ui/components/player_part_selector.dart';
 import 'package:bilimusic/feature/player/ui/components/player_queue_sheet.dart';
 import 'package:bilimusic/feature/player/ui/components/player_settings_sheet.dart';
+import 'package:bilimusic/feature/player/logic/utils/player_state_selectors.dart';
 import 'package:bilimusic/feature/player/ui/components/player_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -105,7 +106,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
   @override
   Widget build(BuildContext context) {
     final PlayerState state = ref.watch(
-      playerControllerProvider.select(_withoutPlaybackPosition),
+      playerControllerProvider.select(withoutPlaybackPosition),
     );
     final PlayerDisplayInfo display = ref.watch(playerDisplayProvider);
     final favoritesState = ref.watch(favoritesControllerProvider);
@@ -461,13 +462,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> {
       onOpenExternal: () => _openInBrowser(item),
     );
   }
-}
-
-PlayerState _withoutPlaybackPosition(PlayerState state) {
-  if (state.position == Duration.zero) {
-    return state;
-  }
-  return state.copyWith(position: Duration.zero);
 }
 
 /// 播放页统一深色底：与刷歌页共用同一套「深色 + 白字」视觉。

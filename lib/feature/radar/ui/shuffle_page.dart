@@ -8,6 +8,7 @@ import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/domain/queue_source.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
+import 'package:bilimusic/feature/player/logic/utils/player_state_selectors.dart';
 import 'package:bilimusic/feature/player/ui/player_page.dart';
 import 'package:bilimusic/feature/radar/domain/music_radar_state.dart';
 import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
@@ -421,7 +422,11 @@ class _ShufflePageState extends ConsumerState<ShufflePage> {
 
   @override
   Widget build(BuildContext context) {
-    final PlayerState player = ref.watch(playerControllerProvider);
+    // 刷歌页只看队列来源和当前曲目，不需要播放进度：去掉 position 后
+    // 不会随着进度每秒重建。
+    final PlayerState player = ref.watch(
+      playerControllerProvider.select(withoutPlaybackPosition),
+    );
 
     ref.listen<PlayerState>(playerControllerProvider, (
       PlayerState? previous,

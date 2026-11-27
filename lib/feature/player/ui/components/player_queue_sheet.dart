@@ -6,6 +6,7 @@ import 'package:bilimusic/core/theme/app_design.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/domain/player_state.dart';
 import 'package:bilimusic/feature/player/logic/player_controller.dart';
+import 'package:bilimusic/feature/player/logic/utils/player_state_selectors.dart';
 import 'package:bilimusic/feature/player/ui/components/player_playback_waveform.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -209,7 +210,10 @@ class _PlayerQueueContentState extends ConsumerState<_PlayerQueueContent> {
 
   @override
   Widget build(BuildContext context) {
-    final PlayerState liveState = ref.watch(playerControllerProvider);
+    // 队列面板只读队列相关字段，不需要播放进度：去掉 position 后不会随进度重建。
+    final PlayerState liveState = ref.watch(
+      playerControllerProvider.select(withoutPlaybackPosition),
+    );
     final PlayerController liveController = ref.read(
       playerControllerProvider.notifier,
     );
