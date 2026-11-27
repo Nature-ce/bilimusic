@@ -20,6 +20,7 @@ class HiveKeys {
   static const String playerChapterMarkerStyle = 'player.chapter_marker_style';
   static const String playerLyricSettings = 'player.lyric_settings';
   static const String playerVolume = 'player.volume';
+  static const String playerResumePosition = 'player.resume_position';
   static const String playerAudioCacheIndex = 'player.audio_cache_index';
   static const String searchHistory = 'search.history';
   static const String recentPlaybackProgress = 'recent.playback_progress';

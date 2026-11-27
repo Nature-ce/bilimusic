@@ -61,6 +61,11 @@ class StatisticsTracker with WidgetsBindingObserver {
   Future<void> _eventQueue = Future<void>.value();
   PlaybackTrackingState _tracking = const PlaybackTrackingState();
 
+  static const Duration _dailyFlushInterval = Duration(seconds: 30);
+
+  int _pendingDailyMs = 0;
+  Timer? _dailyFlushTimer;
+
   PlaybackTrackingState get tracking => _tracking;
 
   void _onEvent(PlayerEvent event) {
@@ -163,6 +168,7 @@ class StatisticsTracker with WidgetsBindingObserver {
   }
 
   Future<void> flush() => _enqueue(() async {
+    await _flushDailyListening();
     await _commit();
   }, errorMessage: 'lifecycle flush failed');
 
@@ -180,16 +186,39 @@ class StatisticsTracker with WidgetsBindingObserver {
   }
 
   void _countDailyListening(int deltaMs) {
-    final DailyListeningRepository? repository = dailyRepository;
-    if (repository == null || deltaMs <= 0) {
+    if (dailyRepository == null || deltaMs <= 0) {
       return;
     }
-    unawaited(
-      _enqueue(
-        () => repository.addListenedMs(DateTime.now(), deltaMs),
-        errorMessage: 'daily listening tracking failed',
-      ),
-    );
+    _pendingDailyMs += deltaMs;
+    _dailyFlushTimer ??= Timer(_dailyFlushInterval, () {
+      _dailyFlushTimer = null;
+      unawaited(
+        _enqueue(
+          _flushDailyListening,
+          errorMessage: 'daily listening tracking failed',
+        ),
+      );
+    });
+  }
+
+  /// 把攒下的听歌时长写一次盘。
+  ///
+  /// 以前每个 position 事件都会 Hive.put 一次（播放时每秒 1~5 次），改成
+  /// 内存累加 + 30 秒或暂停/切歌/退后台时落盘，统计结果不变、写盘次数大降。
+  Future<void> _flushDailyListening() async {
+    final DailyListeningRepository? repository = dailyRepository;
+    final int pending = _pendingDailyMs;
+    _pendingDailyMs = 0;
+    _dailyFlushTimer?.cancel();
+    _dailyFlushTimer = null;
+    if (repository == null || pending <= 0) {
+      return;
+    }
+    try {
+      await repository.addListenedMs(DateTime.now(), pending);
+    } on Object catch (error, stackTrace) {
+      _logger.e('daily listening flush failed', error, stackTrace);
+    }
   }
 
   SongStatistics? read(String stableId) {
@@ -214,6 +243,7 @@ class StatisticsTracker with WidgetsBindingObserver {
   }
 
   Future<void> _commit({bool resetAttempt = false}) async {
+    await _flushDailyListening();
     final String? stableId = _tracking.stableId;
     if (stableId == null) return;
     if (_tracking.playedMs <= 0) {
@@ -312,6 +342,9 @@ class StatisticsTracker with WidgetsBindingObserver {
 
   Future<void> dispose() async {
     await _subscription.cancel();
+    _dailyFlushTimer?.cancel();
+    _dailyFlushTimer = null;
+    await _flushDailyListening();
     await _eventQueue;
     WidgetsBinding.instance.removeObserver(this);
   }

@@ -7,6 +7,7 @@ import 'package:bilimusic/core/settings/app_settings_store.dart';
 import 'package:bilimusic/feature/player/data/audio_cache_repository.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/data/player_queue_local_repository.dart';
+import 'package:bilimusic/feature/player/data/player_resume_position_repository.dart';
 import 'package:bilimusic/feature/player/domain/audio_stream_info.dart';
 import 'package:bilimusic/feature/player/domain/persisted_playback_queue.dart';
 import 'package:bilimusic/feature/player/domain/player_audio_quality_preference.dart';
@@ -64,6 +65,9 @@ void main() {
           playerAudioCacheRepositoryProvider.overrideWithValue(_UnusedCache()),
           playerQueueLocalRepositoryProvider.overrideWithValue(
             _MemoryQueueRepository(),
+          ),
+          playerResumePositionRepositoryProvider.overrideWithValue(
+            _MemoryResumePositionRepository(),
           ),
         ],
       );
@@ -299,6 +303,9 @@ ProviderContainer _playbackContainer(
       playerQueueLocalRepositoryProvider.overrideWithValue(
         _MemoryQueueRepository(),
       ),
+      playerResumePositionRepositoryProvider.overrideWithValue(
+        _MemoryResumePositionRepository(),
+      ),
     ],
   );
 }
@@ -460,6 +467,27 @@ class _MemoryQueueRepository implements PlayerQueueLocalRepository {
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _MemoryResumePositionRepository
+    implements PlayerResumePositionRepository {
+  ({String stableId, Duration position})? stored;
+
+  @override
+  ({String stableId, Duration position})? read() => stored;
+
+  @override
+  Future<void> write({
+    required String stableId,
+    required Duration position,
+  }) async {
+    stored = (stableId: stableId, position: position);
+  }
+
+  @override
+  Future<void> clear() async {
+    stored = null;
+  }
 }
 
 class _BlockingStopEngine implements PlayerAudioEngine {

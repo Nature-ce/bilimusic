@@ -13,6 +13,7 @@ import 'package:bilimusic/feature/player/data/audio_cache_repository.dart';
 import 'package:bilimusic/feature/player/data/bili_chapter_repository.dart';
 import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
 import 'package:bilimusic/feature/player/data/player_queue_local_repository.dart';
+import 'package:bilimusic/feature/player/data/player_resume_position_repository.dart';
 import 'package:bilimusic/feature/player/domain/player_audio_quality_preference.dart';
 import 'package:bilimusic/feature/player/domain/player_event.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
@@ -47,6 +48,8 @@ class PlayerController extends Notifier<PlayerState>
   late final PlayerQueueLocalRepository _queueRepository = ref.read(
     playerQueueLocalRepositoryProvider,
   );
+  late final PlayerResumePositionRepository _resumePositionRepository = ref
+      .read(playerResumePositionRepositoryProvider);
   late final AppSettingsStore _settingsStore = ref.read(
     appSettingsStoreProvider,
   );
@@ -717,6 +720,7 @@ class PlayerController extends Notifier<PlayerState>
     );
     _publishPlaybackState(processingState: AudioProcessingState.idle);
     await _queueRepository.clear();
+    await _resumePositionRepository.clear();
   }
 
   @override
@@ -808,6 +812,10 @@ class PlayerController extends Notifier<PlayerState>
       await _queueRepository.clear();
       return;
     }
+    final Duration resumePosition = _resolveStoredResumePosition(
+      restoredQueue[restoredIndex],
+      fallbackMs: snapshot.resumePositionMs,
+    );
 
     final int generation = _nextGeneration();
     _queueManager.resetForMode(
@@ -839,7 +847,7 @@ class PlayerController extends Notifier<PlayerState>
     final bool restored = await _session.load(
       restoredIndex,
       autoplay: false,
-      initialPosition: Duration(milliseconds: snapshot.resumePositionMs),
+      initialPosition: resumePosition,
       generation: generation,
       persistAfterLoad: false,
     );
@@ -855,7 +863,7 @@ class PlayerController extends Notifier<PlayerState>
     state = state.copyWith(
       isPlaying: false,
       isBuffering: false,
-      position: Duration(milliseconds: snapshot.resumePositionMs),
+      position: resumePosition,
     );
     _publishPlaybackState();
     await _persistQueueSnapshot();
@@ -900,7 +908,7 @@ class PlayerController extends Notifier<PlayerState>
     _persistProgressWhilePlaying(position);
   }
 
-  // 自动存储进度
+  // 自动存储进度：只写一个很小的续播位置，不再为了记进度重写整条队列。
   void _persistProgressWhilePlaying(Duration position) {
     if (!state.isPlaying || !state.hasActiveQueueIndex) {
       return;
@@ -910,7 +918,16 @@ class PlayerController extends Notifier<PlayerState>
     }
 
     _lastPersistedProgress = position;
-    unawaited(_persistQueueSnapshot());
+    final PlayableItem? item = state.currentItem;
+    if (item == null) {
+      return;
+    }
+    unawaited(
+      _resumePositionRepository.write(
+        stableId: item.stableId,
+        position: position,
+      ),
+    );
   }
 
   void _onEngineBufferedPositionChanged(Duration bufferedPosition) {
@@ -1272,9 +1289,23 @@ class PlayerController extends Notifier<PlayerState>
     final PersistedPlaybackQueue? snapshot = _buildSnapshot();
     if (snapshot == null) {
       await _queueRepository.clear();
+      await _resumePositionRepository.clear();
       return;
     }
     await _queueRepository.save(snapshot);
+  }
+
+  /// 优先用「续播位置」小 key 里的值；曲目对不上（队列被换过）时回退到快照值。
+  Duration _resolveStoredResumePosition(
+    PlayableItem item, {
+    required int fallbackMs,
+  }) {
+    final ({String stableId, Duration position})? stored =
+        _resumePositionRepository.read();
+    if (stored != null && stored.stableId == item.stableId) {
+      return stored.position;
+    }
+    return Duration(milliseconds: fallbackMs);
   }
 
   PersistedPlaybackQueue? _buildSnapshot() {

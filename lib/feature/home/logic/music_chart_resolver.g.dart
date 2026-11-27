@@ -55,4 +55,4 @@ final class MusicChartResolverProvider
 }
 
 String _$musicChartResolverHash() =>
-    r'4a1c33767882f8ead8a766ad12302d38324406fd';
+    r'd33041f2c8c3a7ecf6d66974bb0728d121b00b41';

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bilimusic/feature/player/domain/player_event.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
+import 'package:bilimusic/feature/statistics/data/daily_listening_repository.dart';
 import 'package:bilimusic/feature/statistics/data/statistics_local_repository.dart';
 import 'package:bilimusic/feature/statistics/domain/song_statistics.dart';
 import 'package:bilimusic/feature/statistics/logic/statistics_tracker.dart';
@@ -504,6 +506,58 @@ void main() {
     expect(repository.read(resolvedItem.stableId)?.totalPlayedMs, 1000);
     expect(repository.read(item.stableId), isNull);
   });
+
+  test('听歌时长合并成一次写盘：暂停时才落盘', () async {
+    final _CountingDailyRepository daily = _CountingDailyRepository();
+    final StatisticsTracker localTracker = StatisticsTracker(
+      const Stream<PlayerEvent>.empty(),
+      repository,
+      dailyRepository: daily,
+    );
+    addTearDown(localTracker.dispose);
+
+    await localTracker.onEvent(
+      event(
+        PlayerEventType.trackChanged,
+        duration: const Duration(seconds: 100),
+      ),
+    );
+    await localTracker.onEvent(
+      event(PlayerEventType.playbackState, isPlaying: true),
+    );
+    for (int second = 1; second <= 5; second += 1) {
+      await localTracker.onEvent(
+        event(
+          PlayerEventType.position,
+          position: Duration(seconds: second),
+          isPlaying: true,
+        ),
+      );
+    }
+    expect(daily.writes, 0);
+
+    await localTracker.onEvent(event(PlayerEventType.playbackState));
+    expect(daily.writes, 1);
+    expect(daily.totalMs, 5000);
+
+    // 暂停后再暂停不该重复落盘。
+    await localTracker.onEvent(event(PlayerEventType.playbackState));
+    expect(daily.writes, 1);
+  });
+}
+
+class _CountingDailyRepository implements DailyListeningRepository {
+  int writes = 0;
+  int totalMs = 0;
+
+  @override
+  Future<void> addListenedMs(DateTime day, int deltaMs) async {
+    writes += 1;
+    totalMs += deltaMs;
+  }
+
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 Future<void> _playAndComplete(

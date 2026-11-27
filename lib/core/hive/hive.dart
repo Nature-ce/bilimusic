@@ -48,22 +48,26 @@ Future<void> initHive() async {
       ..registerAdapter(MetadataAdapter())
       ..registerAdapter(CollectionKindAdapter());
   }
-  await Hive.openBox<String>(HiveBoxNames.prefs);
-  await Hive.openBox<FavoriteCollection>(favoriteCollectionsBoxName);
-  await Hive.openBox<FavoriteEntry>(favoriteEntriesBoxName);
-  await Hive.openBox<FavoriteMembership>(favoriteMembershipsBoxName);
-  await Hive.openBox<FavoriteCollection>(remoteFavoriteCollectionsBoxName);
-  await Hive.openBox<FavoriteEntry>(remoteFavoriteEntriesBoxName);
-  await Hive.openBox<FavoriteMembership>(remoteFavoriteMembershipsBoxName);
-  await Hive.openBox<String>(HiveBoxNames.remoteFavoriteWastedResourceIds);
-  await Hive.openBox<PersistedPlaybackQueue>(playerQueueSnapshotBoxName);
-  await Hive.openBox<RecentPlaybackEntry>(recentPlaybackBoxName);
-  await Hive.openBox<Map>(songStatisticsBoxName);
-  await Hive.openBox<Map>(dailyListeningBoxName);
-  await Hive.openBox<Map>(songListeningBoxName);
-  await Hive.openBox<FavoriteUp>(favoriteUpsBoxName);
-  await Hive.openBox<String>(favoriteUpUpdatesBoxName);
-  await Hive.openBox<FavoritedSeason>(favoritedSeasonsBoxName);
-  await Hive.openLazyBox<Metadata>(metadataCacheBoxName);
-  await Hive.openBox<String>(downloadedTracksBoxName);
+  // 并行打开：每个 box 是独立文件，open 之间没有依赖，串行 await 只会把
+  // 冷启动时间叠加起来。打开的集合和顺序都和以前一致，只是更快。
+  await Future.wait<Object?>(<Future<Object?>>[
+    Hive.openBox<String>(HiveBoxNames.prefs),
+    Hive.openBox<FavoriteCollection>(favoriteCollectionsBoxName),
+    Hive.openBox<FavoriteEntry>(favoriteEntriesBoxName),
+    Hive.openBox<FavoriteMembership>(favoriteMembershipsBoxName),
+    Hive.openBox<FavoriteCollection>(remoteFavoriteCollectionsBoxName),
+    Hive.openBox<FavoriteEntry>(remoteFavoriteEntriesBoxName),
+    Hive.openBox<FavoriteMembership>(remoteFavoriteMembershipsBoxName),
+    Hive.openBox<String>(HiveBoxNames.remoteFavoriteWastedResourceIds),
+    Hive.openBox<PersistedPlaybackQueue>(playerQueueSnapshotBoxName),
+    Hive.openBox<RecentPlaybackEntry>(recentPlaybackBoxName),
+    Hive.openBox<Map>(songStatisticsBoxName),
+    Hive.openBox<Map>(dailyListeningBoxName),
+    Hive.openBox<Map>(songListeningBoxName),
+    Hive.openBox<FavoriteUp>(favoriteUpsBoxName),
+    Hive.openBox<String>(favoriteUpUpdatesBoxName),
+    Hive.openBox<FavoritedSeason>(favoritedSeasonsBoxName),
+    Hive.openLazyBox<Metadata>(metadataCacheBoxName),
+    Hive.openBox<String>(downloadedTracksBoxName),
+  ]);
 }
