@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:bilimusic/common/util/json_util.dart';
 import 'package:bilimusic/core/bili/session/bili_cookie.dart';
 import 'package:bilimusic/core/bili/session/bili_session.dart';
@@ -59,10 +61,15 @@ class BiliSessionController extends _$BiliSessionController {
     } on DioException {
       // 网络不可用时继续使用本地会话。
     }
+    try {
+      await warmupDeviceFingerprint();
+    } on Object {
+      // 指纹拿不到就按游客继续，不影响主流程。
+    }
 
     final BiliSession? currentSession = state;
     if (currentSession == null || !currentSession.isLoggedIn) {
-// 游客wbi
+      // 游客wbi
       try {
         return await refreshWbiKeys();
       } on Object {
@@ -114,6 +121,56 @@ class BiliSessionController extends _$BiliSessionController {
       return null;
     }
     return (imgKey: imgKey, subKey: subKey);
+  }
+
+  /// 补全设备指纹 cookie（buvid3 / buvid4 / _uuid / b_nut）。
+  ///
+  /// 真实浏览器和 App 都会带这些 cookie；缺了它们，搜索接口在风控模型里
+  /// 更像「脚本」，更容易被拦。这里用官方 finger/spi 接口取一次并持久化，
+  /// 已经存在就不重复请求。
+  Future<BiliSession> warmupDeviceFingerprint() async {
+    final BiliSession current = state ?? _emptySession;
+    final Map<String, String> cookies = parseCookieHeader(current.cookie);
+    final bool hasBuvid3 = (cookies['buvid3'] ?? '').isNotEmpty;
+    final bool hasBuvid4 = (cookies['buvid4'] ?? '').isNotEmpty;
+    if (hasBuvid3 && hasBuvid4) {
+      return current;
+    }
+    final Response<dynamic> response = await _client.get<dynamic>(
+      'https://api.bilibili.com/x/frontend/finger/spi',
+      mode: BiliRequestMode.anonymous,
+    );
+    final Map<String, dynamic> json = _asMap(response.data);
+    final Map<String, dynamic>? data = asNullableStringKeyedMap(json['data']);
+    final String buvid3 = (data?['b_3'] as String? ?? '').trim();
+    final String buvid4 = (data?['b_4'] as String? ?? '').trim();
+    if (buvid3.isEmpty) {
+      return current;
+    }
+    final Map<String, String> next = <String, String>{
+      'buvid3': buvid3,
+      if (buvid4.isNotEmpty) 'buvid4': buvid4,
+      if ((cookies['_uuid'] ?? '').isEmpty) '_uuid': _generateDeviceUuid(),
+      if ((cookies['b_nut'] ?? '').isEmpty)
+        'b_nut': '${DateTime.now().millisecondsSinceEpoch ~/ 1000}',
+    };
+    final BiliSession nextSession = _mergeCookiesIntoSession(
+      base: state,
+      nextCookies: next,
+    );
+    await _persistSession(nextSession);
+    return nextSession;
+  }
+
+  static String _generateDeviceUuid() {
+    final Random random = Random();
+    final String hex = List<String>.generate(
+      32,
+      (_) => random.nextInt(16).toRadixString(16),
+    ).join().toUpperCase();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
+        '${hex.substring(20, 32)}infoc';
   }
 
   Future<BiliSession> warmupBaseCookies() async {

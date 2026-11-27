@@ -9,6 +9,7 @@ import 'package:bilimusic/feature/search/domain/search_user_item.dart';
 import 'package:bilimusic/feature/search/logic/search_controller.dart';
 import 'package:bilimusic/feature/search/ui/components/search_input_area.dart';
 import 'package:bilimusic/feature/search/ui/components/search_results_view.dart';
+import 'package:bilimusic/feature/search/ui/components/search_login_hint.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -106,6 +107,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     controller.clearQuery();
                   },
                 ),
+              const SearchLoginHint(),
               Expanded(
                 child:
                     !isShowingSuggestions &&

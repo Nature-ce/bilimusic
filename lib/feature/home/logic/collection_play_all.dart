@@ -1,3 +1,5 @@
+import 'package:bilimusic/core/bili/session/bili_session.dart';
+import 'package:bilimusic/core/bili/session/bili_session_controller.dart';
 import 'package:bilimusic/feature/home/domain/matchable_track.dart';
 import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
@@ -126,9 +128,7 @@ class CollectionPlayAllRunner {
         onInitialFilled?.call();
         final MatchRateLimitedException? limited = rateLimit;
         if (limited != null) {
-          ToastUtil.show(
-            '搜索被限流了，约 ${limited.retryAfter.inSeconds} 秒后再试（已匹配的不会重复搜）',
-          );
+          ToastUtil.show(_rateLimitMessage(limited.retryAfter));
         } else {
           final bool looksLikeThrottled =
               errorCount > 0 && errorCount >= resolved.length + 1;
@@ -259,6 +259,14 @@ class CollectionPlayAllRunner {
       await Future<void>.delayed(const Duration(seconds: 2));
     }
     return false;
+  }
+
+  /// 限流提示带上登录建议：登录后搜索配额更高，更不容易被拦。
+  String _rateLimitMessage(Duration retryAfter) {
+    final BiliSession? session = ref.read(biliSessionControllerProvider);
+    final bool loggedIn = session?.isLoggedIn ?? false;
+    final String base = '搜索被限流了，约 ${retryAfter.inSeconds} 秒后再试';
+    return loggedIn ? '$base（已匹配的不会重复搜）' : '$base；登录 B 站账号可减少限流';
   }
 
   Future<bool> _start(List<PlayableItem> items) async {
