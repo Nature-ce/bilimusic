@@ -25,41 +25,27 @@ class MobileChromeConfig {
     showMiniPlayer: false,
   );
 
+  /// 只有三个 tab 根页显示底部导航；其余页面（含首页里 push 出来的歌单、
+  /// 榜单等详情页）一律只保留播放行。
+  static const Set<String> _tabRoots = <String>{'/home', '/profile'};
+
   static MobileChromeConfig resolve(String path) {
-    if (path == '/player') {
+    if (path == '/radar' ||
+        path == '/player' ||
+        path == '/search' ||
+        path == '/auth' ||
+        path == '/profile/report' ||
+        path == '/settings' ||
+        path.startsWith('/settings/') ||
+        path == '/statistics' ||
+        path.startsWith('/statistics/')) {
       return fullScreen;
     }
 
-    if (path == '/radar') {
-      return fullScreen;
+    if (_tabRoots.contains(path)) {
+      return mainTab;
     }
 
-    if (path == '/comments' || path.startsWith('/up')) {
-      return detail;
-    }
-
-    if (path == '/search') {
-      return fullScreen;
-    }
-
-    if (path == '/daily') {
-      return detail;
-    }
-
-    if (path == '/settings' || path.startsWith('/settings/')) {
-      return fullScreen;
-    }
-
-    if (path == '/profile/report') {
-      return fullScreen;
-    }
-
-    if (path.startsWith('/profile/favorites/') ||
-        path == '/profile/downloads' ||
-        path == '/profile/recent') {
-      return detail;
-    }
-
-    return mainTab;
+    return detail;
   }
 }

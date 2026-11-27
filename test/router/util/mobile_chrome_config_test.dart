@@ -16,11 +16,20 @@ void main() {
     expect(chrome.showMiniPlayer, isTrue);
   });
 
+  test('我的页面保留底部导航', () {
+    final MobileChromeConfig chrome = MobileChromeConfig.resolve('/profile');
+
+    expect(chrome.showBottomTabs, isTrue);
+    expect(chrome.showMiniPlayer, isTrue);
+  });
+
   test('播放页与设置页保持全屏', () {
     for (final String path in <String>[
       '/player',
       '/settings',
       '/settings/theme',
+      '/auth',
+      '/statistics/song',
     ]) {
       final MobileChromeConfig chrome = MobileChromeConfig.resolve(path);
 
@@ -44,6 +53,24 @@ void main() {
 
     expect(daily.showBottomTabs, isFalse);
     expect(daily.showMiniPlayer, isTrue);
+  });
+
+  test('首页里 push 出来的歌单/榜单详情只保留播放行', () {
+    for (final String path in <String>[
+      '/home/playlist/netease/123',
+      '/home/charts/netease',
+      '/home/charts/netease/hot',
+      '/profile/favorites/456',
+      '/profile/downloads',
+      '/profile/recent',
+      '/up/789',
+      '/daily',
+    ]) {
+      final MobileChromeConfig chrome = MobileChromeConfig.resolve(path);
+
+      expect(chrome.showBottomTabs, isFalse, reason: path);
+      expect(chrome.showMiniPlayer, isTrue, reason: path);
+    }
   });
 
   test('收藏 UP 主与听歌报告页全屏', () {
