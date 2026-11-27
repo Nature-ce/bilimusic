@@ -281,7 +281,7 @@ void main() {
     );
   });
 
-  testWidgets('超过 30 首的歌单先只补 30 首进队列', (WidgetTester tester) async {
+  testWidgets('大歌单首批只补 10 首进队列', (WidgetTester tester) async {
     final _PlayAllRecorder player = _PlayAllRecorder();
     await _pumpPage(
       tester,
@@ -300,12 +300,12 @@ void main() {
     await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
     await tester.pumpAndSettle();
 
-    // 起播 1 首 + 补到 30 首，剩下的不一次性搜完。
-    expect(player.enqueuedTotal, 29);
+    // 起播 1 首 + 补到 10 首，剩下的跟着播放进度补。
+    expect(player.enqueuedTotal, 9);
     await _drainTimers(tester);
   });
 
-  testWidgets('退出歌单页后仍然继续补满首批 30 首', (WidgetTester tester) async {
+  testWidgets('退出歌单页后仍然继续补满首批 10 首', (WidgetTester tester) async {
     final _PlayAllRecorder player = _PlayAllRecorder();
     await _pumpPage(
       tester,
@@ -328,8 +328,8 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pumpAndSettle();
 
-    // 页面没了也要继续匹配，补满首批 30 首（起播 1 + 入队 29）。
-    expect(player.enqueuedTotal, 29);
+    // 页面没了也要继续匹配，补满首批 10 首（起播 1 + 入队 9）。
+    expect(player.enqueuedTotal, 9);
     await _drainTimers(tester);
   });
 

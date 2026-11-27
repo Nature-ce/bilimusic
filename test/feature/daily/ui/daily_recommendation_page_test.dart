@@ -123,6 +123,8 @@ void main() {
     expect(player.queuedLabels.first, '每日推荐');
     expect(player.queued.first, hasLength(1));
     expect(player.enqueued, isNotEmpty);
+    // 每日推荐固定 30 首、且已有预解析缓存，保持一次性补满（不是大歌单的 10 首）。
+    expect(player.enqueued, hasLength(29));
     expect(find.text('播放全部'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -284,6 +286,6 @@ class _FakePlayer extends PlayerController {
 
   @override
   Future<void> enqueue(List<PlayableItem> items) async {
-    enqueued = items;
+    enqueued.addAll(items);
   }
 }

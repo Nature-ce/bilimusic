@@ -31,14 +31,17 @@ class CollectionPlayAllRunner {
     this.onInitialFilled,
     this.startPlayback,
     this.isActive,
-    this.initialQueueSize = 30,
+    this.initialQueueSize = 10,
     this.refillSize = 5,
-    this.refillWhenRemaining = 3,
-    this.refillCooldown = const Duration(seconds: 25),
+    this.refillWhenRemaining = 5,
+    this.refillCooldown = const Duration(seconds: 10),
   });
 
   /// 匹配到第一首就开播。
   static const int _startSize = 1;
+
+  /// 歌单曲目不超过这个数量时一次性补完，不做分批。
+  static const int _smallPlaylistSize = 20;
   static const int _batchSize = 2;
 
   final BuildContext context;
@@ -82,9 +85,11 @@ class CollectionPlayAllRunner {
     bool started = false;
     int cursor = 0;
 
-    final int initialLimit = tracks.length > initialQueueSize
-        ? initialQueueSize
-        : tracks.length;
+    // 小歌单一次性补完；大歌单只补首批，剩下的跟着播放进度补。
+    final int initialLimit =
+        tracks.length <= _smallPlaylistSize || tracks.length <= initialQueueSize
+        ? tracks.length
+        : initialQueueSize;
 
     try {
       while (cursor < tracks.length && resolved.length < initialLimit) {

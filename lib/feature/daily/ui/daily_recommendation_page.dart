@@ -109,6 +109,8 @@ class _DailyRecommendationPageState
         context: context,
         ref: ref,
         sourceLabel: sourceLabel,
+        // 每日推荐固定 30 首且已有预解析缓存，保持一次性补满。
+        initialQueueSize: DailyRecommendationController.pickCount,
         onProgress: (int resolved, int total) {
           if (!mounted) {
             return;
