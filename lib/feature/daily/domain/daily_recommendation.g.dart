@@ -14,6 +14,14 @@ _DailyPick _$DailyPickFromJson(Map<String, dynamic> json) => _DailyPick(
   durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
   platform: json['platform'] as String? ?? '',
   reasonDetail: json['reasonDetail'] as String?,
+  bvid: json['bvid'] as String? ?? '',
+  aid: (json['aid'] as num?)?.toInt() ?? 0,
+  cid: (json['cid'] as num?)?.toInt(),
+  page: (json['page'] as num?)?.toInt(),
+  videoTitle: json['videoTitle'] as String? ?? '',
+  videoAuthor: json['videoAuthor'] as String? ?? '',
+  videoCoverUrl: json['videoCoverUrl'] as String? ?? '',
+  videoDurationText: json['videoDurationText'] as String? ?? '',
 );
 
 Map<String, dynamic> _$DailyPickToJson(_DailyPick instance) =>
@@ -25,6 +33,14 @@ Map<String, dynamic> _$DailyPickToJson(_DailyPick instance) =>
       'durationSeconds': instance.durationSeconds,
       'platform': instance.platform,
       'reasonDetail': instance.reasonDetail,
+      'bvid': instance.bvid,
+      'aid': instance.aid,
+      'cid': instance.cid,
+      'page': instance.page,
+      'videoTitle': instance.videoTitle,
+      'videoAuthor': instance.videoAuthor,
+      'videoCoverUrl': instance.videoCoverUrl,
+      'videoDurationText': instance.videoDurationText,
     };
 
 const _$RadarReasonEnumMap = {

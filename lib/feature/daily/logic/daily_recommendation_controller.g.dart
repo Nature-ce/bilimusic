@@ -238,7 +238,7 @@ final class DailyRecommendationControllerProvider
 }
 
 String _$dailyRecommendationControllerHash() =>
-    r'f3cfb0db97624185944910363a45e1ad54a9df9a';
+    r'2aa0164be4f7860ece1bbb5fc23189978d1e9732';
 
 /// 每日推荐：当天第一份生成后存进 prefs，之后重启、切页面都读同一份；
 /// `dateKey` 不是今天就重新生成。

@@ -7,7 +7,11 @@ import 'package:bilimusic/feature/daily/logic/daily_recommendation_controller.da
 import 'package:bilimusic/feature/home/data/hot_playlist_repository.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist.dart';
 import 'package:bilimusic/feature/home/domain/hot_playlist_track.dart';
+import 'package:bilimusic/feature/home/domain/matchable_track.dart';
 import 'package:bilimusic/feature/home/domain/music_chart_platform.dart';
+import 'package:bilimusic/feature/home/logic/music_chart_resolver.dart';
+import 'package:bilimusic/feature/player/data/bili_player_repository.dart';
+import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/radar/data/radar_pool_loader.dart';
 import 'package:bilimusic/feature/radar/domain/radar_pick.dart';
 import 'package:bilimusic/feature/radar/domain/radar_taste.dart';
@@ -70,13 +74,54 @@ RadarTaste _personalizedTaste() {
   );
 }
 
-DailyPick _dailyPick(int index) {
-  return DailyPick(
+DailyPick _dailyPick(int index, {bool resolved = true}) {
+  final DailyPick pick = DailyPick(
     title: '旧推荐 $index',
     artist: '旧歌手 $index',
     reason: RadarReason.explorer,
     durationSeconds: 200,
   );
+  if (!resolved) {
+    return pick;
+  }
+  return pick.copyWith(
+    bvid: 'BVold$index',
+    aid: index + 1,
+    page: 1,
+    videoTitle: '旧视频 $index',
+    videoAuthor: '旧UP $index',
+    videoCoverUrl: 'https://example.com/$index.jpg',
+    videoDurationText: '03:20',
+  );
+}
+
+/// 用假的解析器代替真实 B 站搜索，生成阶段才能跑在测试里。
+class _FakeResolver extends MusicChartResolver {
+  _FakeResolver({this.failTitles = const <String>{}})
+    : super(
+        searchRepository: _FakeSearchRepository(),
+        playerRepository: _FakePlayerRepository(),
+      );
+
+  final Set<String> failTitles;
+  int calls = 0;
+
+  @override
+  Future<PlayableItem?> resolve(MatchableTrack track) async {
+    calls += 1;
+    if (failTitles.contains(track.title)) {
+      return null;
+    }
+    return PlayableItem(
+      aid: track.title.hashCode.abs(),
+      bvid: 'BV${track.title.hashCode.abs()}',
+      title: track.title,
+      author: track.artist,
+      coverUrl: '',
+      page: 1,
+      durationText: '03:20',
+    );
+  }
 }
 
 class _FakeSearchRepository implements BiliSearchRepository {
@@ -97,6 +142,11 @@ class _FakeSearchRepository implements BiliSearchRepository {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
+class _FakePlayerRepository implements BiliPlayerRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
 ProviderContainer _container({
   required _FakeDailyStore store,
   required _FakePoolLoader loader,
@@ -104,6 +154,7 @@ ProviderContainer _container({
   DateTime Function()? now,
   RadarTaste taste = const RadarTaste(),
   BiliSearchRepository? searchRepository,
+  MusicChartResolver? resolver,
 }) {
   final ProviderContainer container = ProviderContainer(
     overrides: [
@@ -116,6 +167,7 @@ ProviderContainer _container({
       biliSearchRepositoryProvider.overrideWith(
         (Ref ref) => searchRepository ?? _FakeSearchRepository(),
       ),
+      musicChartResolverProvider.overrideWithValue(resolver ?? _FakeResolver()),
     ],
   );
   addTearDown(container.dispose);
@@ -195,6 +247,9 @@ void main() {
     );
 
     final DailyRecommendationState state = await _settle(container);
+    await container
+        .read(dailyRecommendationControllerProvider.notifier)
+        .resolvePending();
 
     expect(state.dateKey, '2026-11-24');
     expect(state.picks, hasLength(30));
@@ -202,7 +257,7 @@ void main() {
     expect(state.hasError, isFalse);
     expect(loader.loadCalls, 1);
     expect(recommender.calls, 1);
-    expect(store.saveCalls, 1);
+    expect(store.saveCalls, greaterThanOrEqualTo(1));
     expect(store.load()!.dateKey, '2026-11-24');
     expect(store.load()!.picks, hasLength(30));
     expect(store.load()!.generatedAtEpochMs, _today.millisecondsSinceEpoch);
@@ -263,7 +318,7 @@ void main() {
     expect(recovered.hasError, isFalse);
     expect(recovered.picks, hasLength(30));
     expect(recovered.dateKey, '2026-11-24');
-    expect(store.saveCalls, 1);
+    expect(store.saveCalls, greaterThanOrEqualTo(1));
   });
 
   test('同一会话里跨过 0 点后 ensureUpToDate 会重新生成', () async {
@@ -288,7 +343,7 @@ void main() {
         .read(dailyRecommendationControllerProvider.notifier)
         .ensureUpToDate();
     expect(loader.loadCalls, 1);
-    expect(store.saveCalls, 1);
+    expect(store.saveCalls, greaterThanOrEqualTo(1));
 
     now = DateTime(2026, 11, 25, 0, 5);
     await container
@@ -299,7 +354,7 @@ void main() {
     expect(next.dateKey, '2026-11-25');
     expect(next.picks, hasLength(30));
     expect(loader.loadCalls, 2);
-    expect(store.saveCalls, 2);
+    expect(store.saveCalls, greaterThanOrEqualTo(2));
     expect(store.load()!.dateKey, '2026-11-25');
   });
 
@@ -337,6 +392,86 @@ void main() {
       isEmpty,
     );
   });
+  test('匹配不上的推荐会在补齐阶段被新候选替换掉', () async {
+    final _FakeDailyStore store = _FakeDailyStore();
+    final _FakePoolLoader loader = _FakePoolLoader(
+      waves: <List<HotPlaylistTrack>>[
+        _wave(),
+        _wave(start: 45, count: 45),
+        _wave(start: 200, count: 45),
+      ],
+    );
+    final _CountingRecommender recommender = _CountingRecommender();
+    final _FakeResolver resolver = _FakeResolver(
+      failTitles: <String>{'每日歌曲 0', '每日歌曲 5'},
+    );
+    final ProviderContainer container = _container(
+      store: store,
+      loader: loader,
+      recommender: recommender,
+      taste: _personalizedTaste(),
+      resolver: resolver,
+    );
+
+    await _settle(container);
+    await container
+        .read(dailyRecommendationControllerProvider.notifier)
+        .resolvePending();
+
+    final DailyRecommendationState state = container.read(
+      dailyRecommendationControllerProvider,
+    );
+    expect(state.picks, hasLength(30));
+    expect(state.picks.every((DailyPick pick) => pick.isResolved), isTrue);
+    expect(
+      state.picks.where(
+        (DailyPick pick) => pick.title == '每日歌曲 0' || pick.title == '每日歌曲 5',
+      ),
+      isEmpty,
+    );
+    expect(
+      state.picks.every((DailyPick pick) => pick.directItem != null),
+      isTrue,
+    );
+  });
+
+  test('本地当天那份没有预解析视频时只补解析，不重新生成', () async {
+    final _FakeDailyStore store = _FakeDailyStore(
+      stored: DailyRecommendation(
+        dateKey: '2026-11-24',
+        generatedAtEpochMs: 222,
+        picks: <DailyPick>[
+          for (int index = 0; index < 3; index += 1)
+            _dailyPick(index, resolved: false),
+        ],
+      ),
+    );
+    final _FakePoolLoader loader = _FakePoolLoader(
+      waves: <List<HotPlaylistTrack>>[_wave()],
+    );
+    final _CountingRecommender recommender = _CountingRecommender();
+    final ProviderContainer container = _container(
+      store: store,
+      loader: loader,
+      recommender: recommender,
+      taste: _personalizedTaste(),
+    );
+
+    await _settle(container);
+    await container
+        .read(dailyRecommendationControllerProvider.notifier)
+        .resolvePending();
+
+    final DailyRecommendationState state = container.read(
+      dailyRecommendationControllerProvider,
+    );
+    expect(loader.loadCalls, 0);
+    expect(recommender.calls, 0);
+    expect(state.picks, hasLength(3));
+    expect(state.picks.every((DailyPick pick) => pick.isResolved), isTrue);
+    expect(store.saveCalls, greaterThanOrEqualTo(1));
+  });
+
   test('缺少封面的曲目会用 B 站匹配结果回填并落盘', () async {
     final _FakeDailyStore store = _FakeDailyStore(
       stored: DailyRecommendation(
@@ -348,6 +483,12 @@ void main() {
             artist: '火鸡',
             reason: RadarReason.explorer,
             durationSeconds: 29,
+            // 已解析出 B 站视频，但封面缺失、时长来自不可信的源接口。
+            bvid: 'BV1',
+            aid: 1,
+            page: 1,
+            videoTitle: '火鸡 - 最初的记忆',
+            videoAuthor: '某UP主',
           ),
         ],
       ),

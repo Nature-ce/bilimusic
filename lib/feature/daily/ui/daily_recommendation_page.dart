@@ -56,6 +56,13 @@ class _DailyRecommendationPageState
     }
     setState(() => _resolvingTrackKey = pick.key);
     try {
+      // 先把当天这份推荐的 B 站视频补齐（结果会落盘），之后播放不再重复搜索。
+      await ref
+          .read(dailyRecommendationControllerProvider.notifier)
+          .resolvePending();
+      if (!mounted) {
+        return;
+      }
       final PlayableItem? item = await ref
           .read(musicChartResolverProvider)
           .resolve(pick);
@@ -93,6 +100,13 @@ class _DailyRecommendationPageState
       _playAllTotal = picks.length;
     });
     try {
+      // 先把当天这份推荐的 B 站视频补齐，播放阶段就不用再逐首搜索。
+      await ref
+          .read(dailyRecommendationControllerProvider.notifier)
+          .resolvePending();
+      if (!mounted) {
+        return;
+      }
       await CollectionPlayAllRunner(
         context: context,
         ref: ref,

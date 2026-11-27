@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DailyPick {
 
- String get title; String get artist; RadarReason get reason; String get coverUrl; int get durationSeconds; String get platform; String? get reasonDetail;
+ String get title; String get artist; RadarReason get reason; String get coverUrl; int get durationSeconds; String get platform; String? get reasonDetail; String get bvid; int get aid; int? get cid; int? get page; String get videoTitle; String get videoAuthor; String get videoCoverUrl; String get videoDurationText;
 /// Create a copy of DailyPick
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $DailyPickCopyWith<DailyPick> get copyWith => _$DailyPickCopyWithImpl<DailyPick>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DailyPick&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.reasonDetail, reasonDetail) || other.reasonDetail == reasonDetail));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DailyPick&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.reasonDetail, reasonDetail) || other.reasonDetail == reasonDetail)&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.aid, aid) || other.aid == aid)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.page, page) || other.page == page)&&(identical(other.videoTitle, videoTitle) || other.videoTitle == videoTitle)&&(identical(other.videoAuthor, videoAuthor) || other.videoAuthor == videoAuthor)&&(identical(other.videoCoverUrl, videoCoverUrl) || other.videoCoverUrl == videoCoverUrl)&&(identical(other.videoDurationText, videoDurationText) || other.videoDurationText == videoDurationText));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,artist,reason,coverUrl,durationSeconds,platform,reasonDetail);
+int get hashCode => Object.hash(runtimeType,title,artist,reason,coverUrl,durationSeconds,platform,reasonDetail,bvid,aid,cid,page,videoTitle,videoAuthor,videoCoverUrl,videoDurationText);
 
 @override
 String toString() {
-  return 'DailyPick(title: $title, artist: $artist, reason: $reason, coverUrl: $coverUrl, durationSeconds: $durationSeconds, platform: $platform, reasonDetail: $reasonDetail)';
+  return 'DailyPick(title: $title, artist: $artist, reason: $reason, coverUrl: $coverUrl, durationSeconds: $durationSeconds, platform: $platform, reasonDetail: $reasonDetail, bvid: $bvid, aid: $aid, cid: $cid, page: $page, videoTitle: $videoTitle, videoAuthor: $videoAuthor, videoCoverUrl: $videoCoverUrl, videoDurationText: $videoDurationText)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $DailyPickCopyWith<$Res>  {
   factory $DailyPickCopyWith(DailyPick value, $Res Function(DailyPick) _then) = _$DailyPickCopyWithImpl;
 @useResult
 $Res call({
- String title, String artist, RadarReason reason, String coverUrl, int durationSeconds, String platform, String? reasonDetail
+ String title, String artist, RadarReason reason, String coverUrl, int durationSeconds, String platform, String? reasonDetail, String bvid, int aid, int? cid, int? page, String videoTitle, String videoAuthor, String videoCoverUrl, String videoDurationText
 });
 
 
@@ -65,7 +65,7 @@ class _$DailyPickCopyWithImpl<$Res>
 
 /// Create a copy of DailyPick
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? artist = null,Object? reason = null,Object? coverUrl = null,Object? durationSeconds = null,Object? platform = null,Object? reasonDetail = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? artist = null,Object? reason = null,Object? coverUrl = null,Object? durationSeconds = null,Object? platform = null,Object? reasonDetail = freezed,Object? bvid = null,Object? aid = null,Object? cid = freezed,Object? page = freezed,Object? videoTitle = null,Object? videoAuthor = null,Object? videoCoverUrl = null,Object? videoDurationText = null,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,artist: null == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,15 @@ as RadarReason,coverUrl: null == coverUrl ? _self.coverUrl : coverUrl // ignore:
 as String,durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
 as int,platform: null == platform ? _self.platform : platform // ignore: cast_nullable_to_non_nullable
 as String,reasonDetail: freezed == reasonDetail ? _self.reasonDetail : reasonDetail // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,bvid: null == bvid ? _self.bvid : bvid // ignore: cast_nullable_to_non_nullable
+as String,aid: null == aid ? _self.aid : aid // ignore: cast_nullable_to_non_nullable
+as int,cid: freezed == cid ? _self.cid : cid // ignore: cast_nullable_to_non_nullable
+as int?,page: freezed == page ? _self.page : page // ignore: cast_nullable_to_non_nullable
+as int?,videoTitle: null == videoTitle ? _self.videoTitle : videoTitle // ignore: cast_nullable_to_non_nullable
+as String,videoAuthor: null == videoAuthor ? _self.videoAuthor : videoAuthor // ignore: cast_nullable_to_non_nullable
+as String,videoCoverUrl: null == videoCoverUrl ? _self.videoCoverUrl : videoCoverUrl // ignore: cast_nullable_to_non_nullable
+as String,videoDurationText: null == videoDurationText ? _self.videoDurationText : videoDurationText // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -159,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String artist,  RadarReason reason,  String coverUrl,  int durationSeconds,  String platform,  String? reasonDetail)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String artist,  RadarReason reason,  String coverUrl,  int durationSeconds,  String platform,  String? reasonDetail,  String bvid,  int aid,  int? cid,  int? page,  String videoTitle,  String videoAuthor,  String videoCoverUrl,  String videoDurationText)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DailyPick() when $default != null:
-return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durationSeconds,_that.platform,_that.reasonDetail);case _:
+return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durationSeconds,_that.platform,_that.reasonDetail,_that.bvid,_that.aid,_that.cid,_that.page,_that.videoTitle,_that.videoAuthor,_that.videoCoverUrl,_that.videoDurationText);case _:
   return orElse();
 
 }
@@ -180,10 +188,10 @@ return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durat
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String artist,  RadarReason reason,  String coverUrl,  int durationSeconds,  String platform,  String? reasonDetail)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String artist,  RadarReason reason,  String coverUrl,  int durationSeconds,  String platform,  String? reasonDetail,  String bvid,  int aid,  int? cid,  int? page,  String videoTitle,  String videoAuthor,  String videoCoverUrl,  String videoDurationText)  $default,) {final _that = this;
 switch (_that) {
 case _DailyPick():
-return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durationSeconds,_that.platform,_that.reasonDetail);case _:
+return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durationSeconds,_that.platform,_that.reasonDetail,_that.bvid,_that.aid,_that.cid,_that.page,_that.videoTitle,_that.videoAuthor,_that.videoCoverUrl,_that.videoDurationText);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +208,10 @@ return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durat
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String artist,  RadarReason reason,  String coverUrl,  int durationSeconds,  String platform,  String? reasonDetail)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String artist,  RadarReason reason,  String coverUrl,  int durationSeconds,  String platform,  String? reasonDetail,  String bvid,  int aid,  int? cid,  int? page,  String videoTitle,  String videoAuthor,  String videoCoverUrl,  String videoDurationText)?  $default,) {final _that = this;
 switch (_that) {
 case _DailyPick() when $default != null:
-return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durationSeconds,_that.platform,_that.reasonDetail);case _:
+return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durationSeconds,_that.platform,_that.reasonDetail,_that.bvid,_that.aid,_that.cid,_that.page,_that.videoTitle,_that.videoAuthor,_that.videoCoverUrl,_that.videoDurationText);case _:
   return null;
 
 }
@@ -215,7 +223,7 @@ return $default(_that.title,_that.artist,_that.reason,_that.coverUrl,_that.durat
 @JsonSerializable()
 
 class _DailyPick extends DailyPick {
-  const _DailyPick({required this.title, required this.artist, required this.reason, this.coverUrl = '', this.durationSeconds = 0, this.platform = '', this.reasonDetail}): super._();
+  const _DailyPick({required this.title, required this.artist, required this.reason, this.coverUrl = '', this.durationSeconds = 0, this.platform = '', this.reasonDetail, this.bvid = '', this.aid = 0, this.cid, this.page, this.videoTitle = '', this.videoAuthor = '', this.videoCoverUrl = '', this.videoDurationText = ''}): super._();
   factory _DailyPick.fromJson(Map<String, dynamic> json) => _$DailyPickFromJson(json);
 
 @override final  String title;
@@ -225,6 +233,14 @@ class _DailyPick extends DailyPick {
 @override@JsonKey() final  int durationSeconds;
 @override@JsonKey() final  String platform;
 @override final  String? reasonDetail;
+@override@JsonKey() final  String bvid;
+@override@JsonKey() final  int aid;
+@override final  int? cid;
+@override final  int? page;
+@override@JsonKey() final  String videoTitle;
+@override@JsonKey() final  String videoAuthor;
+@override@JsonKey() final  String videoCoverUrl;
+@override@JsonKey() final  String videoDurationText;
 
 /// Create a copy of DailyPick
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +255,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DailyPick&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.reasonDetail, reasonDetail) || other.reasonDetail == reasonDetail));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DailyPick&&(identical(other.title, title) || other.title == title)&&(identical(other.artist, artist) || other.artist == artist)&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.platform, platform) || other.platform == platform)&&(identical(other.reasonDetail, reasonDetail) || other.reasonDetail == reasonDetail)&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.aid, aid) || other.aid == aid)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.page, page) || other.page == page)&&(identical(other.videoTitle, videoTitle) || other.videoTitle == videoTitle)&&(identical(other.videoAuthor, videoAuthor) || other.videoAuthor == videoAuthor)&&(identical(other.videoCoverUrl, videoCoverUrl) || other.videoCoverUrl == videoCoverUrl)&&(identical(other.videoDurationText, videoDurationText) || other.videoDurationText == videoDurationText));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,artist,reason,coverUrl,durationSeconds,platform,reasonDetail);
+int get hashCode => Object.hash(runtimeType,title,artist,reason,coverUrl,durationSeconds,platform,reasonDetail,bvid,aid,cid,page,videoTitle,videoAuthor,videoCoverUrl,videoDurationText);
 
 @override
 String toString() {
-  return 'DailyPick(title: $title, artist: $artist, reason: $reason, coverUrl: $coverUrl, durationSeconds: $durationSeconds, platform: $platform, reasonDetail: $reasonDetail)';
+  return 'DailyPick(title: $title, artist: $artist, reason: $reason, coverUrl: $coverUrl, durationSeconds: $durationSeconds, platform: $platform, reasonDetail: $reasonDetail, bvid: $bvid, aid: $aid, cid: $cid, page: $page, videoTitle: $videoTitle, videoAuthor: $videoAuthor, videoCoverUrl: $videoCoverUrl, videoDurationText: $videoDurationText)';
 }
 
 
@@ -259,7 +275,7 @@ abstract mixin class _$DailyPickCopyWith<$Res> implements $DailyPickCopyWith<$Re
   factory _$DailyPickCopyWith(_DailyPick value, $Res Function(_DailyPick) _then) = __$DailyPickCopyWithImpl;
 @override @useResult
 $Res call({
- String title, String artist, RadarReason reason, String coverUrl, int durationSeconds, String platform, String? reasonDetail
+ String title, String artist, RadarReason reason, String coverUrl, int durationSeconds, String platform, String? reasonDetail, String bvid, int aid, int? cid, int? page, String videoTitle, String videoAuthor, String videoCoverUrl, String videoDurationText
 });
 
 
@@ -276,7 +292,7 @@ class __$DailyPickCopyWithImpl<$Res>
 
 /// Create a copy of DailyPick
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? artist = null,Object? reason = null,Object? coverUrl = null,Object? durationSeconds = null,Object? platform = null,Object? reasonDetail = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? artist = null,Object? reason = null,Object? coverUrl = null,Object? durationSeconds = null,Object? platform = null,Object? reasonDetail = freezed,Object? bvid = null,Object? aid = null,Object? cid = freezed,Object? page = freezed,Object? videoTitle = null,Object? videoAuthor = null,Object? videoCoverUrl = null,Object? videoDurationText = null,}) {
   return _then(_DailyPick(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,artist: null == artist ? _self.artist : artist // ignore: cast_nullable_to_non_nullable
@@ -285,7 +301,15 @@ as RadarReason,coverUrl: null == coverUrl ? _self.coverUrl : coverUrl // ignore:
 as String,durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
 as int,platform: null == platform ? _self.platform : platform // ignore: cast_nullable_to_non_nullable
 as String,reasonDetail: freezed == reasonDetail ? _self.reasonDetail : reasonDetail // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,bvid: null == bvid ? _self.bvid : bvid // ignore: cast_nullable_to_non_nullable
+as String,aid: null == aid ? _self.aid : aid // ignore: cast_nullable_to_non_nullable
+as int,cid: freezed == cid ? _self.cid : cid // ignore: cast_nullable_to_non_nullable
+as int?,page: freezed == page ? _self.page : page // ignore: cast_nullable_to_non_nullable
+as int?,videoTitle: null == videoTitle ? _self.videoTitle : videoTitle // ignore: cast_nullable_to_non_nullable
+as String,videoAuthor: null == videoAuthor ? _self.videoAuthor : videoAuthor // ignore: cast_nullable_to_non_nullable
+as String,videoCoverUrl: null == videoCoverUrl ? _self.videoCoverUrl : videoCoverUrl // ignore: cast_nullable_to_non_nullable
+as String,videoDurationText: null == videoDurationText ? _self.videoDurationText : videoDurationText // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

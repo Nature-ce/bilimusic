@@ -25,13 +25,39 @@ abstract class DailyPick with _$DailyPick implements MatchableTrack {
     @Default(0) int durationSeconds,
     @Default('') String platform,
     String? reasonDetail,
+    @Default('') String bvid,
+    @Default(0) int aid,
+    int? cid,
+    int? page,
+    @Default('') String videoTitle,
+    @Default('') String videoAuthor,
+    @Default('') String videoCoverUrl,
+    @Default('') String videoDurationText,
   }) = _DailyPick;
 
   factory DailyPick.fromJson(Map<String, dynamic> json) =>
       _$DailyPickFromJson(json);
 
+  /// 生成推荐时就把 B 站视频解析好存下来：每日推荐当天不变，
+  /// 「播放全部」不该每次都重新搜一遍。
+  bool get isResolved => bvid.isNotEmpty || aid > 0;
+
   @override
-  PlayableItem? get directItem => null;
+  PlayableItem? get directItem {
+    if (!isResolved) {
+      return null;
+    }
+    return PlayableItem(
+      aid: aid,
+      bvid: bvid,
+      title: videoTitle.isEmpty ? title : videoTitle,
+      author: videoAuthor,
+      coverUrl: videoCoverUrl.isEmpty ? coverUrl : videoCoverUrl,
+      cid: cid,
+      page: page,
+      durationText: videoDurationText.isEmpty ? null : videoDurationText,
+    );
+  }
 
   String get key => '$title|$artist';
 
