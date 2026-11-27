@@ -484,4 +484,50 @@ void main() {
 
     expect(picked, isNotNull);
   });
+
+  test('英文歌：变音符号与全角不影响匹配', () {
+    const MusicChartTrack track = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: 'Halo',
+      artist: 'Beyoncé',
+      coverUrl: '',
+      durationSeconds: 261,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: track,
+        candidates: <SearchResultItem>[
+          _item(
+            title: 'Beyonce - Halo 官方MV',
+            author: '某音乐搬运',
+            duration: '04:21',
+          ),
+        ],
+      ),
+      isNotNull,
+    );
+  });
+
+  test('日文歌：半角片假名歌手名也能匹配', () {
+    const MusicChartTrack track = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: 'LOSER',
+      artist: 'キタニタツヤ',
+      coverUrl: '',
+      durationSeconds: 203,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: track,
+        candidates: <SearchResultItem>[
+          _item(title: 'ｷﾀﾆﾀﾂﾔ - LOSER', author: '文火', duration: '03:23'),
+        ],
+      ),
+      isNotNull,
+    );
+  });
 }

@@ -1,4 +1,4 @@
-import 'package:bilimusic/common/util/chinese_variants.dart';
+import 'package:bilimusic/common/util/match_text_normalizer.dart';
 import 'package:bilimusic/feature/home/domain/matchable_track.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 
@@ -131,10 +131,6 @@ class ChartTrackMatcher {
 
   /// 兜底匹配（只按歌名找完整版）要求的最短歌名，太短的不兜底。
   static const int _fallbackMinimumTitleLength = 3;
-
-  static final RegExp _ignoredCharacters = RegExp(
-    r'''[\s\-_/\\.。，,、:：!！?？"'`~@#%&*+=|<>()\[\]{}（）【】「」『』《》]''',
-  );
 
   /// 通用曲名（催眠曲 / 摇篮曲 / 纯音乐…）在 B 站很难匹配到「同一首歌」，
   /// 推荐链路应该直接跳过，避免推荐了却播不出来。
@@ -390,8 +386,9 @@ class ChartTrackMatcher {
   }
 
   static String normalize(String value) {
-    // 先做繁简归一：B 站标题常是繁体（時間線），平台歌名是简体（时间线）。
-    return toSimplified(value).toLowerCase().replaceAll(_ignoredCharacters, '');
+    // 统一归一：全角/花体字母、半角片假名、变音符号、&与and、Pt与Part、繁简，
+    // 再转小写去标点，避免同一首歌因为书写差异被判成两首。
+    return normalizeForMatching(value);
   }
 
   static int parseDurationSeconds(String value) {
