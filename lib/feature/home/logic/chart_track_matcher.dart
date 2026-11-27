@@ -253,6 +253,29 @@ class ChartTrackMatcher {
     return _score(track: track, item: item).total;
   }
 
+  /// 诊断用：这次「匹配不到」是不是因为所有候选都被时长闸门拒掉了。
+  ///
+  /// 榜单接口偶尔给出错误的时长，这时「匹配不到」其实是数据脏，不是 B 站没有
+  /// 这首歌；调用方据此决定不要写负缓存，否则这首本来能播的歌会被锁一段时间。
+  static bool onlyDurationRejected({
+    required MatchableTrack track,
+    required List<SearchResultItem> candidates,
+  }) {
+    if (candidates.isEmpty) {
+      return false;
+    }
+    for (final SearchResultItem item in candidates) {
+      final bool usable = _isUsableDuration(
+        track.durationSeconds,
+        parseDurationSeconds(item.duration),
+      );
+      if (usable) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// 宽松兜底：只按歌名挑一个「完整版」视频。
   ///
   /// 平台给的歌手本身是翻唱/搬运时，严格规则会因「歌手对不上」而找不到，

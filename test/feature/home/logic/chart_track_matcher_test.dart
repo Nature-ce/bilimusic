@@ -709,4 +709,39 @@ void main() {
       isNotNull,
     );
   });
+
+  test('诊断：候选全被时长闸门拒掉时返回 true', () {
+    // 榜单时长脏（4:29 的歌，候选全是 12 分钟教学/合集）——这种「匹配不到」
+    // 不该写进负缓存，否则本来能匹配的歌会被锁住。
+    expect(
+      ChartTrackMatcher.onlyDurationRejected(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天合集', duration: '12:00'),
+          _item(title: '晴天片段', duration: '00:30'),
+        ],
+      ),
+      isTrue,
+    );
+
+    // 有一条候选时长可用，就不算「全被时长拒掉」。
+    expect(
+      ChartTrackMatcher.onlyDurationRejected(
+        track: _track,
+        candidates: <SearchResultItem>[
+          _item(title: '晴天合集', duration: '12:00'),
+          _item(title: '完全无关的视频', duration: '04:29'),
+        ],
+      ),
+      isFalse,
+    );
+
+    expect(
+      ChartTrackMatcher.onlyDurationRejected(
+        track: _track,
+        candidates: const <SearchResultItem>[],
+      ),
+      isFalse,
+    );
+  });
 }

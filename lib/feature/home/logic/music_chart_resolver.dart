@@ -96,23 +96,37 @@ class MusicChartResolver {
         return null;
       }
     }
-    SearchResultItem? match = await _searchBest(track.searchKeyword, track);
-    if (match == null) {
-      final SearchPageResult? result = await _searchCached(track.title);
-      if (result != null) {
+    // 两次搜索的候选合并起来，用来判断这次「匹配不到」到底是没搜到东西，
+    // 还是搜到了但都不合格——只有后者才值得写负缓存。
+    final List<SearchResultItem> candidates = <SearchResultItem>[];
+    SearchResultItem? match;
+    final SearchPageResult? keywordResult = await _searchCached(
+      track.searchKeyword,
+    );
+    if (keywordResult != null) {
+      candidates.addAll(keywordResult.items);
+      match = ChartTrackMatcher.pickBest(
+        track: track,
+        candidates: keywordResult.items,
+      );
+    }
+    if (match == null && !_searchesTitleTwice(track)) {
+      final SearchPageResult? titleResult = await _searchCached(track.title);
+      if (titleResult != null) {
+        candidates.addAll(titleResult.items);
         match =
             ChartTrackMatcher.pickBest(
               track: track,
-              candidates: result.items,
+              candidates: titleResult.items,
             ) ??
             ChartTrackMatcher.pickTitleFallback(
               track: track,
-              candidates: result.items,
+              candidates: titleResult.items,
             );
       }
     }
     if (match == null) {
-      await matchCache?.writeMiss(track);
+      await _recordMiss(track, matchCache, candidates: candidates);
       return null;
     }
     final PlayableItem item = await playerRepository.resolvePreferredPart(
@@ -125,15 +139,40 @@ class MusicChartResolver {
     return item;
   }
 
-  Future<SearchResultItem?> _searchBest(
-    String keyword,
+  /// 歌手为空时「歌名+歌手」就是歌名本身，第二次搜索等于重复请求。
+  bool _searchesTitleTwice(MatchableTrack track) {
+    return track.searchKeyword.trim() == track.title.trim();
+  }
+
+  /// 只有「确实搜到了候选、但都不合格」才写负缓存。
+  ///
+  /// 以下情况一律不写：一条候选都没有（B 站软限流时接口会返回成功但结果为空）、
+  /// 候选全被时长闸门拒掉（榜单给错了时长）、以及正处于限流冷却期。
+  /// 这些都不是「这首歌在 B 站没有」，写进去就会把本来能匹配的歌锁在负缓存里。
+  Future<void> _recordMiss(
     MatchableTrack track,
-  ) async {
-    final SearchPageResult? result = await _searchCached(keyword);
-    if (result == null) {
-      return null;
+    TrackMatchCache? matchCache, {
+    required List<SearchResultItem> candidates,
+  }) async {
+    if (matchCache == null || candidates.isEmpty || _isRateLimitedNow) {
+      return;
     }
-    return ChartTrackMatcher.pickBest(track: track, candidates: result.items);
+    if (ChartTrackMatcher.onlyDurationRejected(
+      track: track,
+      candidates: candidates,
+    )) {
+      return;
+    }
+    await matchCache.writeMiss(track);
+  }
+
+  bool get _isRateLimitedNow {
+    final SearchGuard? sharedGuard = guard;
+    if (sharedGuard != null && sharedGuard.isBlocked) {
+      return true;
+    }
+    final DateTime? until = _cooldownUntil;
+    return until != null && DateTime.now().isBefore(until);
   }
 
   Future<SearchPageResult?> _searchCached(String rawKeyword) async {
@@ -152,11 +191,15 @@ class MusicChartResolver {
           keyword,
         );
         _onSearchSucceeded();
-        _searchCache[keyword] = _CachedSearch(
-          result: result,
-          at: DateTime.now(),
-        );
-        _pruneSearchCache();
+        // 空结果不入缓存：软限流时接口会返回「成功但结果为空」，
+        // 缓存下来会让 10 分钟内的重试同样拿不到候选。
+        if (result.items.isNotEmpty) {
+          _searchCache[keyword] = _CachedSearch(
+            result: result,
+            at: DateTime.now(),
+          );
+          _pruneSearchCache();
+        }
         return result;
       } on Object catch (error) {
         if (_looksRateLimited(error)) {

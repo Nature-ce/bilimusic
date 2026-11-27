@@ -233,6 +233,154 @@ void main() {
 
     expect(repository.maxConcurrent, 1);
   });
+
+  test('一条候选都没搜到时不写负缓存，下次仍然真实重试', () async {
+    final Directory tempDirectory = await Directory.systemTemp.createTemp(
+      'resolver_no_candidates',
+    );
+    Hive.init(tempDirectory.path);
+    final Box<String> box = await Hive.openBox<String>('prefs_no_candidates');
+    addTearDown(() async {
+      await box.close();
+      await tempDirectory.delete(recursive: true);
+    });
+    final TrackMatchCache cache = TrackMatchCache(box);
+    final _ScriptedSearchRepository repository = _ScriptedSearchRepository(
+      const <SearchResultItem>[],
+    );
+    final MusicChartResolver resolver = MusicChartResolver(
+      searchRepository: repository,
+      playerRepository: BiliPlayerRepository(_ThrowingClient()),
+      cache: cache,
+      baseSearchInterval: Duration.zero,
+    );
+    const MusicChartTrack track = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '晴天',
+      artist: '周杰伦',
+      coverUrl: '',
+      durationSeconds: 269,
+    );
+
+    expect(await resolver.resolve(track), isNull);
+    // 空结果多半是软限流：不能当作「这首歌在 B 站没有」。
+    expect(cache.isFreshMiss(track), isFalse);
+
+    final int firstCalls = repository.calls;
+    expect(firstCalls, greaterThan(0));
+    expect(await resolver.resolve(track), isNull);
+    expect(repository.calls, greaterThan(firstCalls));
+  });
+
+  test('搜到了候选但都不合格时写入负缓存', () async {
+    final Directory tempDirectory = await Directory.systemTemp.createTemp(
+      'resolver_no_match',
+    );
+    Hive.init(tempDirectory.path);
+    final Box<String> box = await Hive.openBox<String>('prefs_no_match');
+    addTearDown(() async {
+      await box.close();
+      await tempDirectory.delete(recursive: true);
+    });
+    final TrackMatchCache cache = TrackMatchCache(box);
+    final _ScriptedSearchRepository repository = _ScriptedSearchRepository(
+      <SearchResultItem>[_searchItem(title: '完全无关的视频', duration: '04:29')],
+    );
+    final MusicChartResolver resolver = MusicChartResolver(
+      searchRepository: repository,
+      playerRepository: BiliPlayerRepository(_ThrowingClient()),
+      cache: cache,
+      baseSearchInterval: Duration.zero,
+    );
+    const MusicChartTrack track = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '晴天',
+      artist: '周杰伦',
+      coverUrl: '',
+      durationSeconds: 269,
+    );
+
+    expect(await resolver.resolve(track), isNull);
+    expect(cache.isFreshMiss(track), isTrue);
+
+    final int firstCalls = repository.calls;
+    expect(await resolver.resolve(track), isNull);
+    expect(repository.calls, firstCalls);
+  });
+
+  test('候选全被时长闸门拒掉（榜单时长脏）时不写负缓存', () async {
+    final Directory tempDirectory = await Directory.systemTemp.createTemp(
+      'resolver_duration_dirty',
+    );
+    Hive.init(tempDirectory.path);
+    final Box<String> box = await Hive.openBox<String>('prefs_duration');
+    addTearDown(() async {
+      await box.close();
+      await tempDirectory.delete(recursive: true);
+    });
+    final TrackMatchCache cache = TrackMatchCache(box);
+    final _ScriptedSearchRepository repository = _ScriptedSearchRepository(
+      <SearchResultItem>[_searchItem(title: '晴天 - 周杰伦', duration: '12:00')],
+    );
+    final MusicChartResolver resolver = MusicChartResolver(
+      searchRepository: repository,
+      playerRepository: BiliPlayerRepository(_ThrowingClient()),
+      cache: cache,
+      baseSearchInterval: Duration.zero,
+    );
+    const MusicChartTrack track = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '晴天',
+      artist: '周杰伦',
+      coverUrl: '',
+      durationSeconds: 269,
+    );
+
+    expect(await resolver.resolve(track), isNull);
+    expect(cache.isFreshMiss(track), isFalse);
+  });
+}
+
+SearchResultItem _searchItem({
+  required String title,
+  required String duration,
+}) {
+  return SearchResultItem(
+    aid: 1,
+    bvid: 'BV1',
+    typeId: 3,
+    title: title,
+    author: '某UP主',
+    coverUrl: '',
+    duration: duration,
+    playCountText: '',
+    danmakuCountText: '',
+    publishTimeText: '',
+    tagText: '',
+  );
+}
+
+class _ScriptedSearchRepository implements BiliSearchRepository {
+  _ScriptedSearchRepository(this.items);
+
+  final List<SearchResultItem> items;
+  int calls = 0;
+
+  @override
+  Future<SearchPageResult> searchVideos(
+    String keyword, {
+    int page = 1,
+    SearchSort sort = SearchSort.comprehensive,
+  }) async {
+    calls += 1;
+    return SearchPageResult(items: items);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
 class _RateLimitedSearchRepository implements BiliSearchRepository {

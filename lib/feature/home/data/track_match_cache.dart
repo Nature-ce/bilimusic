@@ -13,7 +13,7 @@ class TrackMatchCache {
   const TrackMatchCache(
     this._box, {
     this.hitTtl = const Duration(days: 14),
-    this.missTtl = const Duration(hours: 12),
+    this.missTtl = const Duration(hours: 2),
     this.maxEntries = 2000,
   });
 
@@ -21,6 +21,13 @@ class TrackMatchCache {
   final Duration hitTtl;
   final Duration missTtl;
   final int maxEntries;
+
+  /// 负缓存条目的格式版本。
+  ///
+  /// 只有带这个标记的条目才认：升级前写入的旧负缓存是「12 小时语义」，
+  /// 里面混着软限流等误判，一律当作过期，让那些歌立刻重新尝试；
+  /// 正缓存不受影响，不会引发全量重搜。
+  static const int _missSchema = 2;
 
   static String _keyFor(MatchableTrack track) {
     final String title = ChartTrackMatcher.normalize(track.title);
@@ -58,6 +65,9 @@ class TrackMatchCache {
     if (entry == null || entry['hit'] != false) {
       return false;
     }
+    if ((entry['schema'] as num?)?.toInt() != _missSchema) {
+      return false;
+    }
     return !_expired(entry, missTtl);
   }
 
@@ -76,9 +86,15 @@ class TrackMatchCache {
     });
   }
 
-  Future<void> writeMiss(MatchableTrack track) {
+  /// 记一笔「匹配不到」。
+  ///
+  /// [reason] 只用于事后排查：`no-match` 表示确实搜到了候选但都不合格，
+  /// 其余可疑原因（空结果、时长全不合格、限流冷却）调用方不该写负缓存。
+  Future<void> writeMiss(MatchableTrack track, {String reason = 'no-match'}) {
     return _write(track, <String, dynamic>{
       'hit': false,
+      'schema': _missSchema,
+      'reason': reason,
       'at': DateTime.now().millisecondsSinceEpoch,
     });
   }
