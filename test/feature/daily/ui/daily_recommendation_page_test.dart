@@ -121,7 +121,7 @@ void main() {
 
     expect(player.queuedLabels, isNotEmpty);
     expect(player.queuedLabels.first, '每日推荐');
-    expect(player.queued.first, hasLength(5));
+    expect(player.queued.first, hasLength(1));
     expect(player.enqueued, isNotEmpty);
     expect(find.text('播放全部'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -208,6 +208,7 @@ class _FakeDailyController extends DailyRecommendationController {
   final DailyRecommendationState initial;
   int retryCalls = 0;
   int ensureCalls = 0;
+  int resolveCalls = 0;
 
   @override
   DailyRecommendationState build() => initial;
@@ -215,6 +216,11 @@ class _FakeDailyController extends DailyRecommendationController {
   @override
   Future<void> ensureUpToDate() async {
     ensureCalls += 1;
+  }
+
+  @override
+  Future<void> resolvePending() async {
+    resolveCalls += 1;
   }
 
   @override

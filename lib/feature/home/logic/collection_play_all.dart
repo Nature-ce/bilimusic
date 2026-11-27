@@ -30,8 +30,9 @@ class CollectionPlayAllRunner {
     this.isActive,
   });
 
-  static const int _startSize = 5;
-  static const int _batchSize = 5;
+  /// 匹配到第一首就开播，剩下的边匹配边入队，避免点「播放全部」后干等。
+  static const int _startSize = 1;
+  static const int _batchSize = 2;
 
   final BuildContext context;
   final WidgetRef ref;
@@ -61,7 +62,8 @@ class CollectionPlayAllRunner {
         }
         PlayableItem? item;
         try {
-          item = await resolver.resolve(track);
+          // 已经预解析过（每日推荐缓存、播放过一遍）就直接用，省一次搜索。
+          item = track.directItem ?? await resolver.resolve(track);
         } on Object {
           item = null;
         }

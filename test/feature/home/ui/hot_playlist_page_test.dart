@@ -208,7 +208,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(resolver.resolveCalls, 2);
-    expect(played, hasLength(2));
+    // 匹配到第一首就起播，剩下的边匹配边入队，不再攒够 5 首才开播。
+    expect(played, hasLength(1));
     expect(playedLabel, '测试歌单');
     expect(player.modes, contains(PlayerQueueMode.sequence));
     // 播放中按钮恢复成可点状态。
@@ -268,14 +269,15 @@ void main() {
     await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
     await tester.pumpAndSettle();
 
-    // 先拿前 5 首开播，剩下的 7 首补进队列。
-    expect(played, hasLength(5));
-    expect(player.enqueued, hasLength(2));
-    expect(player.enqueued.first, hasLength(5));
-    expect(player.enqueued.last, hasLength(2));
+    // 第一首匹配完立刻起播，其余 11 首按小批次陆续补进队列。
+    expect(played, hasLength(1));
     expect(
       player.enqueued.expand((List<PlayableItem> items) => items),
-      hasLength(7),
+      hasLength(11),
+    );
+    expect(
+      player.enqueued.every((List<PlayableItem> items) => items.length <= 2),
+      isTrue,
     );
   });
 }
