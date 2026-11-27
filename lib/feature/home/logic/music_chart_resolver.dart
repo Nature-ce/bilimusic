@@ -12,6 +12,7 @@ import 'package:bilimusic/feature/search/data/bili_search_repository.dart';
 import 'package:bilimusic/feature/search/domain/search_page_result.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 import 'package:bilimusic/feature/search/logic/search_controller.dart';
+import 'package:bilimusic/feature/search/logic/search_guard.dart';
 import 'package:dio/dio.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -34,6 +35,7 @@ MusicChartResolver musicChartResolver(Ref ref) {
     searchRepository: ref.read(biliSearchRepositoryProvider),
     playerRepository: ref.read(biliPlayerRepositoryProvider),
     cache: TrackMatchCache(Hive.box<String>(HiveBoxNames.prefs)),
+    guard: ref.read(searchGuardProvider.notifier),
   );
 }
 
@@ -42,7 +44,8 @@ class MusicChartResolver {
     required this.searchRepository,
     required this.playerRepository,
     this.cache,
-    this.baseSearchInterval = const Duration(milliseconds: 700),
+    this.guard,
+    this.baseSearchInterval = const Duration(milliseconds: 1000),
     this.maxSearchInterval = const Duration(seconds: 3),
     this.cooldown = const Duration(seconds: 45),
     this.maxCooldown = const Duration(minutes: 3),
@@ -53,6 +56,9 @@ class MusicChartResolver {
 
   /// 匹配结果缓存：同一个歌单再点一次「播放全部」不用重新搜 B 站。
   final TrackMatchCache? cache;
+
+  /// 与搜索页共用的限流熔断状态。
+  final SearchGuard? guard;
 
   final Duration baseSearchInterval;
   final Duration maxSearchInterval;
@@ -177,6 +183,10 @@ class MusicChartResolver {
   }
 
   Future<void> _waitForTurn() async {
+    final SearchGuard? sharedGuard = guard;
+    if (sharedGuard != null && sharedGuard.isBlocked) {
+      throw MatchRateLimitedException(sharedGuard.remaining);
+    }
     final DateTime now = DateTime.now();
     final DateTime? until = _cooldownUntil;
     if (until != null && now.isBefore(until)) {
@@ -192,6 +202,7 @@ class MusicChartResolver {
   }
 
   void _onSearchSucceeded() {
+    guard?.markHealthy();
     _healthySearches += 1;
     if (_healthySearches < _successesBeforeSpeedUp) {
       return;
@@ -229,6 +240,7 @@ class MusicChartResolver {
     _currentCooldown = next;
     _cooldownUntil = DateTime.now().add(next);
     _nextAllowedAt = _cooldownUntil!;
+    guard?.markLimited(next);
   }
 
   bool _looksRateLimited(Object error) {

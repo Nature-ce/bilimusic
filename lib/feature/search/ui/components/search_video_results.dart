@@ -10,6 +10,7 @@ import 'package:bilimusic/feature/search/domain/search_sort.dart';
 import 'package:bilimusic/feature/search/domain/search_user_item.dart';
 import 'package:bilimusic/feature/search/ui/components/search_related_users.dart';
 import 'package:bilimusic/feature/search/ui/components/search_results_view.dart';
+import 'package:bilimusic/feature/search/logic/search_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -79,12 +80,28 @@ class SearchVideoResults extends StatelessWidget {
     }
 
     if (results.isEmpty) {
-      return const SliverStatusView(
-        child: StatusView(
-          icon: Icons.search_off_rounded,
-          title: '没有找到相关视频',
-          description: '试试更换关键词，或者稍后重试。',
-        ),
+      return Consumer(
+        builder: (BuildContext context, WidgetRef ref, Widget? child) {
+          final Duration limited = ref.watch(searchGuardProvider);
+          if (limited > Duration.zero) {
+            return SliverStatusView(
+              child: StatusView(
+                icon: Icons.search_off_rounded,
+                title: 'B 站搜索接口被限流了',
+                description:
+                    '约 ${limited.inSeconds} 秒后恢复。频繁批量匹配会触发风控，'
+                    '这段时间已缓存的歌曲仍可正常播放。',
+              ),
+            );
+          }
+          return const SliverStatusView(
+            child: StatusView(
+              icon: Icons.search_off_rounded,
+              title: '没有找到相关视频',
+              description: '试试更换关键词，或者稍后重试。',
+            ),
+          );
+        },
       );
     }
 

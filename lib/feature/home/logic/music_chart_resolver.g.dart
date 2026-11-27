@@ -26,7 +26,7 @@ final class MusicChartResolverProvider
         argument: null,
         retry: null,
         name: r'musicChartResolverProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -55,4 +55,4 @@ final class MusicChartResolverProvider
 }
 
 String _$musicChartResolverHash() =>
-    r'04532b2c0896f5c90e711a3595271d2dbb9a3689';
+    r'4a1c33767882f8ead8a766ad12302d38324406fd';
