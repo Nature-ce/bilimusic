@@ -118,7 +118,6 @@ class _HotPlaylistPageState extends ConsumerState<HotPlaylistPage> {
         context: context,
         ref: ref,
         sourceLabel: _playlist.name,
-        isActive: () => mounted,
         startPlayback: widget.playAll,
         onProgress: (int resolved, int total) {
           if (!mounted) {

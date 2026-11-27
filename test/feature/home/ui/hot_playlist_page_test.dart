@@ -280,6 +280,57 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets('超过 30 首的歌单先只补 30 首进队列', (WidgetTester tester) async {
+    final _PlayAllRecorder player = _PlayAllRecorder();
+    await _pumpPage(
+      tester,
+      total: 40,
+      resolver: _FakeResolver(),
+      player: player,
+      playAll:
+          (
+            BuildContext context,
+            WidgetRef ref,
+            List<PlayableItem> items,
+            String sourceLabel,
+          ) async {},
+    );
+
+    await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
+    await tester.pumpAndSettle();
+
+    // 起播 1 首 + 补到 30 首，剩下的不一次性搜完。
+    expect(player.enqueuedTotal, 29);
+  });
+
+  testWidgets('播放接近队尾时再按 5 首补充', (WidgetTester tester) async {
+    final _PlayAllRecorder player = _PlayAllRecorder()
+      ..reportQueueNearEnd = true;
+    await _pumpPage(
+      tester,
+      total: 40,
+      resolver: _FakeResolver(),
+      player: player,
+      playAll:
+          (
+            BuildContext context,
+            WidgetRef ref,
+            List<PlayableItem> items,
+            String sourceLabel,
+          ) async {},
+    );
+
+    await tester.tap(find.byKey(const Key('hotPlaylistPlayAll')));
+    await tester.pumpAndSettle();
+
+    // 队列走到尾声后继续补，直到整张歌单补完（40 首 = 1 + 39）。
+    expect(player.enqueuedTotal, 39);
+    expect(
+      player.enqueued.any((List<PlayableItem> items) => items.length == 5),
+      isTrue,
+    );
+  });
 }
 
 class _FakeSearchRepository implements BiliSearchRepository {
@@ -323,8 +374,36 @@ class _PlayAllRecorder extends PlayerController {
   final List<PlayerQueueMode> modes = <PlayerQueueMode>[];
   final List<List<PlayableItem>> enqueued = <List<PlayableItem>>[];
 
+  /// 为 true 时假装队列已播到尾声，用来触发懒加载补歌。
+  bool reportQueueNearEnd = false;
+
+  int get enqueuedTotal => enqueued.fold(
+    0,
+    (int sum, List<PlayableItem> items) => sum + items.length,
+  );
+
   @override
   PlayerState build() => const PlayerState();
+
+  @override
+  PlayerState get sessionState {
+    if (!reportQueueNearEnd) {
+      return super.sessionState;
+    }
+    return PlayerState(
+      queue: List<PlayableItem>.generate(
+        30,
+        (int index) => PlayableItem(
+          aid: index + 1,
+          bvid: 'BV$index',
+          title: 'track$index',
+          author: 'artist',
+          coverUrl: '',
+        ),
+      ),
+      currentQueueIndex: 27,
+    );
+  }
 
   @override
   void setQueueMode(PlayerQueueMode mode) {

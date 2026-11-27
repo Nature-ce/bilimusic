@@ -16,10 +16,10 @@ typedef CollectionStartPlayback =
       String sourceLabel,
     );
 
-/// 一键播放：先把前几首解析成 B 站视频就开播，剩下边解析边补队列。
+/// 一键播放：先匹配到第一首就起播，剩下的边播边入队。
 ///
-/// 榜单与热门歌单的曲目都要先搜 B 站，共用这一套节奏；
-/// [onProgress] 用于把「匹配中 x/y」回传给按钮。
+/// 列表超过 [initialQueueSize] 首时只补这么多，之后跟随播放进度按
+/// [refillSize] 懒加载，避免对着几百首的歌单一次性打满搜索。
 class CollectionPlayAllRunner {
   const CollectionPlayAllRunner({
     required this.context,
@@ -28,9 +28,12 @@ class CollectionPlayAllRunner {
     this.onProgress,
     this.startPlayback,
     this.isActive,
+    this.initialQueueSize = 30,
+    this.refillSize = 5,
+    this.refillWhenRemaining = 3,
   });
 
-  /// 匹配到第一首就开播，剩下的边匹配边入队，避免点「播放全部」后干等。
+  /// 匹配到第一首就开播。
   static const int _startSize = 1;
   static const int _batchSize = 2;
 
@@ -40,6 +43,15 @@ class CollectionPlayAllRunner {
   final void Function(int resolved, int total)? onProgress;
   final CollectionStartPlayback? startPlayback;
   final bool Function()? isActive;
+
+  /// 一次先补进队列的曲目上限（超过这个数就等其他歌播完再补）。
+  final int initialQueueSize;
+
+  /// 每次懒加载补充多少首。
+  final int refillSize;
+
+  /// 队列里「当前曲目之后还剩几首」时触发补充。
+  final int refillWhenRemaining;
 
   bool get _alive => isActive?.call() ?? true;
 
@@ -55,15 +67,21 @@ class CollectionPlayAllRunner {
     int duplicateCount = 0;
     int errorCount = 0;
     bool started = false;
+    int cursor = 0;
+
+    final int initialLimit = tracks.length > initialQueueSize
+        ? initialQueueSize
+        : tracks.length;
 
     try {
-      for (final MatchableTrack track in tracks) {
-        if (!_alive) {
+      while (cursor < tracks.length && resolved.length < initialLimit) {
+        if (!_alive || !context.mounted) {
           break;
         }
+        final MatchableTrack track = tracks[cursor];
+        cursor += 1;
         PlayableItem? item;
         try {
-          // 已经预解析过（每日推荐缓存、播放过一遍）就直接用，省一次搜索。
           item = track.directItem ?? await resolver.resolve(track);
         } on Object {
           item = null;
@@ -78,8 +96,10 @@ class CollectionPlayAllRunner {
         }
         onProgress?.call(resolved.length, tracks.length);
         if (!started && resolved.length >= _startSize) {
+          if (!await _start(resolved)) {
+            return;
+          }
           started = true;
-          await _start(resolved);
           player.setQueueMode(PlayerQueueMode.sequence);
           queued = resolved.length;
         } else if (started && resolved.length - queued >= _batchSize) {
@@ -88,14 +108,9 @@ class CollectionPlayAllRunner {
         }
       }
 
-      if (!started && resolved.isNotEmpty) {
-        started = true;
-        await _start(resolved);
-        player.setQueueMode(PlayerQueueMode.sequence);
-        queued = resolved.length;
-      }
       if (started && resolved.length > queued) {
         await player.enqueue(resolved.sublist(queued));
+        queued = resolved.length;
       } else if (!started) {
         final bool looksLikeThrottled =
             errorCount > 0 && errorCount >= resolved.length + 1;
@@ -104,8 +119,22 @@ class CollectionPlayAllRunner {
         );
         return;
       }
+
+      final bool hasMore = cursor < tracks.length;
+      if (hasMore) {
+        await _refillAlongPlayback(
+          tracks: tracks,
+          cursor: cursor,
+          resolver: resolver,
+          player: player,
+          resolved: resolved,
+          seen: seen,
+          queued: queued,
+        );
+      }
+
       final int unmatched = tracks.length - resolved.length;
-      if (unmatched > 0 && context.mounted) {
+      if (!hasMore && unmatched > 0 && context.mounted) {
         final String reason = duplicateCount > 0
             ? '其中 $duplicateCount 首匹配到了同一个视频'
             : '没有找到可信的 B 站视频';
@@ -120,15 +149,80 @@ class CollectionPlayAllRunner {
     }
   }
 
-  Future<void> _start(List<PlayableItem> items) async {
-    if (!_alive) {
-      return;
+  /// 跟随播放进度懒加载：队列里当前曲目之后不足 [refillWhenRemaining] 首时，
+  /// 再匹配 [refillSize] 首补进队列，直到整张歌单都补完。
+  Future<void> _refillAlongPlayback({
+    required List<MatchableTrack> tracks,
+    required int cursor,
+    required MusicChartResolver resolver,
+    required PlayerController player,
+    required List<PlayableItem> resolved,
+    required Set<String> seen,
+    required int queued,
+  }) async {
+    int next = cursor;
+    int queuedCount = queued;
+    while (next < tracks.length) {
+      final bool needsRefill = await _waitForRefillWindow(player);
+      if (!needsRefill) {
+        return;
+      }
+      final int target = resolved.length + refillSize;
+      while (next < tracks.length && resolved.length < target) {
+        final MatchableTrack track = tracks[next];
+        next += 1;
+        PlayableItem? item;
+        try {
+          item = track.directItem ?? await resolver.resolve(track);
+        } on Object {
+          item = null;
+        }
+        if (item == null) {
+          continue;
+        }
+        if (!seen.add(item.stableId)) {
+          continue;
+        }
+        resolved.add(item);
+        onProgress?.call(resolved.length, tracks.length);
+      }
+      if (resolved.length > queuedCount) {
+        await player.enqueue(resolved.sublist(queuedCount));
+        queuedCount = resolved.length;
+      }
+    }
+  }
+
+  Future<bool> _waitForRefillWindow(PlayerController player) async {
+    while (_alive) {
+      PlayerState state;
+      try {
+        state = player.sessionState;
+      } on Object {
+        return false;
+      }
+      if (!state.hasQueue) {
+        return false;
+      }
+      final int index = state.currentQueueIndex ?? 0;
+      final int remaining = state.queue.length - 1 - index;
+      if (remaining <= refillWhenRemaining) {
+        return true;
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    return false;
+  }
+
+  Future<bool> _start(List<PlayableItem> items) async {
+    if (!context.mounted) {
+      return false;
     }
     final CollectionStartPlayback? custom = startPlayback;
     final List<PlayableItem> snapshot = List<PlayableItem>.of(items);
     if (custom != null) {
       await custom(context, ref, snapshot, sourceLabel);
-      return;
+      return true;
     }
     await PlayerUtil.playQueueAndOpenPlayer(
       context,
@@ -136,5 +230,6 @@ class CollectionPlayAllRunner {
       items: snapshot,
       sourceLabel: sourceLabel,
     );
+    return true;
   }
 }

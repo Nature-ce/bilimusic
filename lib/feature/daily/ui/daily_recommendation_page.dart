@@ -118,7 +118,6 @@ class _DailyRecommendationPageState
             _playAllTotal = total;
           });
         },
-        isActive: () => mounted,
       ).run(picks);
     } finally {
       if (mounted) {

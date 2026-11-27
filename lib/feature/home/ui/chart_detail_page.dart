@@ -150,7 +150,6 @@ class _ChartDetailPageState extends ConsumerState<ChartDetailPage> {
             _playAllTotal = total;
           });
         },
-        isActive: () => mounted,
       ).run(tracks);
     } finally {
       if (mounted) {
