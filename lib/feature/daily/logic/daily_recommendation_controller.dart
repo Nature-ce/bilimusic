@@ -48,7 +48,7 @@ RadarRecommender dailyRecommendationRecommender(Ref ref) {
 class DailyRecommendationController extends _$DailyRecommendationController {
   static const int pickCount = 30;
   static const int maxPoolWaves = 6;
-  static const int _resolveConcurrency = 4;
+  static const int _resolveConcurrency = 2;
   static const int _maxResolveAttempts = pickCount * 3;
   static const int _topUpWaves = 2;
 
@@ -340,6 +340,8 @@ class DailyRecommendationController extends _$DailyRecommendationController {
         videoCoverUrl: item.coverUrl,
         videoDurationText: item.durationText ?? '',
       );
+    } on MatchRateLimitedException {
+      rethrow;
     } on Object {
       return null;
     }
@@ -368,29 +370,33 @@ class DailyRecommendationController extends _$DailyRecommendationController {
       return;
     }
     final MusicChartResolver resolver = ref.read(musicChartResolverProvider);
-    for (
-      int start = 0;
-      start < unresolved.length;
-      start += _resolveConcurrency
-    ) {
-      if (!ref.mounted) {
-        return;
+    try {
+      for (
+        int start = 0;
+        start < unresolved.length;
+        start += _resolveConcurrency
+      ) {
+        if (!ref.mounted) {
+          return;
+        }
+        final int end = min(start + _resolveConcurrency, unresolved.length);
+        final List<DailyPick?> results = await Future.wait(
+          unresolved
+              .sublist(start, end)
+              .map((DailyPick pick) => _resolveDailyPick(pick, resolver)),
+        );
+        final List<DailyPick> resolved = <DailyPick>[
+          for (final DailyPick? pick in results) ?pick,
+        ];
+        if (resolved.isNotEmpty) {
+          await _applyResolvedPicks(resolved);
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 120));
       }
-      final int end = min(start + _resolveConcurrency, unresolved.length);
-      final List<DailyPick?> results = await Future.wait(
-        unresolved
-            .sublist(start, end)
-            .map((DailyPick pick) => _resolveDailyPick(pick, resolver)),
-      );
-      final List<DailyPick> resolved = <DailyPick>[
-        for (final DailyPick? pick in results) ?pick,
-      ];
-      if (resolved.isNotEmpty) {
-        await _applyResolvedPicks(resolved);
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await _topUpUnresolvedPicks();
+    } on MatchRateLimitedException {
+      // 被限流就先停手：已解析的已经落盘，剩下的下次进入再补。
     }
-    await _topUpUnresolvedPicks();
   }
 
   Future<void> _applyResolvedPicks(List<DailyPick> resolved) async {

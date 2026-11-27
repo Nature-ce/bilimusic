@@ -66,6 +66,7 @@ class CollectionPlayAllRunner {
     int queued = 0;
     int duplicateCount = 0;
     int errorCount = 0;
+    MatchRateLimitedException? rateLimit;
     bool started = false;
     int cursor = 0;
 
@@ -83,6 +84,9 @@ class CollectionPlayAllRunner {
         PlayableItem? item;
         try {
           item = track.directItem ?? await resolver.resolve(track);
+        } on MatchRateLimitedException catch (error) {
+          rateLimit = error;
+          break;
         } on Object {
           item = null;
           errorCount += 1;
@@ -112,15 +116,25 @@ class CollectionPlayAllRunner {
         await player.enqueue(resolved.sublist(queued));
         queued = resolved.length;
       } else if (!started) {
-        final bool looksLikeThrottled =
-            errorCount > 0 && errorCount >= resolved.length + 1;
-        ToastUtil.show(
-          looksLikeThrottled ? '搜索太频繁被限流了，稍等一会再试' : '没有匹配到可播放的 B 站视频',
-        );
+        final MatchRateLimitedException? limited = rateLimit;
+        if (limited != null) {
+          ToastUtil.show(
+            '搜索被限流了，约 ${limited.retryAfter.inSeconds} 秒后再试（已匹配的不会重复搜）',
+          );
+        } else {
+          final bool looksLikeThrottled =
+              errorCount > 0 && errorCount >= resolved.length + 1;
+          ToastUtil.show(
+            looksLikeThrottled ? '搜索太频繁被限流了，稍等一会再试' : '没有匹配到可播放的 B 站视频',
+          );
+        }
         return;
       }
+      if (rateLimit != null) {
+        ToastUtil.show('已开始播放，但搜索被限流，队列暂时补到 ${resolved.length} 首');
+      }
 
-      final bool hasMore = cursor < tracks.length;
+      final bool hasMore = rateLimit == null && cursor < tracks.length;
       if (hasMore) {
         await _refillAlongPlayback(
           tracks: tracks,
@@ -174,6 +188,8 @@ class CollectionPlayAllRunner {
         PlayableItem? item;
         try {
           item = track.directItem ?? await resolver.resolve(track);
+        } on MatchRateLimitedException {
+          return;
         } on Object {
           item = null;
         }
