@@ -1,3 +1,4 @@
+import 'package:bilimusic/common/util/chinese_variants.dart';
 import 'package:bilimusic/feature/home/domain/matchable_track.dart';
 import 'package:bilimusic/feature/search/domain/search_result_item.dart';
 
@@ -129,7 +130,7 @@ class ChartTrackMatcher {
   static const int _shortTitleMaxLength = 3;
 
   /// 兜底匹配（只按歌名找完整版）要求的最短歌名，太短的不兜底。
-  static const int _fallbackMinimumTitleLength = 4;
+  static const int _fallbackMinimumTitleLength = 3;
 
   static final RegExp _ignoredCharacters = RegExp(
     r'''[\s\-_/\\.。，,、:：!！?？"'`~@#%&*+=|<>()\[\]{}（）【】「」『』《》]''',
@@ -389,7 +390,8 @@ class ChartTrackMatcher {
   }
 
   static String normalize(String value) {
-    return value.toLowerCase().replaceAll(_ignoredCharacters, '');
+    // 先做繁简归一：B 站标题常是繁体（時間線），平台歌名是简体（时间线）。
+    return toSimplified(value).toLowerCase().replaceAll(_ignoredCharacters, '');
   }
 
   static int parseDurationSeconds(String value) {

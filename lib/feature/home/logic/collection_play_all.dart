@@ -191,7 +191,10 @@ class CollectionPlayAllRunner {
     int next = cursor;
     int queuedCount = queued;
     while (next < tracks.length) {
-      final bool needsRefill = await _waitForRefillWindow(player);
+      final bool needsRefill = await _waitForRefillWindow(
+        player,
+        expectedQueue: queuedCount,
+      );
       if (!needsRefill) {
         return;
       }
@@ -223,7 +226,15 @@ class CollectionPlayAllRunner {
     }
   }
 
-  Future<bool> _waitForRefillWindow(PlayerController player) async {
+  /// 等到「当前曲目之后剩余不多于 [refillWhenRemaining] 首」才补歌。
+  ///
+  /// [expectedQueue] 是本地认为已经入队的数量：播放器状态可能还没反映最新
+  /// 队列长度，这种情况下先等一会儿再判断，否则一次跳转会连补两批。
+  Future<bool> _waitForRefillWindow(
+    PlayerController player, {
+    required int expectedQueue,
+  }) async {
+    int lagTicks = 0;
     while (_alive) {
       PlayerState state;
       try {
@@ -234,6 +245,12 @@ class CollectionPlayAllRunner {
       if (!state.hasQueue) {
         return false;
       }
+      if (state.queue.length < expectedQueue && lagTicks < 6) {
+        lagTicks += 1;
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+        continue;
+      }
+      lagTicks = 0;
       final int index = state.currentQueueIndex ?? 0;
       final int remaining = state.queue.length - 1 - index;
       if (remaining <= refillWhenRemaining) {

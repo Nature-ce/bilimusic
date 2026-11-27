@@ -390,18 +390,21 @@ class _PlayAllRecorder extends PlayerController {
     if (!reportQueueNearEnd) {
       return super.sessionState;
     }
+    final int length = 1 + enqueuedTotal;
+    final int queueLength = length < 30 ? 30 : length;
+    final int index = queueLength > 3 ? queueLength - 3 : 0;
     return PlayerState(
       queue: List<PlayableItem>.generate(
-        30,
-        (int index) => PlayableItem(
-          aid: index + 1,
-          bvid: 'BV$index',
-          title: 'track$index',
+        queueLength,
+        (int i) => PlayableItem(
+          aid: i + 1,
+          bvid: 'BV$i',
+          title: 'track$i',
           author: 'artist',
           coverUrl: '',
         ),
       ),
-      currentQueueIndex: 27,
+      currentQueueIndex: index,
     );
   }
 

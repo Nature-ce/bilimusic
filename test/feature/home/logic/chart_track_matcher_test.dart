@@ -443,4 +443,45 @@ void main() {
       expect(picked?.title, contains('官方MV'));
     },
   );
+
+  test('繁体标题也能匹配到简体歌名', () {
+    const MusicChartTrack track = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 4,
+      title: '时间线',
+      artist: '于冬然',
+      coverUrl: '',
+      durationSeconds: 189,
+    );
+
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: track,
+        candidates: <SearchResultItem>[
+          _item(title: '于冬然 - 時間線', author: '心若薄荷', duration: '03:11'),
+        ],
+      )?.title,
+      contains('時間線'),
+    );
+  });
+
+  test('三个字的歌名也能走按歌名兜底', () {
+    const MusicChartTrack track = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 4,
+      title: '时间线',
+      artist: '于冬然',
+      coverUrl: '',
+      durationSeconds: 189,
+    );
+
+    final SearchResultItem? picked = ChartTrackMatcher.pickTitleFallback(
+      track: track,
+      candidates: <SearchResultItem>[
+        _item(title: '时间线 官方MV 完整版', author: '某搬运', duration: '03:12'),
+      ],
+    );
+
+    expect(picked, isNotNull);
+  });
 }
