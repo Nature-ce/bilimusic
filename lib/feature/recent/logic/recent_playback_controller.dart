@@ -24,18 +24,29 @@ class RecentPlaybackController extends _$RecentPlaybackController {
     final List<RecentPlaybackEntry> nextEntries = await _repository.saveEntry(
       entry,
     );
-    state = nextEntries;
+    _applyEntries(nextEntries);
   }
 
   Future<void> removeEntry(String stableId) async {
     final List<RecentPlaybackEntry> nextEntries = await _repository.removeEntry(
       stableId,
     );
-    state = nextEntries;
+    _applyEntries(nextEntries);
   }
 
   Future<void> clear() async {
     await _repository.clearAll();
-    state = const <RecentPlaybackEntry>[];
+    _applyEntries(const <RecentPlaybackEntry>[]);
+  }
+
+  /// 写 state 前确认 provider 还活着。
+  ///
+  /// 这是个 autoDispose provider：快速切页时它会在「await 仓储」期间被回收，
+  /// 此时直接写 state 会抛 `Cannot use the Ref ... after it has been disposed`。
+  void _applyEntries(List<RecentPlaybackEntry> entries) {
+    if (!ref.mounted) {
+      return;
+    }
+    state = entries;
   }
 }
