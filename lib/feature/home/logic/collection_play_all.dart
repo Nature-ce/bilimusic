@@ -51,6 +51,7 @@ class CollectionPlayAllRunner {
     final List<PlayableItem> resolved = <PlayableItem>[];
     final Set<String> seen = <String>{};
     int queued = 0;
+    int duplicateCount = 0;
     bool started = false;
 
     try {
@@ -64,8 +65,12 @@ class CollectionPlayAllRunner {
         } on Object {
           item = null;
         }
-        if (item != null && seen.add(item.stableId)) {
-          resolved.add(item);
+        if (item != null) {
+          if (seen.add(item.stableId)) {
+            resolved.add(item);
+          } else {
+            duplicateCount += 1;
+          }
         }
         onProgress?.call(resolved.length, tracks.length);
         if (!started && resolved.length >= _startSize) {
@@ -89,6 +94,18 @@ class CollectionPlayAllRunner {
         await player.enqueue(resolved.sublist(queued));
       } else if (!started) {
         ToastUtil.show('没有匹配到可播放的 B 站视频');
+        return;
+      }
+      final int unmatched = tracks.length - resolved.length;
+      if (unmatched > 0 && context.mounted) {
+        final String reason = duplicateCount > 0
+            ? '其中 $duplicateCount 首匹配到了同一个视频'
+            : '没有找到可信的 B 站视频';
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text('已加入 ${resolved.length} 首，$unmatched 首未匹配（$reason）'),
+          ),
+        );
       }
     } on Object {
       ToastUtil.show('一键播放失败，请稍后再试');

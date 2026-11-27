@@ -125,7 +125,11 @@ class DailyRecommendationController extends _$DailyRecommendationController {
         final List<HotPlaylistTrack> usableTracks = pool.tracks
             .where(
               (HotPlaylistTrack track) =>
-                  !ChartTrackMatcher.isGenericTitle(track.title),
+                  !ChartTrackMatcher.isGenericTitle(track.title) &&
+                  !ChartTrackMatcher.looksLikeVariant(
+                    title: track.title,
+                    artist: track.artist,
+                  ),
             )
             .toList(growable: false);
         if (usableTracks.isEmpty) {

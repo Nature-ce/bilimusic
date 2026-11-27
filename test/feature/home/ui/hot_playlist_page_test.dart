@@ -240,6 +240,8 @@ void main() {
 
     expect(played, hasLength(1));
     expect(played!.single.title, '晴天');
+    // 没匹配到的歌要明确告诉用户，不能静默少放几首。
+    expect(find.textContaining('首未匹配'), findsOneWidget);
   });
 
   testWidgets('play-all queues the remaining tracks in batches', (

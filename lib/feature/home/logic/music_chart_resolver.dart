@@ -34,7 +34,8 @@ class MusicChartResolver {
     }
     final SearchResultItem? match =
         await _searchBest(track.searchKeyword, track) ??
-        await _searchBest(track.title, track);
+        await _searchBest(track.title, track) ??
+        await _searchTitleFallback(track);
     if (match == null) {
       return null;
     }
@@ -43,6 +44,21 @@ class MusicChartResolver {
       preferredPage: 1,
       expectedTitle: track.title,
       expectedArtist: track.artist,
+    );
+  }
+
+  /// 严格规则找不到时，只按歌名找完整版（平台歌手本身是翻唱/搬运时用）。
+  Future<SearchResultItem?> _searchTitleFallback(MatchableTrack track) async {
+    final String keyword = track.title.trim();
+    if (keyword.isEmpty) {
+      return null;
+    }
+    final SearchPageResult result = await searchRepository.searchVideos(
+      keyword,
+    );
+    return ChartTrackMatcher.pickTitleFallback(
+      track: track,
+      candidates: result.items,
     );
   }
 

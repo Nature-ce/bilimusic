@@ -89,6 +89,48 @@ class ChartTrackMatcher {
     '改编',
   ];
 
+  /// 明显不是「这首歌本身」的内容：游戏实况、攻略解说、搞笑剪辑等。
+  /// 命中这些词时，只有歌手也对上才认，否则直接判为不匹配。
+  static const List<String> _nonMusicMarkers = <String>[
+    '游戏',
+    '实况',
+    '攻略',
+    '解说',
+    '直播回放',
+    '录播',
+    '搞笑',
+    '吐槽',
+    '速通',
+  ];
+
+  /// 同一首歌的「非原唱版本」标记：命中时要求歌手也对上，避免把翻唱/伴奏
+  /// 当成原唱推出去。
+  static const List<String> _variantMarkers = <String>[
+    '翻唱',
+    '翻自',
+    'cover',
+    '女声',
+    '男声',
+    '童声',
+    '钢琴版',
+    '吉他版',
+    '尤克里里',
+    '伴奏',
+    'dj',
+    'remix',
+    '加速',
+    '减速',
+    'ai',
+    '虚拟歌手',
+  ];
+
+  /// 归一化后长度不超过这个值算「短标题」（如「你的」「Fly」），
+  /// 单靠标题包含太容易误判，必须同时命中歌手。
+  static const int _shortTitleMaxLength = 3;
+
+  /// 兜底匹配（只按歌名找完整版）要求的最短歌名，太短的不兜底。
+  static const int _fallbackMinimumTitleLength = 4;
+
   static final RegExp _ignoredCharacters = RegExp(
     r'''[\s\-_/\\.。，,、:：!！?？"'`~@#%&*+=|<>()\[\]{}（）【】「」『』《》]''',
   );
@@ -126,6 +168,75 @@ class ChartTrackMatcher {
     return _score(track: track, item: item).total;
   }
 
+  /// 宽松兜底：只按歌名挑一个「完整版」视频。
+  ///
+  /// 平台给的歌手本身是翻唱/搬运时，严格规则会因「歌手对不上」而找不到，
+  /// 这时改用歌名找候选：必须是完整歌时长、标题含歌名、不是剪辑/非音乐内容，
+  /// 优先标题里带官方/MV/无损等标记的，再按播放量挑——通常就落到原唱版本。
+  static SearchResultItem? pickTitleFallback({
+    required MatchableTrack track,
+    required List<SearchResultItem> candidates,
+  }) {
+    final String title = normalize(track.title);
+    if (title.length < _fallbackMinimumTitleLength) {
+      return null;
+    }
+    final String artist = normalize(track.artist);
+    SearchResultItem? best;
+    _MatchScore? bestScore;
+    for (final SearchResultItem item in candidates) {
+      final int seconds = parseDurationSeconds(item.duration);
+      if (seconds > 0 &&
+          (seconds < _minimumPlausibleSongSeconds ||
+              seconds > _maximumPlausibleSongSeconds)) {
+        continue;
+      }
+      final String candidateTitle = normalize(item.title);
+      if (!candidateTitle.contains(title)) {
+        continue;
+      }
+      if (_nonMusicMarkers.any(
+        (String marker) => candidateTitle.contains(marker),
+      )) {
+        continue;
+      }
+      final bool artistMatched =
+          artist.isNotEmpty &&
+          (candidateTitle.contains(artist) ||
+              normalize(item.author).contains(artist));
+      final bool variantMarked = _variantMarkers.any(
+        (String marker) => candidateTitle.contains(marker),
+      );
+      if (variantMarked && !artistMatched) {
+        continue;
+      }
+      final _MatchScore score = _MatchScore(
+        total: _keywordScore(candidateTitle) + (artistMatched ? 1 : 0),
+        isConfident: true,
+        durationDiff: -1,
+        playCount: _parsePlayCount(item.playCountText),
+      );
+      if (bestScore == null || score.isBetterThan(bestScore)) {
+        best = item;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  /// 推荐链路用：标题或歌手带翻唱/伴奏/AI 等标记的，不作为「原唱」推荐。
+  static bool looksLikeVariant({
+    required String title,
+    required String artist,
+  }) {
+    final String normalizedTitle = normalize(title);
+    final String normalizedArtist = normalize(artist);
+    return _variantMarkers.any(
+      (String marker) =>
+          normalizedTitle.contains(marker) || normalizedArtist.contains(marker),
+    );
+  }
+
   static _MatchScore _score({
     required MatchableTrack track,
     required SearchResultItem item,
@@ -138,9 +249,25 @@ class ChartTrackMatcher {
 
     final String title = normalize(track.title);
     final String artist = normalize(track.artist);
-    final String candidate = normalize(item.title);
-    final bool titleMatched = title.isNotEmpty && candidate.contains(title);
-    final bool artistMatched = artist.isNotEmpty && candidate.contains(artist);
+    final String candidateTitle = normalize(item.title);
+    final String candidateAuthor = normalize(item.author);
+    final bool titleMatched =
+        title.isNotEmpty && candidateTitle.contains(title);
+    final bool artistInTitle =
+        artist.isNotEmpty && candidateTitle.contains(artist);
+    final bool artistIsUploader =
+        artist.length >= 2 &&
+        candidateAuthor.isNotEmpty &&
+        (candidateAuthor == artist || candidateAuthor.contains(artist));
+    final bool artistMatched = artistInTitle || artistIsUploader;
+    final bool exactTitleMatched = title.isNotEmpty && candidateTitle == title;
+    final bool shortTitle = title.length <= _shortTitleMaxLength;
+    final bool variantMarked = _variantMarkers.any(
+      (String marker) => candidateTitle.contains(marker),
+    );
+    final bool nonMusicMarked = _nonMusicMarkers.any(
+      (String marker) => candidateTitle.contains(marker),
+    );
 
     final bool trackDurationUnreliable =
         trackSeconds > 0 && trackSeconds < minimumClipSeconds;
@@ -170,19 +297,26 @@ class ChartTrackMatcher {
       }
     }
 
-    final int keywordScore = _keywordScore(candidate);
+    final int keywordScore = _keywordScore(candidateTitle);
     final int total =
         (titleMatched ? _titleScore : 0) +
         (artistMatched ? _artistScore : 0) +
         durationScore +
         keywordScore;
-    // 「催眠曲」「纯音乐」这类超短通用标题在 B 站上到处都有，单靠标题包含会把
-    // 不相干的合集也判成命中；这种情况要求歌手命中或时长非常接近。
+    // 标题必须命中；再要求「歌手命中」或「时长接近」二选一。
+    // 之前的规则允许「歌手命中 + 时长接近」单独成立，会把同一位 UP 主的
+    // 另一首歌（如推荐《光年之外》却播成《雾里》）判成命中。
+    // 短标题 / 通用曲名 / 翻唱版本 / 非音乐内容再额外要求歌手命中，
+    // 但「候选标题 == 歌名」这种完全同名的情况可以直接放行。
     final bool genericShortTitle =
         title.isNotEmpty && _genericTitleKeywords.contains(title);
-    final bool isConfident = genericShortTitle
-        ? artistMatched
-        : (titleMatched || (artistMatched && durationClose));
+    final bool isConfident =
+        titleMatched &&
+        (artistMatched || durationClose || exactTitleMatched) &&
+        (!shortTitle || artistMatched || exactTitleMatched) &&
+        (!genericShortTitle || artistMatched || exactTitleMatched) &&
+        (!variantMarked || artistMatched || exactTitleMatched) &&
+        (!nonMusicMarked || artistMatched);
     return _MatchScore(
       total: total,
       isConfident: isConfident,

@@ -87,12 +87,15 @@ void main() {
       ),
       isNull,
     );
+    // 只有歌手命中、歌名不在标题里的视频（同一 UP 主的其他歌 / 金曲合辑）
+    // 一律不认，哪怕时长刚好对上——这正是「推荐《光年之外》却播成《雾里》」
+    // 那类误匹配的成因。
     expect(
       ChartTrackMatcher.pickBest(
         track: _track,
         candidates: [_item(title: '周杰伦金曲串烧', duration: '04:31')],
       ),
-      isNotNull,
+      isNull,
     );
   });
 
@@ -366,4 +369,78 @@ void main() {
     expect(ChartTrackMatcher.parseDurationSeconds('abc'), 0);
     expect(ChartTrackMatcher.normalize('【4K】晴天 - 周杰伦'), '4k晴天周杰伦');
   });
+
+  test('rejects non-music videos that merely share a short title', () {
+    const MusicChartTrack shortTitleTrack = MusicChartTrack(
+      chart: MusicChartCatalog.defaultChart,
+      rank: 1,
+      title: '你的',
+      artist: 'DouDou',
+      coverUrl: '',
+      durationSeconds: 163,
+    );
+
+    // 标题里带「你的」，但其实是游戏视频、UP 主也不是歌手。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: shortTitleTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '你的名字 游戏实况 第八期', author: '某个游戏up', duration: '02:43'),
+        ],
+      ),
+      isNull,
+    );
+
+    // 歌手命中、时长也对得上，但没有命中原歌名 → 不认。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: shortTitleTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '另一首歌', author: 'DouDou', duration: '02:43'),
+        ],
+      ),
+      isNull,
+    );
+
+    // 歌名 + 歌手都在标题里才认。
+    expect(
+      ChartTrackMatcher.pickBest(
+        track: shortTitleTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '你的 - DouDou 完整版', author: '音乐搬运工', duration: '02:43'),
+        ],
+      )?.title,
+      contains('你的'),
+    );
+  });
+
+  test(
+    'title fallback picks a complete song when the artist is a cover act',
+    () {
+      const MusicChartTrack coverTrack = MusicChartTrack(
+        chart: MusicChartCatalog.defaultChart,
+        rank: 1,
+        title: '光年之外',
+        artist: '翻唱小哥',
+        coverUrl: '',
+        durationSeconds: 166,
+      );
+
+      final SearchResultItem? picked = ChartTrackMatcher.pickTitleFallback(
+        track: coverTrack,
+        candidates: <SearchResultItem>[
+          _item(title: '光年之外 - 翻唱小哥', author: '翻唱小哥', duration: '02:46'),
+          _item(
+            title: '光年之外 官方MV - 邓紫棋',
+            author: '邓紫棋',
+            duration: '03:56',
+            playCount: '3200万',
+          ),
+          _item(title: '光年之外 十小时循环', author: '某合集', duration: '9:59:59'),
+        ],
+      );
+
+      expect(picked?.title, contains('官方MV'));
+    },
+  );
 }
