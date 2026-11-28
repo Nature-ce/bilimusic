@@ -29,6 +29,7 @@ import 'package:bilimusic/feature/player/logic/playback/player_audio_engine.dart
 import 'package:bilimusic/feature/player/logic/playback/player_audio_quality_preference_logic.dart';
 import 'package:bilimusic/feature/player/logic/playback/player_audio_session_coordinator.dart';
 import 'package:bilimusic/feature/player/logic/player_event_hub.dart';
+import 'package:bilimusic/feature/player/logic/utils/playback_state_publish_policy.dart';
 import 'package:bilimusic/feature/player/logic/playback/player_settings_logic.dart';
 import 'package:bilimusic/feature/recent/logic/recent_playback_controller.dart';
 import 'package:flutter/foundation.dart';
@@ -116,6 +117,7 @@ class PlayerController extends Notifier<PlayerState>
   double _lastAudibleVolume = 1.0;
   int _operationGeneration = 0;
   Duration _lastPersistedProgress = Duration.zero;
+  Duration _lastPublishedPosition = Duration.zero;
   Duration? _pendingSeekTarget;
 
   static const Duration _persistProgressStep = Duration(seconds: 10);
@@ -906,6 +908,7 @@ class PlayerController extends Notifier<PlayerState>
     );
     _emitPlayerEvent(PlayerEventType.position, position: position);
     _persistProgressWhilePlaying(position);
+    _maybePublishPositionResync(position);
   }
 
   // 自动存储进度：只写一个很小的续播位置，不再为了记进度重写整条队列。
@@ -928,6 +931,20 @@ class PlayerController extends Notifier<PlayerState>
         position: position,
       ),
     );
+  }
+
+  /// 位置类变化不再逐次推送，改为播放中每
+  /// [PlaybackStatePublishPolicy.resyncInterval] 补推一次，
+  /// 兜住不按 `speed + updateTime` 插值推算进度的系统。
+  void _maybePublishPositionResync(Duration position) {
+    if (!PlaybackStatePublishPolicy.shouldPublishPositionChange(
+      position: position,
+      lastPublishedPosition: _lastPublishedPosition,
+      isPlaying: state.isPlaying,
+    )) {
+      return;
+    }
+    _publishPlaybackState();
   }
 
   void _onEngineBufferedPositionChanged(Duration bufferedPosition) {
@@ -1074,9 +1091,11 @@ class PlayerController extends Notifier<PlayerState>
     return switch (change) {
       _EnginePlaybackChange.position => _EnginePlaybackReduction(
         nextState: current.copyWith(position: next.position),
+        shouldPublishPlaybackState: false,
       ),
       _EnginePlaybackChange.bufferedPosition => _EnginePlaybackReduction(
         nextState: current.copyWith(bufferedPosition: next.bufferedPosition),
+        shouldPublishPlaybackState: false,
       ),
       _EnginePlaybackChange.duration => _EnginePlaybackReduction(
         nextState: current.copyWith(duration: next.duration),
@@ -1377,6 +1396,7 @@ class PlayerController extends Notifier<PlayerState>
       hasPrevious: state.hasPrevious,
       hasNext: state.queueMode == PlayerQueueMode.singleRepeat || state.hasNext,
     );
+    _lastPublishedPosition = state.position;
   }
 
   void _logPlayerEvent(String event, {Map<String, Object?>? details}) {
