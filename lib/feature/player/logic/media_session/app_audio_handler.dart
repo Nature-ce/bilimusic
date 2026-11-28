@@ -18,6 +18,13 @@ abstract interface class PlayerCommandTarget {
 class PlayerAudioService {
   PlayerAudioService._();
 
+  /// 通知栏小图标。
+  ///
+  /// 不设置的话 audio_service 默认取 `mipmap/ic_launcher`，而项目里那个文件还是
+  /// Flutter 模板图标（真正的应用图标是 `mipmap/launcher_icon`），通知上会显示
+  /// 一个 Flutter 图标。这里改用单色的音符图标，和系统状态栏风格一致。
+  static const String androidNotificationIcon = 'drawable/ic_stat_music';
+
   static AppAudioHandler? _handler;
 
   static AppAudioHandler get handler {
@@ -38,6 +45,7 @@ class PlayerAudioService {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.example.bilimusic.channel.audio',
         androidNotificationChannelName: 'Bilimusic Playback',
+        androidNotificationIcon: androidNotificationIcon,
         // 暂停时不要停掉前台服务：否则通知会消失、进程降级成缓存进程，
         // 后台被系统回收后就只能重新打开 App 才能继续播。
         androidStopForegroundOnPause: false,
@@ -82,11 +90,13 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
     required double speed,
     required AudioProcessingState processingState,
   }) {
+    // 不再放 MediaControl.stop：系统通知上它的图标解析不出来（真机渲染成空白
+    // 方块，点一下就结束播放），而通知滑走 / 系统控件已经能停止播放。
+    // systemActions 里保留 MediaAction.stop，外部控制器仍可停止。
     final List<MediaControl> controls = <MediaControl>[
       if (hasPrevious) MediaControl.skipToPrevious,
       isPlaying ? MediaControl.pause : MediaControl.play,
       if (hasNext) MediaControl.skipToNext,
-      MediaControl.stop,
     ];
 
     playbackState.add(
@@ -98,7 +108,6 @@ class AppAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
           MediaAction.seekBackward,
           MediaAction.play,
           MediaAction.pause,
-          MediaAction.stop,
           MediaAction.skipToNext,
           MediaAction.skipToPrevious,
         },
