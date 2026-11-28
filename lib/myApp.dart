@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:bilimusic/core/devtools/dev_overlay.dart';
 import 'package:bilimusic/core/theme/app_theme.dart';
 import 'package:bilimusic/core/theme/theme_logic.dart';
@@ -32,6 +33,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       scrollBehavior: MyBehavior(),
       builder: FlutterSmartDialog.init(
         builder: (BuildContext context, Widget? child) {
+          // SmartDialog 的 context 已经就绪，toast 从这里开始可用。
+          ToastUtil.markReady();
           return Stack(
             children: <Widget>[
               child ?? const SizedBox.shrink(),
@@ -50,4 +53,24 @@ class MyBehavior extends MaterialScrollBehavior {
     PointerDeviceKind.touch,
     PointerDeviceKind.mouse,
   };
+}
+
+/// 应用根部的 SmartDialog 包装。
+///
+/// 顺便把 [ToastUtil] 标记为「SmartDialog 已挂载」：toast 依赖
+/// `FlutterSmartDialog.init()` 注入的 context，未挂载时调用会抛
+/// `LateInitializationError`（且发生在异步任务里，调用方抓不到）。
+/// 抽成函数是为了让测试能验证这段生产接线。
+TransitionBuilder appSmartDialogBuilder() {
+  return FlutterSmartDialog.init(
+    builder: (BuildContext context, Widget? child) {
+      ToastUtil.markReady();
+      return Stack(
+        children: <Widget>[
+          child ?? const SizedBox.shrink(),
+          if (kDebugMode) const DevOverlay(),
+        ],
+      );
+    },
+  );
 }

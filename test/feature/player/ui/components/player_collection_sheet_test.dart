@@ -7,6 +7,7 @@ import 'package:bilimusic/feature/favorites/domain/favorites_state.dart';
 import 'package:bilimusic/feature/favorites/logic/favorites_controller.dart';
 import 'package:bilimusic/feature/player/domain/playable_item.dart';
 import 'package:bilimusic/feature/player/ui/components/player_collection_sheet.dart';
+import 'package:bilimusic/common/util/toast_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -67,7 +68,11 @@ void main() {
       ProviderScope(
         overrides: [favoritesControllerProvider.overrideWithValue(state)],
         child: MaterialApp(
-          builder: FlutterSmartDialog.init(),
+          builder: (BuildContext context, Widget? child) {
+            // 这个用例断言 toast 文案，需要让 ToastUtil 认为 SmartDialog 已挂载。
+            ToastUtil.markReady();
+            return FlutterSmartDialog.init()(context, child);
+          },
           home: Scaffold(
             body: Builder(
               builder: (BuildContext context) => TextButton(

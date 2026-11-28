@@ -34,4 +34,16 @@ void main() {
     await reporter.finish();
     await reporter.fail('所有下载地址均失败');
   });
+
+  test('通知与任务栏都不可用时，toast 兜底失败也不抛错', () async {
+    // 不调用 prepare()：既不启用通知也不启用任务栏，强制走 ToastUtil 兜底。
+    // 测试环境里 SmartDialog 没有初始化，这条路径在 Linux/Windows 上都会抛
+    // LateInitializationError：兜底必须自己吞掉，不能影响下载流程。
+    final UpdateProgressReporter reporter = UpdateProgressReporter();
+
+    await expectLater(reporter.report(0, 'gh-proxy.org'), completes);
+    await expectLater(reporter.report(50, null), completes);
+    await expectLater(reporter.finish(), completes);
+    await expectLater(reporter.fail('所有下载地址均失败'), completes);
+  });
 }

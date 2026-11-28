@@ -52,7 +52,13 @@ class UpdateProgressReporter {
     }
 
     final String label = percent <= 0 ? '开始下载' : '正在下载更新 $percent%';
-    ToastUtil.showProgress(host == null ? label : '$label（$host）');
+    // toast 兜底也可能不可用（例如测试环境或桌面端未初始化 SmartDialog），
+    // 按类注释的约定：任何通道失败都只记日志，不影响下载流程。
+    try {
+      ToastUtil.showProgress(host == null ? label : '$label（$host）');
+    } on Object catch (error) {
+      _logger.w('show progress toast failed: $error');
+    }
   }
 
   Future<void> finish() async {

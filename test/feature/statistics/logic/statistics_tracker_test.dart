@@ -549,11 +549,17 @@ void main() {
 class _CountingDailyRepository implements DailyListeningRepository {
   int writes = 0;
   int totalMs = 0;
+  int songs = 0;
 
   @override
   Future<void> addListenedMs(DateTime day, int deltaMs) async {
     writes += 1;
     totalMs += deltaMs;
+  }
+
+  @override
+  Future<void> addSong(DateTime day) async {
+    songs += 1;
   }
 
   @override
